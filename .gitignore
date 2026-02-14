@@ -1,0 +1,5 @@
+# Git ignore for Sanskar-AI
+
+# Environment files (do not commit)
+.env
+.env.example

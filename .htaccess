@@ -1,0 +1,22 @@
+RewriteEngine On
+
+# Redirect all requests to index.php (front controller)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
+
+# Deny access to sensitive directories
+RewriteRule ^app/ - [F,L]
+RewriteRule ^storage/ - [F,L]
+RewriteRule ^docs/ - [F,L]
+
+# Deny access to sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "(composer\.json|composer\.lock|\.env)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
