@@ -62,6 +62,19 @@
                             <?php endforeach; ?>
                         </select>
                     </div>
+
+                    <div class="form-group">
+                        <label for="kul_devi_devta">Kul Devi/Devta</label>
+                        <input 
+                            type="text" 
+                            id="kul_devi_devta" 
+                            name="kul_devi_devta" 
+                            class="form-control" 
+                            value="<?= htmlspecialchars($user['kul_devi_devta'] ?? '') ?>" 
+                            placeholder="e.g. Durga Mata, Khandoba, Kulswamini..."
+                        >
+                        <small class="text-muted">Your family's traditional deity</small>
+                    </div>
                 </div>
 
                 <div class="form-actions" style="margin-top: 25px; display: flex; gap: 15px;">

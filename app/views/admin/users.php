@@ -18,6 +18,8 @@
                 <th>Name</th>
                 <th>Email</th>
                 <th>Mobile</th>
+                <th>Community</th>
+                <th>Kul Devi/Devta</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Joined</th>
@@ -27,7 +29,7 @@
         <tbody>
             <?php if (empty($users)): ?>
             <tr>
-                <td colspan="8" style="text-align: center; color: #6B7280; padding: 30px;">No users found</td>
+                <td colspan="10" style="text-align: center; color: #6B7280; padding: 30px;">No users found</td>
             </tr>
             <?php else: ?>
             <?php foreach ($users as $u): ?>
@@ -36,6 +38,8 @@
                 <td><strong><?= htmlspecialchars($u['name']) ?></strong></td>
                 <td><?= htmlspecialchars($u['email']) ?></td>
                 <td><?= htmlspecialchars($u['mobile'] ?? 'N/A') ?></td>
+                <td><?= htmlspecialchars($u['community_name'] ?? '-') ?></td>
+                <td><?= htmlspecialchars($u['kul_devi_devta'] ?? '-') ?></td>
                 <td><span class="badge badge-info"><?= ucfirst($u['role']) ?></span></td>
                 <td>
                     <span class="badge badge-<?= $u['status'] === 'active' ? 'success' : ($u['status'] === 'blocked' ? 'danger' : 'warning') ?>">

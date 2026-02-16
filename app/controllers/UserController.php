@@ -1408,7 +1408,7 @@ class UserController extends Controller
         }
 
         $userId = Auth::id();
-        $data = $this->only(['community_name', 'religion']);
+        $data = $this->only(['community_name', 'religion', 'kul_devi_devta']);
 
         try {
             // Update user model (User model needs to be instantiated to use update)

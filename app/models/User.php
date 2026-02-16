@@ -20,6 +20,7 @@ class User extends Model
         'email',
         'mobile',
         'community_name',
+        'kul_devi_devta',
         'religion',
         'password_hash',
         'role',

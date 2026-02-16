@@ -101,7 +101,7 @@
             <div class="step-number">1</div>
             <div class="step-icon"><i class="fas fa-user-plus"></i></div>
             <h3>Create Your Profile</h3>
-            <p>Sign up and add your family details including Gotra, Nakshatra, and Kul Devta for personalized recommendations.</p>
+            <p>Sign up and add your family details including Gotra, Nakshatra, and Kul Devi/Devta for personalized recommendations.</p>
         </div>
         <div class="step-card" data-animate="fade-up" data-delay="150">
             <div class="step-number">2</div>
@@ -142,7 +142,7 @@
         <div class="feature-card" data-animate="fade-up" data-delay="200">
             <div class="feature-icon"><i class="fas fa-book"></i></div>
             <h3>Step-by-Step Rituals</h3>
-            <p>Access detailed guides for each ritual including mantras, significance, required items, and proper procedures explained in simple terms.</p>
+            <p>Access detailed guides for each ritual including  significance, mantras, required items, and proper procedures explained in simple terms.</p>
             <a href="/signup" class="feature-link">Explore Rituals <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="feature-card" data-animate="fade-up" data-delay="0">
@@ -154,7 +154,7 @@
         <div class="feature-card" data-animate="fade-up" data-delay="100">
             <div class="feature-icon"><i class="fas fa-users"></i></div>
             <h3>Family Profiles</h3>
-            <p>Store your family's Gotra, Nakshatra, Kul Devta, and other details for personalized suggestions and ceremony planning.</p>
+            <p>Store your family's Gotra, Nakshatra, Kul Devi/Devta, and other details for personalized suggestions and ceremony planning.</p>
             <a href="/signup" class="feature-link">Get started <i class="fas fa-arrow-right"></i></a>
         </div>
         <div class="feature-card" data-animate="fade-up" data-delay="200">
@@ -260,39 +260,40 @@
 </section>
 
 <!-- App Features Showcase -->
+
 <section class="app-showcase">
     <div class="app-content" data-animate="fade-up">
         <span class="section-tag">Complete Solution</span>
         <h2>Everything at Your Fingertips</h2>
-        <p>From ritual guides to pandit booking, shopping lists to cultural insights - all in one place.</p>
+        <p>From ritual guides to pandit booking, shopping lists to cultural insights.</p>
         
         <div class="app-features-list">
             <div class="app-feature">
                 <div class="app-feature-icon"><i class="fas fa-check-circle"></i></div>
                 <div>
-                    <strong>100+ Rituals Explained</strong>
-                    <p>Detailed guides with mantras and significance</p>
+                    <strong>Ritual Guides</strong>
+                    <p>Significance and mantras</p>
                 </div>
             </div>
             <div class="app-feature">
                 <div class="app-feature-icon"><i class="fas fa-check-circle"></i></div>
                 <div>
-                    <strong>Expert Pandits Network</strong>
-                    <p>Verified and experienced across all India</p>
+                    <strong>Pandit Booking</strong>
+                    <p>Verified experts</p>
                 </div>
             </div>
             <div class="app-feature">
                 <div class="app-feature-icon"><i class="fas fa-check-circle"></i></div>
                 <div>
-                    <strong>AI-Powered Suggestions</strong>
-                    <p>Personalized recommendations for your family</p>
+                    <strong>AI Suggestions</strong>
+                    <p>Personalized rituals</p>
                 </div>
             </div>
             <div class="app-feature">
                 <div class="app-feature-icon"><i class="fas fa-check-circle"></i></div>
                 <div>
-                    <strong>Smart Shopping Lists</strong>
-                    <p>Auto-generated with quantities and costs</p>
+                    <strong>Shopping Lists</strong>
+                    <p>Required items</p>
                 </div>
             </div>
         </div>
@@ -330,6 +331,7 @@
         </div>
     </div>
 </section>
+
 
 <!-- FAQ Section -->
 <section class="faq-section" id="faq">
@@ -380,7 +382,7 @@
             </div>
         </div>
         
-        <div class="faq-item" data-animate="fade-up" data-delay="400">
+        <!-- <div class="faq-item" data-animate="fade-up" data-delay="400">
             <button class="faq-question" onclick="toggleFaq(this)">
                 <span>How does the AI suggestion feature work?</span>
                 <i class="fas fa-plus"></i>
@@ -388,7 +390,7 @@
             <div class="faq-answer">
                 <p>Our AI analyzes your family profile (Gotra, Nakshatra, location), the occasion, and auspicious dates to recommend the most suitable rituals and provide guidance on how to perform them.</p>
             </div>
-        </div>
+        </div> -->
     </div>
 </section>
 

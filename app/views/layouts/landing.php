@@ -1784,9 +1784,9 @@ $roleDisplay = match($userRole) {
                             Services <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="nav-dropdown-menu">
-                            <a href="/user/rituals">Explore Rituals</a>
-                            <a href="/user/pandits">Find Pandit</a>
-                            <a href="/user/chat">AI Assistant</a>
+                            <a href="<?= $isLoggedIn ? '/user/rituals' : '/login' ?>">Explore Rituals</a>
+                            <a href="<?= $isLoggedIn ? '/user/select-pandit' : '/login' ?>">Find Pandit</a>
+                            <a href="<?= $isLoggedIn ? '/user/ai-suggestions' : '/login' ?>">AI Assistant</a>
                         </div>
                     </div>
                     
@@ -1886,8 +1886,8 @@ $roleDisplay = match($userRole) {
         
         <a href="#how-it-works">How It Works</a>
         <a href="#features">Features</a>
-        <a href="/user/rituals">Explore Rituals</a>
-        <a href="/user/pandits">Find Pandit</a>
+        <a href="<?= $isLoggedIn ? '/user/rituals' : '/login' ?>">Explore Rituals</a>
+        <a href="<?= $isLoggedIn ? '/user/select-pandit' : '/login' ?>">Find Pandit</a>
         <a href="#testimonials">Reviews</a>
         <a href="#faq">FAQ</a>
         

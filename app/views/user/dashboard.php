@@ -84,6 +84,7 @@
                 <p><strong><?= htmlspecialchars($family['family_name']) ?></strong></p>
                 <p style="color: #6B7280; font-size: 0.9rem; margin: 10px 0;">
                     Gotra: <?= htmlspecialchars($family['gotra'] ?? 'Not set') ?><br>
+                    Kul Devta: <?= htmlspecialchars($family['kul_devta'] ?? 'Not set') ?><br>
                     Location: <?= htmlspecialchars($family['city'] ?? 'Not set') ?>
                 </p>
                 <a href="/user/families/<?= $family['id'] ?>/edit" class="btn btn-sm btn-primary">

@@ -107,14 +107,14 @@ class AuthController extends Controller
             return;
         }
         
-        $data = $this->only(['name', 'email', 'mobile', 'password', 'password_confirmation', 'role']);
+        $data = $this->only(['name', 'email', 'mobile', 'community_name', 'kul_devi_devta', 'password', 'password_confirmation', 'role']);
         
         // Validate inputs
         $errors = $this->validate($data, [
             'name' => 'required|min:2|max:100',
             'email' => 'required|email|max:150',
             'mobile' => 'required|min:10|max:15',
-            'password' => 'required|min:6|confirmed',
+            'password' => 'required|min:8|confirmed',
             'role' => 'required|in:user,pandit',
         ]);
         
@@ -143,6 +143,8 @@ class AuthController extends Controller
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'mobile' => $data['mobile'],
+                'community_name' => $data['community_name'] ?? null,
+                'kul_devi_devta' => $data['kul_devi_devta'] ?? null,
                 'password' => $data['password'],
                 'role' => $data['role'],
                 'status' => App::STATUS_ACTIVE,
