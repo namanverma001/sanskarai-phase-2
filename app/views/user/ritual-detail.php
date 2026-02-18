@@ -69,7 +69,7 @@
                         <p style="color: #6B7280; font-size: 0.9rem;"><?= nl2br(htmlspecialchars($step['description'] ?? '')) ?></p>
                         <?php if ($step['mantra']): ?>
                         <p style="margin-top: 10px; padding: 10px; background: #FEF3C7; border-radius: 6px; font-style: italic;">
-                            <i class="fas fa-om"></i> <?= htmlspecialchars($step['mantra']) ?>
+                            <strong>Mantra:</strong> <?= htmlspecialchars($step['mantra']) ?>
                         </p>
                         <?php endif; ?>
                     </div>

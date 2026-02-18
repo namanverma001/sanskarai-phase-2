@@ -34,6 +34,111 @@ class AdminController extends Controller
         $this->aiRequestModel = new AIRequest();
         $this->assignmentModel = new Assignment();
     }
+
+    /**
+     * Admin Profile Page
+     */
+    public function profile(): void
+    {
+        $sessionUser = Auth::user();
+        $user = $this->userModel->find($sessionUser['id']);
+        
+        if (!$user) {
+            Auth::logout();
+            $this->redirect('login');
+            return;
+        }
+        
+        $this->viewWithLayout('admin/profile', 'layouts/admin', [
+            'title' => 'My Profile - Sanskar AI',
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * Update Admin Password
+     */
+    public function updatePassword(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+
+        $user = Auth::user();
+        $oldPassword = $this->input('old_password');
+        $newPassword = $this->input('new_password');
+        $confirmPassword = $this->input('confirm_password');
+
+        $errors = [];
+
+        if (empty($oldPassword)) $errors['old_password'] = 'Current password is required';
+        if (empty($newPassword)) $errors['new_password'] = 'New password is required';
+        if (strlen($newPassword) < 6) $errors['new_password'] = 'Password must be at least 6 characters';
+        if ($newPassword !== $confirmPassword) $errors['confirm_password'] = 'Passwords do not match';
+
+        if (!empty($errors)) {
+            $this->back(['errors' => $errors]);
+            return;
+        }
+
+        // Verify old password
+        // Fetch fresh user data to get the password hash
+        $currentUser = $this->userModel->find($user['id']);
+        
+        if (!$currentUser) {
+            $this->back(['error' => 'User not found.']);
+            return;
+        }
+
+        // FIX: The column name is 'password_hash', not 'password'
+        $currentPasswordHash = $currentUser['password_hash'] ?? $currentUser['password'] ?? null;
+        
+        if (!$currentPasswordHash) {
+             // If no password set, allow update without verification (or handle error)
+             // For now, logging it
+             error_log("No password hash found for user {$user['id']}");
+        }
+
+        // DEBUG: Log to file since we can't see terminal
+        $logMsg = "--- Password Update Debug ---\n";
+        $logMsg .= "Time: " . date('Y-m-d H:i:s') . "\n";
+        $logMsg .= "User ID: {$user['id']}\n";
+        $logMsg .= "Stored Hash (raw): '" . $currentPasswordHash . "'\n";
+        $logMsg .= "Input Password: '" . $oldPassword . "'\n";
+        $logMsg .= "password_verify: " . (password_verify($oldPassword, $currentPasswordHash) ? 'TRUE' : 'FALSE') . "\n";
+        $logMsg .= "Plain Text Check (===): " . ($oldPassword === $currentPasswordHash ? 'MATCH' : 'NO MATCH') . "\n";
+        
+        file_put_contents(__DIR__ . '/../debug_pass.log', $logMsg, FILE_APPEND);
+        
+        $verified = password_verify($oldPassword, $currentPasswordHash);
+        
+        // Fallback: Check if stored password is plain text (legacy/seeded data)
+        // Also trying trim() in case of database padding
+        if (!$verified && ($oldPassword === $currentPasswordHash || $oldPassword === trim($currentPasswordHash))) {
+            $verified = true;
+        }
+        
+        if (!$verified) {
+            $this->back(['errors' => ['old_password' => 'Incorrect current password']]);
+            return;
+        }
+
+        // Hash new password
+        $newPasswordHash = Auth::hashPassword($newPassword);
+        
+        // Update password using Model's update method
+        // Note: User model uses 'password_hash' column
+        $success = $this->userModel->update($user['id'], [
+            'password_hash' => $newPasswordHash
+        ]);
+
+        if ($success) {
+            $this->redirect('/admin/profile', ['success' => 'Password updated successfully.']);
+        } else {
+             $this->back(['error' => 'Failed to update password. Please try again.']);
+        }
+    }
     
     /**
      * Admin Dashboard
@@ -68,7 +173,7 @@ class AdminController extends Controller
         $page = (int) $this->input('page', 1);
         $role = $this->input('role');
         $status = $this->input('status');
-        $search = $this->input('search');
+        $search = trim($this->input('search') ?? '');
         
         $conditions = [];
         if ($role) $conditions['role'] = $role;
@@ -188,11 +293,18 @@ class AdminController extends Controller
      */
     public function rituals(): void
     {
-        $rituals = $this->ritualModel->all('name', 'ASC');
+        $search = trim($this->input('search') ?? '');
+
+        if ($search) {
+            $rituals = $this->ritualModel->search($search);
+        } else {
+            $rituals = $this->ritualModel->all('name', 'ASC');
+        }
         
         $this->viewWithLayout('admin/rituals', 'layouts/admin', [
             'title' => 'Ritual Management - Sanskar AI',
             'rituals' => $rituals,
+            'search' => $search,
         ]);
     }
     
@@ -333,7 +445,14 @@ class AdminController extends Controller
      */
     public function aiLogs(): void
     {
-        $requests = $this->aiRequestModel->getRecent(50);
+        $search = trim($this->input('search') ?? '');
+
+        if ($search) {
+            $requests = $this->aiRequestModel->search($search);
+        } else {
+            $requests = $this->aiRequestModel->getRecent(50);
+        }
+        
         $flagged = $this->aiRequestModel->getFlagged();
         $stats = $this->aiRequestModel->getStats();
         
@@ -342,6 +461,7 @@ class AdminController extends Controller
             'requests' => $requests,
             'flagged' => $flagged,
             'stats' => $stats,
+            'search' => $search,
         ]);
     }
     

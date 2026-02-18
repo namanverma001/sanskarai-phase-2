@@ -9,7 +9,7 @@ $dashboardUrl = Auth::dashboardUrl();
 
 // Settings URL based on role
 $settingsUrl = match($userRole) {
-    'admin' => '/admin/users',
+    'admin' => '/admin/profile',
     'pandit' => '/pandit/profile',
     'user' => '/user/families',
     default => '/'
@@ -231,19 +231,58 @@ $roleDisplay = match($userRole) {
             color: white;
             position: fixed;
             top: 70px;
+            left: 0;
             height: calc(100vh - 70px);
             overflow-y: auto;
-            transition: transform 0.3s ease;
+            overflow-x: hidden;
+            transition: width 0.3s ease;
             z-index: 100;
         }
 
+        /* Desktop collapsed = icon-only 70px */
         .sidebar.collapsed {
-            transform: translateX(-100%);
+            width: 70px;
+        }
+        .sidebar.collapsed .sidebar-header h1 {
+            font-size: 0;
+            opacity: 0;
+        }
+        .sidebar.collapsed .sidebar-header {
+            padding: 15px 10px;
+            text-align: center;
+        }
+        .sidebar.collapsed .sidebar-header span {
+            display: none;
+        }
+        .sidebar.collapsed .menu-section {
+            padding: 0 5px;
+        }
+        .sidebar.collapsed .menu-section-title {
+            font-size: 0;
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        .sidebar.collapsed .menu-item {
+            justify-content: center;
+            padding: 14px 0;
+            margin: 2px 5px;
+        }
+        .sidebar.collapsed .menu-item i {
+            margin-right: 0;
+            font-size: 1.15rem;
+        }
+        .sidebar.collapsed .menu-item span,
+        .sidebar.collapsed .menu-item-text {
+            display: none;
         }
         
         .sidebar-header {
             padding: 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            white-space: nowrap;
+            overflow: hidden;
         }
         
         .sidebar-header h1 {
@@ -251,6 +290,7 @@ $roleDisplay = match($userRole) {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            transition: font-size 0.3s ease, opacity 0.3s ease;
         }
         
         .sidebar-header span {
@@ -266,6 +306,7 @@ $roleDisplay = match($userRole) {
         .menu-section {
             padding: 0 20px;
             margin-bottom: 15px;
+            transition: padding 0.3s ease;
         }
         
         .menu-section-title {
@@ -274,6 +315,9 @@ $roleDisplay = match($userRole) {
             letter-spacing: 1px;
             color: rgba(255,255,255,0.4);
             margin-bottom: 10px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
         }
         
         .menu-item {
@@ -285,6 +329,8 @@ $roleDisplay = match($userRole) {
             transition: all 0.3s ease;
             border-radius: 8px;
             margin: 2px 10px;
+            white-space: nowrap;
+            overflow: hidden;
         }
         
         .menu-item:hover, .menu-item.active {
@@ -298,7 +344,10 @@ $roleDisplay = match($userRole) {
         
         .menu-item i {
             width: 20px;
+            min-width: 20px;
             margin-right: 12px;
+            text-align: center;
+            transition: margin 0.3s ease;
         }
         
         .main-content {
@@ -310,7 +359,7 @@ $roleDisplay = match($userRole) {
         }
 
         .sidebar.collapsed ~ .main-content {
-            margin-left: 0;
+            margin-left: 70px;
         }
         
         .top-bar {
@@ -575,6 +624,11 @@ $roleDisplay = match($userRole) {
             transition: margin-left 0.3s ease;
         }
         
+        .sidebar.collapsed ~ .main-content ~ .main-footer,
+        .sidebar-collapsed-footer {
+            margin-left: 70px;
+        }
+        
         .footer-content {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr;
@@ -667,87 +721,193 @@ $roleDisplay = match($userRole) {
         }
         
         /* Responsive Styles */
+        .mobile-only { display: none; }
+        
         @media (max-width: 1024px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .footer-content { grid-template-columns: 1fr 1fr; }
         }
         
         @media (max-width: 768px) {
+            .mobile-only { display: block; }
+            /* Navbar mobile */
+            .main-navbar {
+                padding: 10px 15px;
+                gap: 10px;
+                min-height: 70px; /* Match sidebar top offset */
+            }
+            .main-navbar .logo {
+                font-size: 1.2rem;
+                white-space: nowrap;
+            }
             .main-navbar .nav-links {
                 display: none;
             }
             
-            .main-navbar .nav-links.active {
-                display: flex;
+            /* SHOW User Info on Mobile */
+            .nav-user-info { 
+                display: flex !important; /* Force visible */
                 flex-direction: column;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
-                padding: 20px;
-                gap: 15px;
+                align-items: flex-end; /* Right align on mobile */
+                margin-right: 5px;
+            }
+            .nav-user-name {
+                font-size: 0.85rem;
+                max-width: 100px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .nav-user-role-badge {
+                font-size: 0.6rem;
+                padding: 1px 6px;
             }
             
+            .user-profile-btn {
+                padding: 4px 8px;
+                gap: 8px;
+            }
+            .nav-user-avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 0.75rem;
+            }
+            
+            /* Sidebar: hidden by default, slide-in overlay on mobile */
             .sidebar {
+                width: 260px;
                 transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 999; /* Below navbar (1000) so toggle button stays visible */
+                display: flex;
+                flex-direction: column;
+                box-shadow: 4px 0 15px rgba(0,0,0,0.1);
             }
-
             .sidebar.collapsed {
+                width: 260px;
                 transform: translateX(-100%);
             }
-
+            
+            /* FORCE TEXT VISIBILITY ON MOBILE */
+            .sidebar.collapsed .sidebar-header h1 { 
+                font-size: 1.3rem !important; 
+                opacity: 1 !important; 
+                display: block !important;
+            }
+            .sidebar.collapsed .sidebar-header { 
+                padding: 20px !important; 
+                text-align: left !important; 
+            }
+            .sidebar.collapsed .sidebar-header span { 
+                display: inline-block !important; 
+            }
+            .sidebar.collapsed .menu-section { 
+                padding: 0 20px !important; 
+            }
+            .sidebar.collapsed .menu-section-title { 
+                font-size: 0.7rem !important; 
+                opacity: 1 !important; 
+                height: auto !important; 
+                margin-bottom: 10px !important; 
+                display: block !important;
+            }
+            .sidebar.collapsed .menu-item { 
+                justify-content: flex-start !important; 
+                padding: 12px 20px !important; 
+                margin: 2px 10px !important; 
+            }
+            .sidebar.collapsed .menu-item i { 
+                margin-right: 12px !important; 
+                font-size: 1rem !important; 
+            }
+            .sidebar.collapsed .menu-item span {
+                display: inline !important;
+            }
+            
             .sidebar.mobile-open {
                 transform: translateX(0);
+                box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+            }
+            
+            /* Sidebar overlay */
+            .sidebar-overlay {
+                top: 0;
+                z-index: 998; /* Below sidebar */
+                background: rgba(0,0,0,0.6);
+                backdrop-filter: blur(3px);
+            }
+
+            /* Navbar Profile - Ensure visible */
+            .user-profile-dropdown {
+                display: block !important;
+            }
+            .nav-user-info { 
+                display: none; /* Hide text, keep avatar */ 
+            }
+            .user-profile-btn {
+                padding: 6px 12px;
+                background: rgba(255,255,255,0.1);
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+            .user-profile-btn:hover {
+                background: rgba(255,255,255,0.2);
+            }
+            .user-profile-btn i {
+                display: block !important; /* Show caret */
+                font-size: 0.7rem;
+                margin-left: 5px;
             }
 
             .main-content { 
-                margin-left: 0; 
+                margin-left: 0 !important; 
                 padding: 20px 15px;
-            }
-
-            .sidebar.collapsed ~ .main-content {
-                margin-left: 0;
             }
             
             .main-footer {
-                margin-left: 0;
+                margin-left: 0 !important;
             }
             
+            /* Top bar */
             .top-bar {
                 flex-direction: column;
-                gap: 15px;
+                gap: 10px;
                 padding: 15px;
                 text-align: center;
             }
-            .page-title { font-size: 1.25rem; }
+            .page-title { font-size: 1.2rem; }
             .user-menu { width: 100%; justify-content: center; }
             .user-info { text-align: center; }
             
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
-            .stat-card { padding: 20px 15px; }
+            /* Stats / Cards */
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .stat-card { padding: 18px 14px; }
             .stat-value { font-size: 1.5rem; }
+            .stat-icon { width: 42px; height: 42px; font-size: 1.1rem; }
             
-            .card { padding: 20px 15px; border-radius: 12px; }
+            .card { padding: 18px 14px; border-radius: 12px; }
             .card-header { flex-direction: column; gap: 10px; align-items: flex-start; }
             
             .btn { padding: 10px 16px; font-size: 0.85rem; }
             
+            /* Tables */
             .table th, .table td { padding: 10px 8px; font-size: 0.85rem; }
             
+            /* Dashboard 2-col grid → 1 col */
+            div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Footer */
             .footer-content {
                 grid-template-columns: 1fr;
                 text-align: center;
             }
-            
             .footer-brand .logo {
                 justify-content: center;
             }
-            
             .footer-links a:hover {
                 transform: none;
             }
-            
             .footer-bottom {
                 flex-direction: column;
                 text-align: center;
@@ -755,10 +915,40 @@ $roleDisplay = match($userRole) {
         }
         
         @media (max-width: 480px) {
+            .main-navbar { padding: 8px 3%; }
+            .main-navbar .logo { font-size: 1.2rem; gap: 8px; }
+            .main-navbar .logo i { font-size: 1.3rem; }
+            .sidebar-toggle-btn { width: 36px; height: 36px; font-size: 1rem; }
+            
             .stats-grid { grid-template-columns: 1fr; }
             .top-bar { padding: 12px; }
-            .page-title { font-size: 1.1rem; }
+            .page-title { font-size: 1.05rem; }
             .logout-btn-top { padding: 6px 12px; font-size: 0.85rem; }
+            
+            .stat-card { padding: 15px 12px; }
+            .stat-value { font-size: 1.3rem; }
+            .stat-label { font-size: 0.8rem; }
+            
+            .card { padding: 15px 12px; }
+            .card-title { font-size: 0.95rem; }
+            
+            .table th, .table td { padding: 8px 6px; font-size: 0.8rem; }
+            .badge { font-size: 0.7rem; padding: 3px 8px; }
+            
+            .main-footer { 
+                padding: 30px 15px; 
+                width: 100%;
+                margin-left: 0;
+            }
+            .social-links a { width: 35px; height: 35px; }
+        }
+        
+        @media (max-width: 360px) {
+            .main-content { padding: 15px 10px; }
+            .top-bar { padding: 10px; }
+            .page-title { font-size: 1rem; }
+            .stat-card { padding: 12px 10px; }
+            .card { padding: 12px 10px; }
         }
     </style>
 </head>
@@ -799,8 +989,8 @@ $roleDisplay = match($userRole) {
                             <span>Dashboard</span>
                         </a>
                         <a href="<?= $settingsUrl ?>" class="dropdown-item">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
+                            <i class="fas fa-user-circle"></i>
+                            <span>My Profile</span>
                         </a>
                         <div class="dropdown-divider"></div>
                         <form action="/logout" method="POST" style="margin: 0;">
@@ -818,7 +1008,7 @@ $roleDisplay = match($userRole) {
 
     <div class="dashboard-container">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar collapsed" id="sidebar">
             <div class="sidebar-header">
                 <h1><i class="fas fa-om"></i> Sanskar AI <span>Admin</span></h1>
             </div>
@@ -826,46 +1016,56 @@ $roleDisplay = match($userRole) {
                 <div class="menu-section">
                     <div class="menu-section-title">Main</div>
                     <a href="/admin/dashboard" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/dashboard') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
                     </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Management</div>
                     <a href="/admin/users" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/users') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-users"></i> Users
+                        <i class="fas fa-users"></i> <span>Users</span>
                     </a>
                     <a href="/admin/pandits/pending" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/pandits') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-user-check"></i> Pandit Approval
+                        <i class="fas fa-user-check"></i> <span>Pandit Approval</span>
                     </a>
                     <a href="/admin/rituals" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/rituals') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-pray"></i> Rituals
+                        <i class="fas fa-pray"></i> <span>Rituals</span>
                     </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">System</div>
                     <a href="/admin/ai-logs" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/ai-logs') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-robot"></i> AI Logs
+                        <i class="fas fa-robot"></i> <span>AI Logs</span>
                     </a>
                     <a href="/admin/create-admin" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/create-admin') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-user-shield"></i> Create Admin
+                        <i class="fas fa-user-shield"></i> <span>Create Admin</span>
+                    </a>
+                </div>
+                <div class="menu-section">
+                    <div class="menu-section-title">Account</div>
+                    <a href="/admin/profile" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/profile') !== false ? 'active' : '' ?>">
+                        <i class="fas fa-user-circle"></i> <span>My Profile</span>
                     </a>
                 </div>
             </nav>
+            
+            <!-- Mobile Logout Button (Visible only on mobile) -->
+            <div class="sidebar-footer mobile-only" style="padding: 20px; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1);">
+                <a href="/admin/profile" class="btn btn-outline-light mb-3" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 10px; text-decoration: none; margin-bottom: 15px;">
+                    <i class="fas fa-user-circle"></i> My Profile
+                </a>
+                <form action="/logout" method="POST" style="margin: 0;">
+                    <?= \App\Core\Auth::csrfField() ?>
+                    <button type="submit" class="btn btn-danger" style="width: 100%; justify-content: center;">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </form>
+            </div>
         </aside>
         
         <main class="main-content">
             <div class="top-bar">
                 <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
-                <div class="user-menu">
-                    <div class="user-info">
-                        <div class="user-name"><?= htmlspecialchars($user['name'] ?? 'Admin') ?></div>
-                        <div class="user-role">Administrator</div>
-                    </div>
-                    <form method="POST" action="/logout" style="display: inline;">
-                        <?= \App\Core\Auth::csrfField() ?>
-                        <button type="submit" class="logout-btn-top"><i class="fas fa-sign-out-alt"></i></button>
-                    </form>
-                </div>
+
             </div>
             
             <?php if (isset($_SESSION['flash']['success'])): ?>
@@ -933,36 +1133,80 @@ $roleDisplay = match($userRole) {
         const mainFooter = document.querySelector('.main-footer');
         const isMobile = () => window.innerWidth <= 768;
 
+        function updateFooterMargin() {
+            if (!mainFooter) return;
+            if (isMobile()) {
+                mainFooter.style.marginLeft = '0';
+            } else if (sidebar.classList.contains('collapsed')) {
+                mainFooter.style.marginLeft = '70px';
+            } else {
+                mainFooter.style.marginLeft = '260px';
+            }
+        }
+
+        function openMobileSidebar() {
+            sidebar.classList.add('mobile-open');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileSidebar() {
+            sidebar.classList.remove('mobile-open');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
         function toggleSidebar() {
             if (isMobile()) {
-                // On mobile: toggle open/close (starts hidden)
-                sidebar.classList.toggle('mobile-open');
-                sidebarOverlay.classList.toggle('active');
-            } else {
-                // On desktop: toggle collapsed (starts visible)
-                sidebar.classList.toggle('collapsed');
-                if (sidebar.classList.contains('collapsed')) {
-                    if (mainFooter) mainFooter.style.marginLeft = '0';
+                if (sidebar.classList.contains('mobile-open')) {
+                    closeMobileSidebar();
                 } else {
-                    if (mainFooter) mainFooter.style.marginLeft = '260px';
+                    openMobileSidebar();
                 }
+            } else {
+                sidebar.classList.toggle('collapsed');
+                updateFooterMargin();
             }
+            // Toggle icon
             const icon = sidebarToggle.querySelector('i');
-            icon.classList.toggle('fa-bars');
-            icon.classList.toggle('fa-times');
+            if (isMobile()) {
+                icon.className = sidebar.classList.contains('mobile-open') ? 'fas fa-times' : 'fas fa-bars';
+            } else {
+                icon.className = sidebar.classList.contains('collapsed') ? 'fas fa-bars' : 'fas fa-times';
+            }
         }
 
         sidebarToggle.addEventListener('click', toggleSidebar);
-        sidebarOverlay.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', () => {
+            closeMobileSidebar();
+            sidebarToggle.querySelector('i').className = 'fas fa-bars';
+        });
 
-        // Close sidebar when clicking menu items on mobile
+        // Close sidebar on mobile when clicking menu items
         sidebar.querySelectorAll('.menu-item').forEach(item => {
             item.addEventListener('click', () => {
                 if (isMobile()) {
-                    toggleSidebar();
+                    closeMobileSidebar();
+                    sidebarToggle.querySelector('i').className = 'fas fa-bars';
                 }
             });
         });
+
+        // Handle window resize: reset states
+        window.addEventListener('resize', () => {
+            if (!isMobile()) {
+                sidebar.classList.remove('mobile-open');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                sidebarToggle.querySelector('i').className = sidebar.classList.contains('collapsed') ? 'fas fa-bars' : 'fas fa-times';
+            } else {
+                sidebarToggle.querySelector('i').className = 'fas fa-bars';
+            }
+            updateFooterMargin();
+        });
+
+        // Initial footer margin
+        updateFooterMargin();
         
         // User Profile Dropdown Toggle
         const userDropdown = document.getElementById('userDropdown');

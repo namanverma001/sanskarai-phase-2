@@ -218,10 +218,15 @@ class User extends Model
     {
         $sql = "
             SELECT * FROM SAI_users
-            WHERE (name LIKE :query OR email LIKE :query OR mobile LIKE :query)
+            WHERE (name LIKE :name OR email LIKE :email OR mobile LIKE :mobile)
         ";
         
-        $params = ['query' => "%$query%"];
+        $searchTerm = "%$query%";
+        $params = [
+            'name' => $searchTerm,
+            'email' => $searchTerm,
+            'mobile' => $searchTerm
+        ];
         
         if ($role) {
             $sql .= " AND role = :role";
@@ -231,5 +236,26 @@ class User extends Model
         $sql .= " ORDER BY name ASC LIMIT 50";
         
         return $this->raw($sql, $params);
+    }
+
+    /**
+     * Get top communities by user count
+     */
+    public function getTopCommunities(int $limit = 6): array
+    {
+        $sql = "
+            SELECT community_name, COUNT(*) as user_count
+            FROM SAI_users
+            WHERE community_name IS NOT NULL AND community_name != ''
+            GROUP BY community_name
+            ORDER BY user_count DESC
+            LIMIT :limit
+        ";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll();
     }
 }

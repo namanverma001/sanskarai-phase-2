@@ -13,7 +13,7 @@
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+<div class="admin-grid">
     <!-- Create Admin Form -->
     <div class="card">
         <div class="card-header">
@@ -47,7 +47,7 @@
                 <?php endif; ?>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="password-grid">
                 <div class="form-group">
                     <label for="password"><i class="fas fa-lock" style="color: var(--primary); margin-right: 6px;"></i>Password <span style="color: var(--danger);">*</span></label>
                     <input type="password" id="password" name="password" class="form-control" placeholder="Min 6 characters" required minlength="6">
@@ -91,8 +91,8 @@
         <?php if (empty($admins)): ?>
             <p style="color: #6B7280; text-align: center; padding: 30px;">No admin accounts found.</p>
         <?php else: ?>
-            <div class="table-responsive">
-                <table class="table">
+            <div class="table-container">
+                <table class="table mobile-card-view">
                     <thead>
                         <tr>
                             <th>Admin</th>
@@ -103,8 +103,8 @@
                     </thead>
                     <tbody>
                         <?php foreach ($admins as $admin): ?>
-                        <tr>
-                            <td>
+                        <tr onclick="if(window.innerWidth <= 768) this.classList.toggle('expanded')" style="cursor: pointer;">
+                            <td data-label="Admin">
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; flex-shrink: 0;">
                                         <?= strtoupper(substr($admin['name'], 0, 1)) ?>
@@ -115,13 +115,13 @@
                                     </div>
                                 </div>
                             </td>
-                            <td style="color: #6B7280;"><?= htmlspecialchars($admin['mobile'] ?? 'N/A') ?></td>
-                            <td>
+                            <td data-label="Mobile" style="color: #6B7280;"><?= htmlspecialchars($admin['mobile'] ?? 'N/A') ?></td>
+                            <td data-label="Status">
                                 <span class="badge badge-<?= $admin['status'] === 'active' ? 'success' : 'danger' ?>">
                                     <?= ucfirst($admin['status']) ?>
                                 </span>
                             </td>
-                            <td style="color: #6B7280; font-size: 0.85rem;">
+                            <td data-label="Created" style="color: #6B7280; font-size: 0.85rem;">
                                 <?= date('d M Y', strtotime($admin['created_at'])) ?>
                             </td>
                         </tr>
@@ -134,10 +134,73 @@
 </div>
 
 <style>
+    .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+    .password-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    
+    @media (max-width: 900px) {
+        .admin-grid { grid-template-columns: 1fr; }
+    }
+    
     @media (max-width: 768px) {
-        div[style*="grid-template-columns: 1fr 1fr"] {
-            grid-template-columns: 1fr !important;
+        .password-grid { grid-template-columns: 1fr; }
+        
+        .mobile-card-view thead { display: none; }
+        .mobile-card-view, .mobile-card-view tbody, .mobile-card-view tr, .mobile-card-view td { display: block; width: 100%; }
+        .mobile-card-view tr { 
+            margin-bottom: 20px; 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+            padding: 15px; 
+            border: 1px solid #E5E7EB; 
+            position: relative;
         }
+        
+        /* Toggle Indicator */
+        .mobile-card-view tr::after {
+            content: '\f078'; /* fa-chevron-down */
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #6B7280;
+            transition: transform 0.3s;
+        }
+        .mobile-card-view tr.expanded::after {
+            transform: rotate(180deg);
+        }
+
+        /* Cell layout */
+        .mobile-card-view td { 
+            display: none; /* Hide all by default */
+            justify-content: space-between; 
+            align-items: center; 
+            text-align: right; 
+            padding: 10px 0; 
+            border-bottom: 1px solid #F3F4F6; 
+        }
+        
+        /* Always visible fields */
+        .mobile-card-view td[data-label="Admin"],
+        .mobile-card-view td[data-label="Status"] {
+            display: flex;
+        }
+
+        /* Show all when expanded */
+        .mobile-card-view tr.expanded td {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .mobile-card-view td:last-child { border-bottom: none; }
+        .mobile-card-view td::before { content: attr(data-label); font-weight: 600; color: #6B7280; font-size: 0.85rem; }
+        .mobile-card-view td[data-label="Admin"] { padding-right: 30px; }
     }
 </style>
 

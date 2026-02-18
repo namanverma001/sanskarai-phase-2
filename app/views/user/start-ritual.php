@@ -623,7 +623,7 @@
 
                         <?php if ($step['mantra']): ?>
                             <div class="step-mantra-box">
-                                <h5><i class="fas fa-om"></i> Mantra</h5>
+                                <h5>Mantra</h5>
                                 <p class="mantra-text"><?= htmlspecialchars($step['mantra']) ?></p>
                                 <?php if ($step['mantra_meaning']): ?>
                                     <p class="mantra-meaning"><strong>Meaning:</strong>

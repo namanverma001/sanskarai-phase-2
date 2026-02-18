@@ -29,7 +29,7 @@
                        value="<?= htmlspecialchars($family['nakshatra'] ?? '') ?>">
             </div>
             <div class="form-group">
-                <label>Kul Devta</label>
+                <label>Kul Devi/Devta</label>
                 <input type="text" name="kul_devta" class="form-control"
                        value="<?= htmlspecialchars($family['kul_devta'] ?? '') ?>">
             </div>
@@ -42,6 +42,11 @@
                 <label>State</label>
                 <input type="text" name="state" class="form-control"
                        value="<?= htmlspecialchars($family['state'] ?? '') ?>">
+            </div>
+            <div class="form-group">
+                <label>Country</label>
+                <input type="text" name="country" class="form-control"
+                       value="<?= htmlspecialchars($family['country'] ?? '') ?>">
             </div>
         </div>
         

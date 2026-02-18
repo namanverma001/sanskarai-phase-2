@@ -186,6 +186,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 10px;
     }
 
     .item-list li:last-child {
@@ -194,6 +195,8 @@
 
     .item-name {
         font-weight: 500;
+        display: block;
+        margin-bottom: 3px;
     }
 
     .item-name small {
@@ -206,6 +209,8 @@
     .item-qty {
         color: #6B7280;
         font-size: 0.85rem;
+        display: block;
+        margin-top: 2px;
     }
 
     .action-buttons {
@@ -351,7 +356,7 @@
                         <?php endif; ?>
                         <?php if ($step['mantra']): ?>
                             <div class="step-mantra">
-                                <i class="fas fa-om"></i>
+                                <strong>Mantra:</strong>
                                 <?= htmlspecialchars($step['mantra']) ?>
                                 <?php if ($step['mantra_meaning']): ?>
                                     <br><small>
@@ -440,31 +445,83 @@
 
         <?php if (!empty($ritual['items'])): ?>
             <div class="sidebar-card">
-                <h4><i class="fas fa-shopping-basket"></i> Required Items</h4>
+                <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-shopping-basket"></i> Required Items</span>
+                    <button
+                        class="btn btn-sm btn-primary"
+                        onclick="showAddItemModal()"
+                        style="font-size: 0.75rem; padding: 4px 8px;"
+                    >
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </h4>
                 <ul class="item-list">
                     <?php foreach ($ritual['items'] as $item): ?>
-                        <li>
-                            <span class="item-name">
-                                <?= htmlspecialchars($item['item_name']) ?>
-                                <?php if ($item['item_name_local']): ?>
-                                    <small>
-                                        <?= htmlspecialchars($item['item_name_local']) ?>
-                                    </small>
-                                <?php endif; ?>
-                            </span>
-                            <span class="item-qty">
-                                <?= $item['quantity'] ?>
-                                <?= $item['unit'] ?>
-                                <?php if ($item['is_mandatory']): ?>
-                                    <span
-                                        class="badge badge-danger"
-                                        style="font-size: 0.6rem;"
-                                    >Required</span>
-                                <?php endif; ?>
-                            </span>
+                        <li id="item-<?= $item['id'] ?>">
+                            <div style="flex: 1;">
+                                <span class="item-name">
+                                    <?= htmlspecialchars($item['item_name']) ?>
+                                    <?php if ($item['item_name_local']): ?>
+                                        <small>
+                                            <?= htmlspecialchars($item['item_name_local']) ?>
+                                        </small>
+                                    <?php endif; ?>
+                                </span>
+                                <span class="item-qty">
+                                    <?= $item['quantity'] ?>
+                                    <?= $item['unit'] ?>
+                                    <?php if ($item['is_mandatory']): ?>
+                                        <span
+                                            class="badge badge-danger"
+                                            style="font-size: 0.6rem;"
+                                        >Required</span>
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                            <div style="display: flex; gap: 5px; align-items: center;">
+                                <button
+                                    class="btn btn-sm edit-item-btn"
+                                    data-item-id="<?= $item['id'] ?>"
+                                    data-item-name="<?= htmlspecialchars($item['item_name']) ?>"
+                                    data-item-name-local="<?= htmlspecialchars($item['item_name_local'] ?? '') ?>"
+                                    data-item-quantity="<?= $item['quantity'] ?>"
+                                    data-item-unit="<?= $item['unit'] ?>"
+                                    data-item-mandatory="<?= $item['is_mandatory'] ?>"
+                                    data-item-description="<?= htmlspecialchars($item['description'] ?? '') ?>"
+                                    data-item-alternatives="<?= htmlspecialchars($item['alternatives'] ?? '') ?>"
+                                    style="font-size: 0.7rem; padding: 2px 6px; background: #DBEAFE; color: #1E40AF;"
+                                    title="Edit"
+                                >
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button
+                                    onclick="deleteItem(<?= $item['id'] ?>)"
+                                    class="btn btn-sm"
+                                    style="font-size: 0.7rem; padding: 2px 6px; background: #FEE2E2; color: #991B1B;"
+                                    title="Delete"
+                                >
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                 </ul>
+            </div>
+        <?php else: ?>
+            <div class="sidebar-card">
+                <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-shopping-basket"></i> Required Items</span>
+                    <button
+                        class="btn btn-sm btn-primary"
+                        onclick="showAddItemModal()"
+                        style="font-size: 0.75rem; padding: 4px 8px;"
+                    >
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </h4>
+                <p style="text-align: center; color: #6B7280; padding: 20px; font-size: 0.9rem;">
+                    No items added yet. Click "Add" to add items.
+                </p>
             </div>
         <?php endif; ?>
 
@@ -605,6 +662,136 @@
     </div>
 </div>
 
+<!-- Item Modal -->
+<div
+    class="modal-overlay"
+    id="itemModal"
+>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="itemModalTitle">Add Item</h3>
+            <button
+                class="modal-close"
+                onclick="closeItemModal()"
+            >&times;</button>
+        </div>
+        <form id="itemForm">
+            <?= \App\Core\Auth::csrfField() ?>
+            <input
+                type="hidden"
+                id="itemId"
+                name="item_id"
+            >
+
+            <div class="form-group">
+                <label>Item Name *</label>
+                <input
+                    type="text"
+                    id="itemName"
+                    name="item_name"
+                    class="form-control"
+                    required
+                    placeholder="e.g., Rice, Flowers, Ghee"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Local Name (Optional)</label>
+                <input
+                    type="text"
+                    id="itemNameLocal"
+                    name="item_name_local"
+                    class="form-control"
+                    placeholder="e.g., चावल, फूल, घी"
+                >
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input
+                        type="text"
+                        id="itemQuantity"
+                        name="quantity"
+                        class="form-control"
+                        required
+                        value="1"
+                        placeholder="e.g., 1, 500, 2.5"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label>Unit *</label>
+                    <select
+                        id="itemUnit"
+                        name="unit"
+                        class="form-control"
+                    >
+                        <option value="piece">Piece</option>
+                        <option value="kg">Kg</option>
+                        <option value="gram">Gram</option>
+                        <option value="liter">Liter</option>
+                        <option value="ml">ML</option>
+                        <option value="cup">Cup</option>
+                        <option value="spoon">Spoon</option>
+                        <option value="bunch">Bunch</option>
+                        <option value="handful">Handful</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input
+                        type="checkbox"
+                        id="itemMandatory"
+                        name="is_mandatory"
+                        value="1"
+                        checked
+                    >
+                    <span>This item is mandatory/required</span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Description (Optional)</label>
+                <textarea
+                    id="itemDescription"
+                    name="description"
+                    class="form-control"
+                    rows="2"
+                    placeholder="Additional details about the item..."
+                ></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Alternatives (Optional)</label>
+                <input
+                    type="text"
+                    id="itemAlternatives"
+                    name="alternatives"
+                    class="form-control"
+                    placeholder="e.g., Can use coconut oil instead"
+                >
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button
+                    type="button"
+                    class="btn"
+                    style="background: #E5E7EB; color: var(--dark);"
+                    onclick="closeItemModal()"
+                >Cancel</button>
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    style="flex: 1;"
+                >Save Item</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     const csrfToken = '<?= \App\Core\Auth::csrfToken() ?>';
     const ritualId = <?= $ritual['id'] ?>;
@@ -691,4 +878,124 @@
             alert('Error: ' + error.message);
         }
     }
+
+    // ============================================================
+    // ITEM MANAGEMENT FUNCTIONS
+    // ============================================================
+    let isAddItemMode = false;
+
+    function showAddItemModal() {
+        isAddItemMode = true;
+        document.getElementById('itemModalTitle').textContent = 'Add New Item';
+        document.getElementById('itemId').value = '';
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemNameLocal').value = '';
+        document.getElementById('itemQuantity').value = '1';
+        document.getElementById('itemUnit').value = 'piece';
+        document.getElementById('itemMandatory').checked = true;
+        document.getElementById('itemDescription').value = '';
+        document.getElementById('itemAlternatives').value = '';
+        document.getElementById('itemModal').classList.add('active');
+    }
+
+    function editItem(itemId, itemData) {
+        isAddItemMode = false;
+        document.getElementById('itemModalTitle').textContent = 'Edit Item';
+        document.getElementById('itemId').value = itemId;
+        document.getElementById('itemName').value = itemData.item_name || '';
+        document.getElementById('itemNameLocal').value = itemData.item_name_local || '';
+        document.getElementById('itemQuantity').value = itemData.quantity || '1';
+        document.getElementById('itemUnit').value = itemData.unit || 'piece';
+        document.getElementById('itemMandatory').checked = itemData.is_mandatory == 1;
+        document.getElementById('itemDescription').value = itemData.description || '';
+        document.getElementById('itemAlternatives').value = itemData.alternatives || '';
+        document.getElementById('itemModal').classList.add('active');
+    }
+
+    // Event listener for edit buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.edit-item-btn')) {
+            const btn = e.target.closest('.edit-item-btn');
+            const itemData = {
+                item_name: btn.dataset.itemName,
+                item_name_local: btn.dataset.itemNameLocal,
+                quantity: btn.dataset.itemQuantity,
+                unit: btn.dataset.itemUnit,
+                is_mandatory: btn.dataset.itemMandatory,
+                description: btn.dataset.itemDescription,
+                alternatives: btn.dataset.itemAlternatives
+            };
+            editItem(btn.dataset.itemId, itemData);
+        }
+    });
+
+    function closeItemModal() {
+        document.getElementById('itemModal').classList.remove('active');
+    }
+
+    document.getElementById('itemForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const url = isAddItemMode
+            ? `/user/my-rituals/${ritualId}/items`
+            : `/user/my-rituals/items/${document.getElementById('itemId').value}`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to save item');
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    });
+
+    async function deleteItem(itemId) {
+        if (!confirm('Are you sure you want to delete this item?')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
+
+        try {
+            const response = await fetch(`/user/my-rituals/items/${itemId}/delete`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                const itemElement = document.getElementById('item-' + itemId);
+                if (itemElement) {
+                    itemElement.remove();
+                }
+            } else {
+                alert(data.error || 'Failed to delete item');
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    // Close modals when clicking outside
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+
+    document.getElementById('itemModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeItemModal();
+        }
+    });
 </script>

@@ -168,10 +168,10 @@ class AuthController extends Controller
                     'success' => 'Account created successfully! Your profile is pending admin approval.',
                 ]);
             } else {
-                // Login and redirect to landing page
+                // Login and redirect to create family page for new users
                 Auth::attempt($data['email'], $data['password']);
-                $this->redirect('/', [
-                    'success' => 'Account created successfully! Welcome to Sanskar AI.',
+                $this->redirect('/user/families/create', [
+                    'success' => 'Account created successfully! Please create your family profile to get started.',
                 ]);
             }
             

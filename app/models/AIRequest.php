@@ -159,6 +159,35 @@ class AIRequest extends Model
     }
 
     /**
+     * Search AI requests
+     */
+    public function search(string $query): array
+    {
+        $sql = "
+            SELECT r.*, u.name as user_name, u.email as user_email
+            FROM SAI_ai_requests r
+            INNER JOIN SAI_users u ON r.user_id = u.id
+            WHERE 
+                u.name LIKE :name
+                OR r.request_type LIKE :type
+                OR r.status LIKE :status
+                OR r.prompt LIKE :prompt
+            ORDER BY r.created_at DESC
+            LIMIT 50
+        ";
+
+        $term = "%$query%";
+        $params = [
+            'name' => $term,
+            'type' => $term,
+            'status' => $term,
+            'prompt' => $term
+        ];
+
+        return $this->raw($sql, $params);
+    }
+
+    /**
      * Get AI statistics
      */
     public function getStats(): array

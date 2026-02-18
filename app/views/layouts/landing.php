@@ -9,9 +9,9 @@ $dashboardUrl = Auth::dashboardUrl();
 
 // Settings URL based on role
 $settingsUrl = match($userRole) {
-    'admin' => '/admin/users',
+    'admin' => '/admin/profile', // Fixed: Point to actual profile
     'pandit' => '/pandit/profile',
-    'user' => '/user/families',
+    'user' => '/user/profile',   // Fixed: Point to profile instead of families
     default => '/'
 };
 
@@ -78,7 +78,7 @@ $roleDisplay = match($userRole) {
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; overflow-x: hidden; }
         body {
             font-family: 'Poppins', sans-serif;
             background: var(--bg-primary);
@@ -362,10 +362,11 @@ $roleDisplay = match($userRole) {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 120px 5% 80px;
+            padding: 140px 20px 80px;
             position: relative;
             overflow: hidden;
             text-align: center;
+            width: 100%;
         }
         
         /* Animated Background Gradient */
@@ -429,25 +430,36 @@ $roleDisplay = match($userRole) {
         /* Large Om Symbol Background */
         .hero-om-bg {
             position: absolute;
-            font-size: 35rem;
-            color: rgba(255, 153, 51, 0.03);
-            top: 50%;
+            font-size: 30rem;
+            color: rgba(255, 153, 51, 0.08);
+            top: 55%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 0;
             animation: omPulse 6s ease-in-out infinite;
             font-family: serif;
+            user-select: none;
+            pointer-events: none;
+            text-shadow: 0 0 80px rgba(255, 153, 51, 0.05);
+        }
+        
+        /* Light mode Om - darker color for visibility */
+        [data-theme="light"] .hero-om-bg {
+            color: rgba(255, 107, 53, 0.07);
+            text-shadow: 0 0 60px rgba(255, 107, 53, 0.04);
         }
         
         @keyframes omPulse {
-            0%, 100% { opacity: 0.03; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.05; transform: translate(-50%, -50%) scale(1.05); }
+            0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
         }
         
         .hero-content {
             max-width: 900px;
+            width: 100%;
             z-index: 2;
             position: relative;
+            margin: 0 auto;
         }
         
         .hero-badge {
@@ -510,6 +522,7 @@ $roleDisplay = match($userRole) {
             gap: 20px;
             flex-wrap: wrap;
             justify-content: center;
+            align-items: center;
             animation: buttonsReveal 1s ease-out 0.4s both;
         }
         
@@ -561,6 +574,7 @@ $roleDisplay = match($userRole) {
             padding-top: 40px;
             border-top: 1px solid var(--border-color);
             justify-content: center;
+            align-items: center;
             animation: badgesReveal 1s ease-out 0.6s both;
         }
         
@@ -641,24 +655,35 @@ $roleDisplay = match($userRole) {
         }
         
         /* Responsive Hero */
+        @media (max-width: 1024px) {
+            .hero-om-bg { font-size: 25rem; }
+        }
         @media (max-width: 768px) {
+            .hero { padding: 140px 5% 60px; }
             .hero h1 { font-size: 2.8rem; letter-spacing: -1px; }
             .hero-subtitle { font-size: 1.1rem; }
             .trust-badges { flex-direction: column; gap: 15px; align-items: center; }
-            .hero-om-bg { font-size: 20rem; }
+            .hero-om-bg { font-size: 18rem; }
             .hero-corner { display: none; }
+        }
+        @media (max-width: 480px) {
+            .hero-om-bg { font-size: 14rem; }
+            .hero h1 { font-size: 2.2rem; }
         }
         
         /* Stats Section */
         .stats {
-            padding: 60px 5%;
+            padding: 60px 20px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
         }
         .stat-card {
             text-align: center;
-            padding: 40px 30px;
+            padding: 40px 20px;
             background: var(--bg-card);
             border-radius: 20px;
             border: 1px solid var(--border-color);
@@ -690,7 +715,9 @@ $roleDisplay = match($userRole) {
         
         /* How It Works Section */
         .how-it-works {
-            padding: 100px 5%;
+            padding: 100px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         .steps-container {
             display: grid;
@@ -782,7 +809,9 @@ $roleDisplay = match($userRole) {
         
         /* Features Section */
         .features {
-            padding: 100px 5%;
+            padding: 100px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         .features-grid {
             display: grid;
@@ -845,7 +874,9 @@ $roleDisplay = match($userRole) {
         
         /* Rituals Showcase */
         .rituals-showcase {
-            padding: 100px 5%;
+            padding: 100px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         .rituals-slider {
             display: grid;
@@ -916,8 +947,7 @@ $roleDisplay = match($userRole) {
         
         /* Testimonials */
         .testimonials {
-            padding: 100px 5%;
-            background: rgba(0,0,0,0.2);
+            padding: 100px 20px;
         }
         .testimonials-grid {
             display: grid;
@@ -989,11 +1019,13 @@ $roleDisplay = match($userRole) {
         
         /* App Showcase */
         .app-showcase {
-            padding: 100px 5%;
+            padding: 100px 20px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 80px;
             align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         .app-content .section-tag { margin-bottom: 15px; }
         .app-content h2 {
@@ -1108,7 +1140,9 @@ $roleDisplay = match($userRole) {
         
         /* FAQ Section */
         .faq-section {
-            padding: 100px 5%;
+            padding: 100px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         .faq-container {
             max-width: 800px;
@@ -1167,8 +1201,10 @@ $roleDisplay = match($userRole) {
         
         /* CTA Section */
         .cta {
-            padding: 100px 5%;
+            padding: 100px 20px;
             text-align: center;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         .cta-box {
             max-width: 900px;
@@ -1309,30 +1345,6 @@ $roleDisplay = match($userRole) {
             color: var(--saffron);
         }
         
-        /* Mobile Menu Close Button */
-        .mobile-menu-close {
-            position: absolute;
-            top: 25px;
-            right: 25px;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 153, 51, 0.1);
-            border: 2px solid rgba(255, 153, 51, 0.3);
-            border-radius: 50%;
-            color: var(--saffron);
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 10002;
-        }
-        .mobile-menu-close:hover {
-            background: var(--saffron);
-            color: #1A1A2E;
-            transform: rotate(90deg);
-        }
         .mobile-menu-btn .hamburger-lines {
             display: flex;
             flex-direction: column;
@@ -1396,202 +1408,323 @@ $roleDisplay = match($userRole) {
             .logo-icon { width: 28px; height: 28px; }
             .logo-icon i { font-size: 1.3rem; }
             
-            /* Hide nav center and right on mobile */
-            .nav-center,
-            .nav-right { display: none; }
+            /* Hide nav center and links on mobile, keep hamburger */
+            .nav-center { display: none; }
+            .nav-right .theme-toggle,
+            .nav-right .nav-login,
+            .nav-right .nav-cta,
+            .nav-right .user-profile-dropdown { display: none; }
             
-            /* Mobile menu overlay - visible on mobile only */
+            /* Mobile menu - compact slide-in drawer */
             .mobile-menu {
                 display: block;
                 position: fixed;
                 top: 0;
-                left: 0;
                 right: 0;
                 bottom: 0;
-                width: 100vw;
+                width: 280px;
+                max-width: 85vw;
                 height: 100vh;
-                background: var(--bg-primary); /* Use theme background */
-                backdrop-filter: blur(20px);
+                background: var(--nav-bg);
+                backdrop-filter: blur(30px);
+                border-left: 1px solid var(--border-accent);
                 flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                gap: 25px;
+                align-items: flex-start;
+                gap: 0;
                 z-index: 9998;
+                transform: translateX(100%);
                 opacity: 0;
                 visibility: hidden;
-                transition: all 0.3s ease;
-                padding: 120px 20px 40px;
+                transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+                padding: 80px 0 30px;
                 overflow-y: auto;
+                box-shadow: -10px 0 40px rgba(0,0,0,0.3);
             }
             .mobile-menu.active {
                 display: flex;
+                transform: translateX(0);
                 opacity: 1;
                 visibility: visible;
             }
             
-            /* Mobile Menu Close Button - inside mobile menu */
-            .mobile-menu .mobile-menu-close {
+            /* Dark overlay behind drawer */
+            .mobile-menu-overlay {
+                display: none;
                 position: fixed;
-                top: 25px;
-                right: 25px;
-                width: 50px;
-                height: 50px;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 9997;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .mobile-menu-overlay.active {
+                display: block;
+                opacity: 1;
+            }
+            
+            /* Top bar inside drawer */
+            .mobile-menu .mobile-menu-top {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 10px;
+                padding: 18px 20px;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .mobile-menu .mobile-menu-close {
+                width: 36px;
+                height: 36px;
+                min-width: 36px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: rgba(255, 153, 51, 0.15);
-                border: 2px solid var(--saffron);
+                background: rgba(255, 153, 51, 0.1);
+                border: 1.5px solid var(--border-accent);
                 border-radius: 50%;
                 color: var(--saffron);
-                font-size: 1.5rem;
+                font-size: 1rem;
                 cursor: pointer;
                 transition: all 0.3s ease;
-                z-index: 10002;
             }
             .mobile-menu .mobile-menu-close:hover {
                 background: var(--saffron);
                 color: #1A1A2E;
-                transform: rotate(90deg);
             }
-            .mobile-theme-toggle {
-                position: fixed;
-                top: 28px;
-                right: 85px;
-                z-index: 10002;
-                background: rgba(255, 153, 51, 0.15);
-                border-color: var(--saffron);
+            .mobile-menu .mobile-menu-top .mobile-theme-toggle {
+                width: 36px;
+                height: 36px;
+                min-width: 36px;
+                font-size: 0.85rem;
+                background: rgba(255, 153, 51, 0.1);
+                border: 1.5px solid var(--border-accent);
+                border-color: var(--border-accent);
+                position: static;
+                margin: 0;
             }
+            
+            /* Nav links */
             .mobile-menu a {
-                color: var(--text-secondary);
+                display: block;
+                width: 100%;
+                color: var(--text-primary);
                 text-decoration: none;
-                font-size: 1.3rem;
+                font-size: 1rem;
                 font-weight: 500;
-                padding: 12px 30px;
-                border-radius: 30px;
-                transition: all 0.3s ease;
+                padding: 14px 28px;
+                border-radius: 0;
+                transition: all 0.2s ease;
+                border-left: 3px solid transparent;
             }
             .mobile-menu a:hover {
                 color: var(--saffron);
-                background: rgba(255, 153, 51, 0.1);
+                background: rgba(255, 153, 51, 0.08);
+                border-left-color: var(--saffron);
             }
+            
+            /* CTA button in drawer */
             .mobile-menu .mobile-cta {
-                margin-top: 20px;
-                padding: 14px 35px;
+                margin: 8px 20px 0;
+                padding: 12px 24px;
                 background: transparent;
                 color: var(--saffron);
                 border: 2px solid var(--saffron);
-                border-radius: 30px;
-                font-size: 1.1rem;
+                border-radius: 12px;
+                font-size: 0.95rem;
                 font-weight: 600;
+                text-align: center;
+                width: calc(100% - 40px);
+                border-left: 2px solid var(--saffron);
             }
             .mobile-menu .mobile-cta:hover {
-                background: var(--saffron);
-                color: #1A1A2E;
+                background: rgba(255, 153, 51, 0.15);
+                color: var(--saffron);
             }
+            /* Primary filled CTA */
+            .mobile-menu .mobile-cta-primary {
+                background: linear-gradient(135deg, var(--primary) 0%, var(--saffron) 100%);
+                color: white;
+                border-color: transparent;
+            }
+            .mobile-menu .mobile-cta-primary:hover {
+                opacity: 0.9;
+                color: white;
+                background: linear-gradient(135deg, var(--primary) 0%, var(--saffron) 100%);
+            }
+            
+            /* Auth links in drawer */
             .mobile-menu .mobile-auth {
                 display: flex;
                 flex-direction: column;
-                gap: 15px;
-                margin-top: 20px;
-                width: 80%;
-                max-width: 280px;
+                gap: 10px;
+                margin: 10px 20px 0;
+                padding-top: 5px;
+                width: calc(100% - 40px);
             }
-            .mobile-menu .mobile-auth a {
+            .mobile-menu .mobile-auth a,
+            .mobile-menu .mobile-auth button {
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 text-align: center;
                 width: 100%;
+                padding: 13px 20px;
+                border-radius: 12px;
+                border-left: none;
+                margin: 0;
+                font-size: 0.95rem;
+                font-weight: 600;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                cursor: pointer;
+                font-family: inherit;
+            }
+            /* Dashboard - primary filled */
+            .mobile-menu .mobile-auth a:first-child {
+                background: linear-gradient(135deg, var(--primary) 0%, var(--saffron) 100%);
+                color: white;
+                border: none;
+            }
+            .mobile-menu .mobile-auth a:first-child:hover {
+                opacity: 0.9;
+                background: linear-gradient(135deg, var(--primary) 0%, var(--saffron) 100%);
+                border-left: none;
+            }
+            /* My Profile - outline */
+            .mobile-menu .mobile-auth a:nth-child(2) {
+                background: transparent;
+                color: var(--saffron);
+                border: 2px solid var(--saffron);
+            }
+            .mobile-menu .mobile-auth a:nth-child(2):hover {
+                background: rgba(255, 153, 51, 0.1);
+                border-left: 2px solid var(--saffron);
             }
             
             /* Mobile User Profile */
             .mobile-user-profile {
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                padding: 20px;
-                background: rgba(255, 153, 51, 0.08);
-                border-radius: 20px;
-                border: 1px solid rgba(255, 153, 51, 0.2);
-                margin-bottom: 10px;
+                gap: 12px;
+                padding: 16px 20px;
+                background: rgba(255, 153, 51, 0.06);
+                border-bottom: 1px solid var(--border-color);
+                margin-bottom: 5px;
+                width: 100%;
             }
             .mobile-user-avatar {
-                width: 55px;
-                height: 55px;
+                width: 42px;
+                height: 42px;
                 background: linear-gradient(135deg, var(--primary) 0%, var(--saffron) 100%);
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 color: white;
-                font-size: 1.4rem;
+                font-size: 1rem;
                 font-weight: 700;
+                flex-shrink: 0;
             }
             .mobile-user-info {
                 display: flex;
                 flex-direction: column;
-                gap: 4px;
+                gap: 2px;
+                overflow: hidden;
             }
             .mobile-user-name {
                 color: var(--text-primary);
-                font-size: 1.2rem;
+                font-size: 0.95rem;
                 font-weight: 600;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
             .mobile-user-role {
-                font-size: 0.9rem;
+                font-size: 0.8rem;
                 font-weight: 500;
             }
             .mobile-menu-divider {
-                width: 80%;
+                width: 100%;
                 height: 1px;
-                background: rgba(255, 255, 255, 0.1);
-                margin: 10px 0;
+                background: var(--border-color);
+                margin: 8px 0;
             }
-            .mobile-menu .mobile-logout {
-                border-color: #ff6b6b !important;
+            /* Logout button - red outline */
+            .mobile-menu .mobile-auth .mobile-logout {
+                background: transparent !important;
                 color: #ff6b6b !important;
+                border: 2px solid #ff6b6b !important;
+                border-radius: 12px;
             }
-            .mobile-menu .mobile-logout:hover {
-                background: #ff6b6b !important;
-                color: white !important;
+            .mobile-menu .mobile-auth .mobile-logout:hover {
+                background: rgba(255,107,107,0.1) !important;
             }
             
-            .hero { padding: 100px 5% 50px; min-height: auto; }
-            .hero h1 { font-size: 2rem; }
-            .hero p { font-size: 1rem; }
-            .hero-badge { font-size: 0.8rem; padding: 8px 15px; }
-            .hero-buttons { flex-direction: column; gap: 15px; }
-            .hero-buttons .btn { width: 100%; justify-content: center; }
-            .trust-badges { flex-direction: column; gap: 15px; }
+            /* Hero - Mobile */
+            .hero { padding: 110px 16px 50px; min-height: auto; }
+            .hero h1 { font-size: 2.2rem; letter-spacing: -0.5px; }
+            .hero-subtitle { font-size: 1rem; padding: 0 10px; }
+            .hero-badge { font-size: 0.8rem; padding: 8px 16px; }
+            .hero-buttons { flex-direction: column; gap: 12px; width: 100%; max-width: 320px; margin: 0 auto; }
+            .hero-buttons .btn { width: 100%; justify-content: center; text-align: center; }
+            .trust-badges { flex-direction: column; gap: 12px; align-items: center; }
+            .hero-om-bg { font-size: 16rem; }
+            .hero-corner { display: none; }
             
-            .stats { padding: 40px 5%; gap: 15px; }
-            .stat-card { padding: 25px 20px; }
-            .stat-value { font-size: 2rem; }
+            /* Stats - Mobile */
+            .stats { padding: 40px 16px; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+            .stat-card { padding: 25px 15px; border-radius: 16px; }
+            .stat-value { font-size: 1.8rem; }
+            .stat-icon { width: 55px; height: 55px; font-size: 1.4rem; }
+            .stat-label { font-size: 0.85rem; }
             
-            .features { padding: 60px 5%; }
-            .features-grid { grid-template-columns: 1fr; gap: 20px; }
-            .feature-card { padding: 30px 25px; }
-            .section-header h2 { font-size: 1.8rem; }
+            /* Sections - Mobile */
+            .section-header { padding: 0 10px; margin-bottom: 40px; }
+            .section-header h2 { font-size: 1.7rem; }
+            .section-header p { font-size: 0.95rem; }
             
-            .how-it-works { padding: 60px 5%; }
+            /* Features - Mobile */
+            .features { padding: 60px 16px; }
+            .features-grid { grid-template-columns: 1fr; gap: 16px; }
+            .feature-card { padding: 25px 20px; border-radius: 18px; }
+            .feature-icon { width: 60px; height: 60px; font-size: 1.5rem; border-radius: 16px; }
             
-            .rituals-showcase { padding: 60px 5%; }
-            .rituals-slider { grid-template-columns: 1fr; }
+            /* How It Works - Mobile */
+            .how-it-works { padding: 60px 16px; }
+            .steps-container { gap: 25px; }
+            .step-card { padding: 30px 20px; border-radius: 18px; }
             
-            .testimonials { padding: 60px 5%; }
+            /* Rituals - Mobile */
+            .rituals-showcase { padding: 60px 16px; }
+            .rituals-slider { grid-template-columns: 1fr; gap: 16px; }
             
-            .app-showcase { padding: 60px 5%; }
-            .app-content h2 { font-size: 1.8rem; }
-            .phone-mockup { width: 240px; height: 480px; }
+            /* Testimonials - Mobile */
+            .testimonials { padding: 60px 16px; }
+            .testimonial-card { padding: 25px 20px; }
             
-            .faq-section { padding: 60px 5%; }
-            .faq-question { font-size: 1rem; padding: 20px; }
+            /* App Showcase - Mobile */
+            .app-showcase { padding: 60px 16px; gap: 40px; }
+            .app-content h2 { font-size: 1.7rem; }
+            .phone-mockup { width: 220px; height: 440px; }
             
-            .cta { padding: 60px 5%; }
-            .cta-box { padding: 40px 25px; border-radius: 20px; }
-            .cta h2 { font-size: 1.6rem; }
-            .cta p { font-size: 1rem; }
-            .cta-buttons { flex-direction: column; }
-            .cta-buttons .btn { width: 100%; }
-            .cta-trust { flex-direction: column; gap: 15px; }
+            /* FAQ - Mobile */
+            .faq-section { padding: 60px 16px; }
+            .faq-question { font-size: 0.95rem; padding: 18px 16px; }
+            .faq-answer { padding: 0 16px 18px; }
             
+            /* CTA - Mobile */
+            .cta { padding: 60px 16px; }
+            .cta-box { padding: 35px 20px; border-radius: 20px; }
+            .cta h2 { font-size: 1.5rem; }
+            .cta p { font-size: 0.95rem; padding: 0 5px; }
+            .cta-buttons { flex-direction: column; width: 100%; max-width: 300px; margin: 0 auto; }
+            .cta-buttons .btn { width: 100%; justify-content: center; }
+            .cta-trust { flex-direction: column; gap: 12px; }
+            
+            /* Footer - Mobile */
             .footer-content { grid-template-columns: 1fr; gap: 30px; text-align: center; }
             .footer-brand { order: -1; }
             .footer-bottom { 
@@ -1600,15 +1733,40 @@ $roleDisplay = match($userRole) {
                 text-align: center; 
             }
             .social-links { justify-content: center; }
+            footer { padding: 60px 16px 30px; }
         }
         
         @media (max-width: 480px) {
-            .hero h1 { font-size: 1.7rem; }
-            .stats { grid-template-columns: 1fr; }
-            .stat-card { padding: 20px 15px; }
-            .section-header h2 { font-size: 1.5rem; }
-            .cta h2 { font-size: 1.4rem; }
-            .btn-lg { padding: 14px 28px; font-size: 1rem; }
+            .hero { padding: 100px 12px 40px; }
+            .hero h1 { font-size: 1.8rem; }
+            .hero-subtitle { font-size: 0.9rem; }
+            .hero-badge { font-size: 0.75rem; padding: 7px 14px; gap: 6px; }
+            .hero-om-bg { font-size: 12rem; }
+            .hero-buttons { max-width: 280px; }
+            
+            .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 18px 12px; }
+            .stat-value { font-size: 1.5rem; }
+            .stat-icon { width: 45px; height: 45px; font-size: 1.2rem; margin-bottom: 12px; }
+            
+            .section-header h2 { font-size: 1.4rem; }
+            .section-tag { font-size: 0.8rem; padding: 6px 16px; }
+            .cta h2 { font-size: 1.3rem; }
+            .btn-lg { padding: 14px 24px; font-size: 0.95rem; }
+            .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+            
+            .feature-card h3 { font-size: 1.15rem; }
+            .step-card h3 { font-size: 1.1rem; }
+            .phone-mockup { width: 200px; height: 400px; }
+        }
+        
+        @media (max-width: 360px) {
+            .hero h1 { font-size: 1.5rem; }
+            .hero-subtitle { font-size: 0.85rem; }
+            .hero-om-bg { font-size: 10rem; }
+            .stat-card { padding: 15px 10px; }
+            .stat-value { font-size: 1.3rem; }
+            .section-header h2 { font-size: 1.2rem; }
         }
         
         /* User Profile Dropdown */
@@ -1758,7 +1916,7 @@ $roleDisplay = match($userRole) {
     
 <div class="nav-wrapper" id="navWrapper">
         <nav id="navbar">
-            <a href="/" class="logo">
+            <a href="#" class="logo" onclick="event.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' });">
                 <div class="logo-icon">
                     <i class="fas fa-om"></i>
                 </div>
@@ -1823,7 +1981,7 @@ $roleDisplay = match($userRole) {
                                 <i class="fas fa-home"></i>
                                 <span>Dashboard</span>
                             </a>
-                            <a href="/user/profile" class="dropdown-item">
+                            <a href="<?= $settingsUrl ?>" class="dropdown-item"> <!-- Reusing settingsUrl which points to profile for admin/pandit -->
                                 <i class="fas fa-user-circle"></i>
                                 <span>My Profile</span>
                             </a>
@@ -1858,21 +2016,23 @@ $roleDisplay = match($userRole) {
         </nav>
     </div>
     
-    <!-- Mobile Menu Overlay -->
+    <!-- Mobile Menu Overlay Backdrop -->
+    <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+    
+    <!-- Mobile Menu Drawer -->
     <div class="mobile-menu" id="mobileMenu">
-        <!-- Close Button -->
-        <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
-            <i class="fas fa-times"></i>
-        </button>
-        
-        <!-- Mobile Theme Toggle -->
-        <button class="theme-toggle mobile-theme-toggle" id="mobileThemeToggle">
-            <i class="fas fa-sun"></i>
-            <i class="fas fa-moon"></i>
-        </button>
+        <!-- Top bar with toggle & close -->
+        <div class="mobile-menu-top">
+            <button class="theme-toggle mobile-theme-toggle" id="mobileThemeToggle">
+                <i class="fas fa-sun"></i>
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
         
         <?php if ($isLoggedIn): ?>
-        <!-- User Profile Header in Mobile Menu -->
         <div class="mobile-user-profile">
             <div class="mobile-user-avatar">
                 <?= strtoupper(substr($currentUser['name'] ?? 'U', 0, 1)) ?>
@@ -1882,7 +2042,6 @@ $roleDisplay = match($userRole) {
                 <span class="mobile-user-role" style="color: <?= $roleDisplay['color'] ?>;"><?= $roleDisplay['name'] ?></span>
             </div>
         </div>
-        <div class="mobile-menu-divider"></div>
         <?php endif; ?>
         
         <a href="#how-it-works">How It Works</a>
@@ -1892,10 +2051,12 @@ $roleDisplay = match($userRole) {
         <a href="#testimonials">Reviews</a>
         <a href="#faq">FAQ</a>
         
+        <div class="mobile-menu-divider"></div>
+        
         <?php if ($isLoggedIn): ?>
             <div class="mobile-auth">
                 <a href="<?= $dashboardUrl ?>" class="mobile-cta">Dashboard</a>
-                <a href="/user/profile" class="mobile-cta">My Profile</a>
+                <a href="<?= $settingsUrl ?>" class="mobile-cta">My Profile</a>
                 <form action="/logout" method="POST" style="margin: 0; width: 100%;">
                     <?= App\Core\Auth::csrfField() ?>
                     <button type="submit" class="mobile-cta mobile-logout" style="width: 100%; cursor: pointer; font-family: inherit;">Logout</button>
@@ -1903,8 +2064,8 @@ $roleDisplay = match($userRole) {
             </div>
         <?php else: ?>
             <div class="mobile-auth">
-                <a href="/login">Login</a>
-                <a href="/signup" class="mobile-cta">Get Started</a>
+                <a href="/login" class="mobile-cta">Login</a>
+                <a href="/signup" class="mobile-cta mobile-cta-primary">Get Started</a>
             </div>
         <?php endif; ?>
     </div>
@@ -2001,24 +2162,40 @@ $roleDisplay = match($userRole) {
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const mobileMenu = document.getElementById('mobileMenu');
         const mobileMenuClose = document.getElementById('mobileMenuClose');
+        const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+        
+        // Function to open mobile menu
+        function openMobileMenu() {
+            mobileMenuBtn.classList.add('active');
+            mobileMenu.classList.add('active');
+            if (mobileMenuOverlay) mobileMenuOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
         
         // Function to close mobile menu
         function closeMobileMenu() {
             mobileMenuBtn.classList.remove('active');
             mobileMenu.classList.remove('active');
+            if (mobileMenuOverlay) mobileMenuOverlay.classList.remove('active');
             document.body.style.overflow = '';
         }
         
         mobileMenuBtn.addEventListener('click', () => {
-            mobileMenuBtn.classList.toggle('active');
-            mobileMenu.classList.toggle('active');
-            // Prevent body scroll when menu is open
-            document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+            if (mobileMenu.classList.contains('active')) {
+                closeMobileMenu();
+            } else {
+                openMobileMenu();
+            }
         });
         
         // Close button click
         if (mobileMenuClose) {
             mobileMenuClose.addEventListener('click', closeMobileMenu);
+        }
+        
+        // Close when clicking overlay backdrop
+        if (mobileMenuOverlay) {
+            mobileMenuOverlay.addEventListener('click', closeMobileMenu);
         }
         
         // Close mobile menu when clicking a link

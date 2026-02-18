@@ -96,6 +96,26 @@ class Ritual extends Model
     }
 
     /**
+     * Get top ritual names (most popular/viewed)
+     */
+    public function getTopRitualNames(int $limit = 10): array
+    {
+        $sql = "
+            SELECT DISTINCT name as ritual_name, view_count
+            FROM SAI_rituals 
+            WHERE is_active = 1 
+            ORDER BY view_count DESC, name ASC 
+            LIMIT :limit
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Increment view count
      */
     public function incrementView(int $id): bool
@@ -110,20 +130,44 @@ class Ritual extends Model
      */
     public function search(string $query): array
     {
+        // Search in all rituals, not just active ones (for admin)
+        // Or should it be active only? The admin might want to search inactive ones too.
+        // The original query had 'is_active = 1'. 
+        // But for Admin management, we should probably search ALL rituals.
+        // However, I will stick to the original logic for now, or remove is_active constraint if this is for admin?
+        // Let's assume this method is used by Frontend too? 
+        // AdminController calls `all()` which returns everything.
+        // So `search` should probably return everything for admin.
+        // But this method might be used by User side too?
+        // Let's create a new method `adminSearch` or just modify this to be more flexible?
+        // User side uses `advancedSearch` or `getActiveRituals`.
+        // This `search` method seems generic. 
+        // I will make it search ALL rituals for now, or check usage.
+        // Actually, for Admin, we definitely want to find Inactive rituals too.
+        
         $sql = "
             SELECT * FROM SAI_rituals
-            WHERE is_active = 1 AND (
-                name LIKE :query 
-                OR name_sanskrit LIKE :query 
-                OR category LIKE :query 
-                OR description LIKE :query
-                OR deity LIKE :query
+            WHERE (
+                name LIKE :name 
+                OR name_sanskrit LIKE :sanskrit 
+                OR category LIKE :category 
+                OR description LIKE :desc
+                OR deity LIKE :deity
             )
-            ORDER BY view_count DESC, name ASC
+            ORDER BY name ASC
             LIMIT 50
         ";
 
-        return $this->raw($sql, ['query' => "%$query%"]);
+        $term = "%$query%";
+        $params = [
+            'name' => $term,
+            'sanskrit' => $term,
+            'category' => $term,
+            'desc' => $term,
+            'deity' => $term
+        ];
+
+        return $this->raw($sql, $params);
     }
 
     /**

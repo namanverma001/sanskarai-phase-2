@@ -86,6 +86,71 @@
         box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
     }
 
+    /* Combobox style for input with datalist */
+    .community-combobox {
+        position: relative;
+    }
+
+    .community-combobox input {
+        width: 100%;
+        padding: 12px 40px 12px 16px;
+        border: 2px solid #E5E7EB;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background-color: white;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        cursor: text;
+    }
+
+    .community-combobox input:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    }
+
+    .community-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #E5E7EB;
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 100;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .community-dropdown.show {
+        display: block;
+    }
+
+    .community-dropdown .dropdown-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: background 0.2s;
+        font-size: 1rem;
+        color: #374151;
+    }
+
+    .community-dropdown .dropdown-item:hover,
+    .community-dropdown .dropdown-item.highlighted {
+        background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 140, 66, 0.1) 100%);
+        color: var(--primary);
+    }
+
+    .community-dropdown .no-results {
+        padding: 12px 16px;
+        color: #9CA3AF;
+        font-style: italic;
+    }
+
     .search-actions {
         display: flex;
         gap: 15px;
@@ -241,6 +306,11 @@
     .tag-duration {
         background: #E0E7FF;
         color: #3730A3;
+    }
+
+    .tag-community {
+        background: #DBEAFE;
+        color: #1E40AF;
     }
 
     .ritual-description {
@@ -452,13 +522,25 @@
         <div class="form-grid">
             <div class="form-field">
                 <label for="community_name"><i class="fas fa-users"></i> Community Name</label>
-                <input
-                    type="text"
-                    id="community_name"
-                    name="community_name"
-                    placeholder="e.g., Bengali, Gujarati, Tamil..."
-                    value="<?= htmlspecialchars($userCommunity ?? '') ?>"
-                >
+                <div class="community-combobox">
+                    <input
+                        type="text"
+                        id="community_name"
+                        name="community_name"
+                        placeholder="Select or type community..."
+                        value="<?= htmlspecialchars($userCommunity ?? '') ?>"
+                        autocomplete="off"
+                    >
+                    <div class="community-dropdown" id="communityDropdown">
+                        <?php if (!empty($topCommunities)): ?>
+                            <?php foreach ($topCommunities as $community): ?>
+                                <div class="dropdown-item" data-value="<?= htmlspecialchars($community['community_name']) ?>">
+                                    <?= htmlspecialchars($community['community_name']) ?>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
             <div class="form-field">
@@ -475,18 +557,31 @@
                     <option value="Buddhism">Buddhism</option>
                     <option value="Jainism">Jainism</option>
                     <option value="Sikhism">Sikhism</option>
+                    <option value="Christian">Christian</option>
                     <option value="Other">Other</option>
                 </select>
             </div>
 
             <div class="form-field">
                 <label for="ritual_name"><i class="fas fa-pray"></i> Ritual Name</label>
-                <input
-                    type="text"
-                    id="ritual_name"
-                    name="ritual_name"
-                    placeholder="e.g., Satyanarayan Puja, Griha Pravesh..."
-                >
+                <div class="community-combobox">
+                    <input
+                        type="text"
+                        id="ritual_name"
+                        name="ritual_name"
+                        placeholder="e.g., Satyanarayan Puja, Griha Pravesh..."
+                        autocomplete="off"
+                    >
+                    <div class="community-dropdown" id="ritualDropdown">
+                        <?php if (!empty($topRitualNames)): ?>
+                            <?php foreach ($topRitualNames as $ritual): ?>
+                                <div class="dropdown-item" data-value="<?= htmlspecialchars($ritual['ritual_name']) ?>">
+                                    <?= htmlspecialchars($ritual['ritual_name']) ?>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
             <div class="form-field">
@@ -593,6 +688,12 @@
                             <i class="fas fa-clock"></i>
                             <?= $ritual['duration_minutes'] ?> min
                         </span>
+                        <?php if (!empty($ritual['community_name'])): ?>
+                            <span class="ritual-meta-tag tag-community">
+                                <i class="fas fa-users"></i>
+                                <?= htmlspecialchars($ritual['community_name']) ?>
+                            </span>
+                        <?php endif; ?>
                     </div>
                     <p class="ritual-description">
                         <?= htmlspecialchars(substr($ritual['description'] ?? 'Traditional ritual with detailed steps and guidance.', 0, 100)) ?>...
@@ -645,6 +746,207 @@
 
 <script>
     const csrfToken = '<?= \App\Core\Auth::csrfToken() ?>';
+
+    // Community combobox functionality
+    (function() {
+        const input = document.getElementById('community_name');
+        const dropdown = document.getElementById('communityDropdown');
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        const allCommunities = Array.from(items).map(item => item.dataset.value);
+        let highlightedIndex = -1;
+        let justSelected = false;
+
+        // Show dropdown on focus
+        input.addEventListener('focus', function() {
+            if (justSelected) {
+                justSelected = false;
+                return;
+            }
+            filterAndShowDropdown();
+        });
+
+        // Filter on input
+        input.addEventListener('input', function() {
+            filterAndShowDropdown();
+        });
+
+        // Handle keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            const visibleItems = dropdown.querySelectorAll('.dropdown-item:not([style*="display: none"])');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlightedIndex = Math.min(highlightedIndex + 1, visibleItems.length - 1);
+                updateHighlight(visibleItems);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                updateHighlight(visibleItems);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightedIndex >= 0 && visibleItems[highlightedIndex]) {
+                    selectItem(visibleItems[highlightedIndex]);
+                }
+            } else if (e.key === 'Escape') {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Click on dropdown item
+        items.forEach(item => {
+            item.addEventListener('click', function() {
+                selectItem(this);
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.community-combobox')) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        function filterAndShowDropdown() {
+            const filter = input.value.toLowerCase();
+            let hasVisible = false;
+            highlightedIndex = -1;
+
+            items.forEach(item => {
+                const text = item.dataset.value.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = 'block';
+                    hasVisible = true;
+                } else {
+                    item.style.display = 'none';
+                }
+                item.classList.remove('highlighted');
+            });
+
+            if (hasVisible) {
+                dropdown.classList.add('show');
+            } else {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        function updateHighlight(visibleItems) {
+            visibleItems.forEach((item, index) => {
+                if (index === highlightedIndex) {
+                    item.classList.add('highlighted');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('highlighted');
+                }
+            });
+        }
+
+        function selectItem(item) {
+            justSelected = true;
+            input.value = item.dataset.value;
+            dropdown.classList.remove('show');
+            input.blur();
+        }
+    })();
+
+    // Ritual name combobox functionality (with filtering)
+    (function() {
+        const input = document.getElementById('ritual_name');
+        const dropdown = document.getElementById('ritualDropdown');
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        let highlightedIndex = -1;
+        let justSelected = false;
+
+        // Show filtered dropdown on focus
+        input.addEventListener('focus', function() {
+            if (justSelected) {
+                justSelected = false;
+                return;
+            }
+            filterAndShowDropdown();
+        });
+
+        // Filter on input
+        input.addEventListener('input', function() {
+            filterAndShowDropdown();
+        });
+
+        // Handle keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            const visibleItems = dropdown.querySelectorAll('.dropdown-item:not([style*="display: none"])');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlightedIndex = Math.min(highlightedIndex + 1, visibleItems.length - 1);
+                updateHighlight(visibleItems);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                updateHighlight(visibleItems);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightedIndex >= 0 && visibleItems[highlightedIndex]) {
+                    selectItem(visibleItems[highlightedIndex]);
+                }
+            } else if (e.key === 'Escape') {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Click on dropdown item
+        items.forEach(item => {
+            item.addEventListener('click', function() {
+                selectItem(this);
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#ritual_name') && !e.target.closest('#ritualDropdown')) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        function filterAndShowDropdown() {
+            const filter = input.value.toLowerCase();
+            let hasVisible = false;
+            highlightedIndex = -1;
+
+            items.forEach(item => {
+                const text = item.dataset.value.toLowerCase();
+                if (text.includes(filter)) {
+                    item.style.display = 'block';
+                    hasVisible = true;
+                } else {
+                    item.style.display = 'none';
+                }
+                item.classList.remove('highlighted');
+            });
+
+            if (hasVisible) {
+                dropdown.classList.add('show');
+            } else {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        function updateHighlight(visibleItems) {
+            visibleItems.forEach((item, index) => {
+                if (index === highlightedIndex) {
+                    item.classList.add('highlighted');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('highlighted');
+                }
+            });
+        }
+
+        function selectItem(item) {
+            justSelected = true;
+            input.value = item.dataset.value;
+            dropdown.classList.remove('show');
+            input.blur();
+        }
+    })();
 
     function showLoading(text = 'Loading...') {
         document.getElementById('loadingText').textContent = text;
@@ -747,6 +1049,9 @@
                         <span class="ritual-meta-tag tag-duration">
                             <i class="fas fa-clock"></i> ${ritual.duration_minutes || 60} min
                         </span>
+                        ${ritual.community_name ? `<span class="ritual-meta-tag tag-community">
+                            <i class="fas fa-users"></i> ${escapeHtml(ritual.community_name)}
+                        </span>` : ''}
                     </div>
                     <p class="ritual-description">
                         ${escapeHtml((ritual.description || 'Traditional ritual with detailed steps.').substring(0, 100))}...
@@ -772,6 +1077,7 @@
     function displayGeneratedRitual(ritual) {
         // Store ritual data for later use when adding to My Rituals
         window.generatedRitualData = ritual;
+        window.generatedRitualAdded = false; // Reset the added flag for new ritual
         
         const generatedSection = document.getElementById('generatedResult');
         const generatedContent = document.getElementById('generatedContent');
@@ -784,7 +1090,7 @@
             <div>
                 <strong>${escapeHtml(step.title)}</strong>
                 ${step.description ? `<p style="color: #6B7280; font-size: 0.9rem; margin-top: 5px;">${escapeHtml(step.description)}</p>` : ''}
-                ${step.mantra ? `<p style="background: #FEF3C7; padding: 8px; border-radius: 5px; margin-top: 8px; font-style: italic;"><i class="fas fa-om"></i> ${escapeHtml(step.mantra)}</p>` : ''}
+                ${step.mantra ? `<p style="background: #FEF3C7; padding: 8px; border-radius: 5px; margin-top: 8px; font-style: italic;"><strong>Mantra:</strong> ${escapeHtml(step.mantra)}</p>` : ''}
             </div>
         </div>
     `).join('');
@@ -809,7 +1115,7 @@
             </button>
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; padding: 20px; background: #F9FAFB; border-radius: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 25px; padding: 20px; background: #F9FAFB; border-radius: 12px;">
             <div style="text-align: center;">
                 <i class="fas fa-clock" style="font-size: 1.5rem; color: var(--primary);"></i>
                 <p style="font-weight: 600; margin-top: 5px;">${ritual.duration_minutes || 60} min</p>
@@ -825,6 +1131,13 @@
                 <i class="fas fa-pray" style="font-size: 1.5rem; color: var(--primary);"></i>
                 <p style="font-weight: 600; margin-top: 5px;">${escapeHtml(ritual.deity)}</p>
                 <p style="color: #6B7280; font-size: 0.8rem;">Deity</p>
+            </div>
+            ` : ''}
+            ${ritual.community_name ? `
+            <div style="text-align: center;">
+                <i class="fas fa-users" style="font-size: 1.5rem; color: var(--primary);"></i>
+                <p style="font-weight: 600; margin-top: 5px;">${escapeHtml(ritual.community_name)}</p>
+                <p style="color: #6B7280; font-size: 0.8rem;">Community</p>
             </div>
             ` : ''}
         </div>
@@ -860,6 +1173,7 @@
 
         // Store ritual data for adding to My Rituals
         window.generatedRitualData = ritual;
+        window.generatedRitualAdded = false; // Reset the added flag for new ritual
 
         generatedSection.style.display = 'block';
         document.getElementById('searchResults').style.display = 'none';
@@ -880,6 +1194,8 @@
 
             if (data.success) {
                 showToast('Ritual added to your collection!', 'success');
+            } else if (data.already_added) {
+                showToast('This ritual is already in your collection!', 'info');
             } else {
                 showToast(data.error || 'Failed to add ritual', 'error');
             }
@@ -891,6 +1207,12 @@
     async function addGeneratedToMyRituals() {
         if (!window.generatedRitualData) {
             showToast('No ritual data available', 'error');
+            return;
+        }
+
+        // Check if already added
+        if (window.generatedRitualAdded) {
+            showToast('This ritual is already in your collection!', 'info');
             return;
         }
 
@@ -911,6 +1233,7 @@
             hideLoading();
 
             if (data.success) {
+                window.generatedRitualAdded = true; // Mark as added
                 showToast('Ritual added to your collection!', 'success');
                 setTimeout(() => {
                     window.location.href = '/user/my-rituals/' + data.user_ritual_id;
@@ -1011,6 +1334,10 @@
                             <i class="fas fa-clock"></i>
                             ${ritual.duration_minutes} min
                         </span>
+                        ${ritual.community_name ? `<span class="ritual-meta-tag tag-community">
+                            <i class="fas fa-users"></i>
+                            ${escapeHtml(ritual.community_name)}
+                        </span>` : ''}
                     </div>
                     <p class="ritual-description">${escapeHtml(truncatedDesc)}</p>
                     <div class="ritual-card-actions">

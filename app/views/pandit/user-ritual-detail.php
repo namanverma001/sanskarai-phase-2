@@ -164,7 +164,7 @@
                         <?php endif; ?>
                         <?php if ($step['mantra']): ?>
                             <div class="step-mantra">
-                                <i class="fas fa-om"></i>
+                                <strong>Mantra:</strong>
                                 <?= htmlspecialchars($step['mantra']) ?>
                                 <?php if ($step['mantra_meaning']): ?>
                                     <br><small>

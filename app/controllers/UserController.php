@@ -93,8 +93,19 @@ class UserController extends Controller
             $this->back(['error' => 'Invalid token.']);
             return;
         }
-        $data = $this->only(['family_name', 'gotra', 'nakshatra', 'kul_devta', 'city', 'state']);
+        $data = $this->only(['family_name', 'gotra', 'nakshatra', 'kul_devta', 'city', 'state', 'country']);
         $data['user_id'] = Auth::id();
+
+        // Prevent duplicate families for the same user
+        $existing = $this->familyModel->where([
+            'user_id' => $data['user_id'],
+            'family_name' => $data['family_name'],
+        ]);
+        if (!empty($existing)) {
+            $this->redirect('/user/families', ['error' => 'A family with this name already exists.']);
+            return;
+        }
+
         $this->familyModel->create($data);
         $this->redirect('/user/families', ['success' => 'Family created.']);
     }
@@ -118,7 +129,7 @@ class UserController extends Controller
             $this->back(['error' => 'Invalid token.']);
             return;
         }
-        $data = $this->only(['family_name', 'gotra', 'nakshatra', 'kul_devta', 'city', 'state']);
+        $data = $this->only(['family_name', 'gotra', 'nakshatra', 'kul_devta', 'city', 'state', 'country']);
         $this->familyModel->update((int) $id, $data);
         $this->back(['success' => 'Family updated.']);
     }
@@ -190,12 +201,21 @@ class UserController extends Controller
             $totalRitualCount = $this->ritualModel->count(['is_active' => 1]);
         }
 
+        // Get top communities for dropdown
+        $userModel = new User();
+        $topCommunities = $userModel->getTopCommunities(6);
+        
+        // Get top ritual names for dropdown
+        $topRitualNames = $this->ritualModel->getTopRitualNames(15);
+
         $this->viewWithLayout('user/explore-rituals', 'layouts/user', [
             'title' => 'Explore Rituals',
             'categories' => $categories,
             'popularRituals' => $popularRituals,
             'totalRitualCount' => $totalRitualCount,
             'userCommunity' => $userCommunity,
+            'topCommunities' => $topCommunities,
+            'topRitualNames' => $topRitualNames,
         ]);
     }
 
@@ -421,6 +441,19 @@ class UserController extends Controller
             $globalRitualId = (int) $this->input('global_ritual_id');
             $userId = Auth::id();
 
+            // Check if already added
+            $existing = $this->userRitualModel->findByUserAndGlobal($userId, $globalRitualId);
+            if ($existing) {
+                ob_end_clean();
+                $this->json([
+                    'success' => false,
+                    'already_added' => true,
+                    'user_ritual_id' => $existing['id'],
+                    'error' => 'This ritual is already in your collection!',
+                ]);
+                return;
+            }
+
             $userRitualId = $this->userRitualModel->addFromGlobal($userId, $globalRitualId);
 
             ob_end_clean();
@@ -642,6 +675,91 @@ class UserController extends Controller
         try {
             $this->userRitualModel->deleteStep((int) $id);
             $this->json(['success' => true, 'message' => 'Step deleted!']);
+        } catch (\Exception $e) {
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Add item to My Ritual
+     */
+    public function addMyRitualItem(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->json(['error' => 'Invalid token.'], 400);
+            return;
+        }
+
+        $userId = Auth::id();
+        if (!$this->userRitualModel->belongsToUser((int) $id, $userId)) {
+            $this->json(['error' => 'Unauthorized'], 403);
+            return;
+        }
+
+        $data = [
+            'item_name' => $this->input('item_name'),
+            'item_name_local' => $this->input('item_name_local'),
+            'quantity' => $this->input('quantity', 1),
+            'unit' => $this->input('unit', 'piece'),
+            'is_mandatory' => (bool) $this->input('is_mandatory', true),
+            'description' => $this->input('description'),
+            'alternatives' => $this->input('alternatives'),
+        ];
+
+        if (empty($data['item_name'])) {
+            $this->json(['error' => 'Item name is required'], 400);
+            return;
+        }
+
+        try {
+            $itemId = $this->userRitualModel->addItem((int) $id, $data);
+            $this->json(['success' => true, 'item_id' => $itemId, 'message' => 'Item added!']);
+        } catch (\Exception $e) {
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update item in My Ritual
+     */
+    public function updateMyRitualItem(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->json(['error' => 'Invalid token.'], 400);
+            return;
+        }
+
+        $data = [
+            'item_name' => $this->input('item_name'),
+            'item_name_local' => $this->input('item_name_local'),
+            'quantity' => $this->input('quantity', 1),
+            'unit' => $this->input('unit', 'piece'),
+            'is_mandatory' => (bool) $this->input('is_mandatory', false),
+            'description' => $this->input('description'),
+            'alternatives' => $this->input('alternatives'),
+        ];
+
+        try {
+            $this->userRitualModel->updateItem((int) $id, $data);
+            $this->json(['success' => true, 'message' => 'Item updated!']);
+        } catch (\Exception $e) {
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete item from My Ritual
+     */
+    public function deleteMyRitualItem(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->json(['error' => 'Invalid token.'], 400);
+            return;
+        }
+
+        try {
+            $this->userRitualModel->deleteItem((int) $id);
+            $this->json(['success' => true, 'message' => 'Item deleted!']);
         } catch (\Exception $e) {
             $this->json(['success' => false, 'error' => $e->getMessage()], 500);
         }

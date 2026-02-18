@@ -61,18 +61,13 @@
     </div>
     
     <div class="form-group">
-        <label for="community_name"><i class="fas fa-users"></i> Community</label>
+        <label for="community_name"><i class="fas fa-users"></i> Community Name</label>
         <input type="text" id="community_name" name="community_name" class="form-control" 
-               placeholder="e.g., Brahmin, Rajput, Maratha..."
+               placeholder="e.g., Brahmin, Maratha, Agarwal, Jat"
                value="<?= htmlspecialchars($_SESSION['flash']['old']['community_name'] ?? '') ?>">
+        <small style="color: #9CA3AF; font-size: 0.78rem;">Helps personalize rituals for your community</small>
     </div>
     
-    <div class="form-group">
-        <label for="kul_devi_devta"><i class="fas fa-pray"></i> Kul Devi/Devta</label>
-        <input type="text" id="kul_devi_devta" name="kul_devi_devta" class="form-control" 
-               placeholder="e.g., Durga Mata, Khandoba, Kulswamini..."
-               value="<?= htmlspecialchars($_SESSION['flash']['old']['kul_devi_devta'] ?? '') ?>">
-    </div>
     
     <div class="form-group">
         <label for="password"><i class="fas fa-lock"></i> Password</label>

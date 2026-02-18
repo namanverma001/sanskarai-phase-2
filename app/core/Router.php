@@ -205,7 +205,7 @@ class Router
     private static function executeHandler($handler, array $params): void
     {
         if (is_callable($handler)) {
-            call_user_func_array($handler, $params);
+            call_user_func_array($handler, array_values($params));
             return;
         }
         
@@ -229,7 +229,7 @@ class Router
                 throw new \RuntimeException("Method '$method' not found in '$controllerClass'");
             }
             
-            call_user_func_array([$instance, $method], $params);
+            call_user_func_array([$instance, $method], array_values($params));
             return;
         }
         
@@ -240,7 +240,7 @@ class Router
                 $controller = new $controller();
             }
             
-            call_user_func_array([$controller, $method], $params);
+            call_user_func_array([$controller, $method], array_values($params));
             return;
         }
         

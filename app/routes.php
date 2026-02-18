@@ -33,6 +33,10 @@ Router::group(['prefix' => 'admin', 'middleware' => ['admin']], function () {
     // Dashboard
     Router::get('/dashboard', 'AdminController@dashboard', [], 'admin.dashboard');
 
+    // Admin Profile
+    Router::get('/profile', 'AdminController@profile', [], 'admin.profile');
+    Router::post('/profile/password', 'AdminController@updatePassword');
+
     // User Management
     Router::get('/users', 'AdminController@users', [], 'admin.users');
     Router::post('/users/{id}/block', 'AdminController@blockUser');
@@ -151,6 +155,9 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::post('/my-rituals/{id}/steps', 'UserController@addMyRitualStep');
     Router::post('/my-rituals/steps/{id}', 'UserController@updateMyRitualStep');
     Router::post('/my-rituals/steps/{id}/delete', 'UserController@deleteMyRitualStep');
+    Router::post('/my-rituals/{id}/items', 'UserController@addMyRitualItem');
+    Router::post('/my-rituals/items/{id}', 'UserController@updateMyRitualItem');
+    Router::post('/my-rituals/items/{id}/delete', 'UserController@deleteMyRitualItem');
     Router::post('/my-rituals/{id}/delete', 'UserController@deleteMyRitual');
 
     // Ritual Execution & Progress

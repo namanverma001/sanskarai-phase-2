@@ -61,15 +61,17 @@
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; overflow-x: hidden; }
         
         body {
             font-family: 'Poppins', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
+            width: 100%;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
             transition: background 0.4s ease, color 0.4s ease;
         }
         
@@ -513,70 +515,252 @@
             transform: translateY(-3px);
         }
         
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 10001;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        .mobile-menu-btn:hover {
+            color: var(--saffron);
+        }
+        
+        /* Mobile Menu Overlay Backdrop */
+        .auth-mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9997;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .auth-mobile-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Mobile Menu - Compact slide-in drawer */
+        .auth-mobile-menu {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 280px;
+            max-width: 85vw;
+            height: 100vh;
+            background: var(--nav-bg);
+            backdrop-filter: blur(30px);
+            border-left: 1px solid var(--border-accent);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0;
+            z-index: 9998;
+            transform: translateX(100%);
+            opacity: 0;
+            visibility: hidden;
+            transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+            padding: 70px 0 30px;
+            overflow-y: auto;
+            box-shadow: -10px 0 40px rgba(0,0,0,0.3);
+        }
+        .auth-mobile-menu.active {
+            transform: translateX(0);
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Top bar inside drawer */
+        .auth-mobile-menu .mobile-menu-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .auth-mobile-menu .mobile-menu-close {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 153, 51, 0.1);
+            border: 1.5px solid var(--border-accent);
+            border-radius: 50%;
+            color: var(--saffron);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .auth-mobile-menu .mobile-menu-close:hover {
+            background: var(--saffron);
+            color: #1A1A2E;
+        }
+        .auth-mobile-menu .mobile-theme-toggle {
+            width: 36px;
+            height: 36px;
+            font-size: 0.85rem;
+            background: rgba(255, 153, 51, 0.1);
+            border-color: var(--border-accent);
+        }
+        
+        /* Nav links */
+        .auth-mobile-menu a {
+            display: block;
+            width: 100%;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 14px 28px;
+            border-radius: 0;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        .auth-mobile-menu a:hover {
+            color: var(--saffron);
+            background: rgba(255, 153, 51, 0.08);
+            border-left-color: var(--saffron);
+        }
+        
+        /* CTA button in drawer */
+        .auth-mobile-menu .mobile-cta {
+            margin: 15px 20px 0;
+            padding: 12px 24px;
+            background: transparent;
+            color: var(--saffron);
+            border: 2px solid var(--saffron);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: center;
+            width: calc(100% - 40px);
+        }
+        .auth-mobile-menu .mobile-cta:hover {
+            background: var(--saffron);
+            color: #1A1A2E;
+            border-left-color: var(--saffron);
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
-            nav { padding: 15px 5%; }
-            .nav-links a:not(.btn) { display: none; }
+            .mobile-menu-btn { display: flex; align-items: center; }
+            .nav-right .nav-login,
+            .nav-right .nav-cta { display: none; }
             
-            main { padding: 100px 5% 60px; }
+            .nav-wrapper { padding: 12px 4%; }
+            nav {
+                padding: 10px 18px;
+                border-radius: 50px;
+            }
+            .logo { font-size: 1.1rem; gap: 8px; }
+            .logo-icon { width: 30px; height: 30px; }
+            .logo-icon i { font-size: 1.1rem; }
+            .theme-toggle { width: 36px; height: 36px; font-size: 0.9rem; }
+            
+            main { padding: 100px 16px 40px; }
             
             .auth-container {
-                padding: 35px 25px;
+                padding: 30px 22px;
                 border-radius: 20px;
+                max-width: 100%;
             }
             
             .auth-header .auth-icon {
-                width: 70px;
-                height: 70px;
-                font-size: 1.7rem;
+                width: 65px;
+                height: 65px;
+                font-size: 1.6rem;
             }
             
             .auth-header h1 { font-size: 1.5rem; }
             .auth-header p { font-size: 0.9rem; }
+            .auth-header { margin-bottom: 25px; }
             
-            .form-group { margin-bottom: 18px; }
-            .form-group label { font-size: 0.9rem; }
-            .form-control { padding: 14px 16px; font-size: 0.95rem; }
+            .form-group { margin-bottom: 16px; }
+            .form-group label { font-size: 0.88rem; margin-bottom: 8px; }
+            .form-control { padding: 13px 15px; font-size: 0.95rem; border-radius: 12px; }
             
-            .btn { padding: 14px; font-size: 1rem; }
+            .btn { padding: 14px; font-size: 1rem; border-radius: 12px; }
             
             .role-selector { gap: 10px; }
-            .role-option { padding: 15px 10px; }
+            .role-option { padding: 15px 10px; border-radius: 14px; }
             .role-option i { font-size: 1.5rem; margin-bottom: 8px; }
+            .role-option span { font-size: 0.9rem; }
             
+            .auth-links { margin-top: 22px; padding-top: 18px; font-size: 0.9rem; }
+            
+            footer { padding: 25px 16px; }
             .footer-content {
                 flex-direction: column;
                 text-align: center;
+                gap: 15px;
             }
-            
             .footer-links {
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 15px;
+                gap: 12px;
             }
+            .social-links { justify-content: center; }
         }
         
         @media (max-width: 480px) {
+            main { padding: 90px 12px 30px; }
+            
             .auth-container {
-                padding: 30px 20px;
+                padding: 25px 18px;
+                border-radius: 18px;
             }
             
-            .role-selector {
-                flex-direction: column;
-                gap: 12px;
+            .auth-header .auth-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.4rem;
             }
+            .auth-header h1 { font-size: 1.35rem; }
+            .auth-header p { font-size: 0.85rem; }
+            .auth-header { margin-bottom: 20px; }
             
+            .form-group { margin-bottom: 14px; }
+            .form-group label { font-size: 0.85rem; margin-bottom: 6px; }
+            .form-control { padding: 12px 14px; font-size: 0.9rem; }
+            
+            .btn { padding: 13px; font-size: 0.95rem; }
+            
+            .role-selector { flex-direction: column; gap: 10px; }
             .role-option {
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 12px;
-                padding: 15px;
+                padding: 14px;
+                flex-direction: row;
             }
+            .role-option i { margin-bottom: 0; font-size: 1.3rem; }
+            .role-option span { font-size: 0.9rem; }
             
-            .role-option i {
-                margin-bottom: 0;
-            }
+            .footer-links { gap: 10px; }
+            .footer-links a { font-size: 0.8rem; }
+        }
+        
+        @media (max-width: 360px) {
+            main { padding: 85px 10px 25px; }
+            .auth-container { padding: 22px 15px; }
+            .auth-header h1 { font-size: 1.2rem; }
+            .form-control { padding: 11px 12px; font-size: 0.88rem; }
+            .btn { padding: 12px; font-size: 0.9rem; }
         }
     </style>
 </head>
@@ -603,8 +787,37 @@
                 <a href="/" class="nav-login">Home</a>
                 <a href="/login" class="nav-cta">Login</a>
                 <?php endif; ?>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
         </nav>
+    </div>
+    
+    <!-- Mobile Menu Overlay Backdrop -->
+    <div class="auth-mobile-overlay" id="authMobileOverlay"></div>
+    
+    <!-- Mobile Menu Drawer -->
+    <div class="auth-mobile-menu" id="authMobileMenu">
+        <!-- Top bar with toggle & close -->
+        <div class="mobile-menu-top">
+            <button class="theme-toggle mobile-theme-toggle" id="mobileThemeToggle" aria-label="Toggle theme">
+                <i class="fas fa-sun"></i>
+                <i class="fas fa-moon"></i>
+            </button>
+            <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <a href="/">Home</a>
+        <a href="/#features">Features</a>
+        <a href="/#how-it-works">How It Works</a>
+        <a href="/#faq">FAQ</a>
+        <?php if (strpos($title ?? '', 'Login') !== false): ?>
+        <a href="/signup" class="mobile-cta">Sign Up</a>
+        <?php else: ?>
+        <a href="/login" class="mobile-cta">Login</a>
+        <?php endif; ?>
     </div>
     
     <main>
@@ -637,17 +850,47 @@
         // Theme Toggle Logic
         document.addEventListener('DOMContentLoaded', () => {
              const themeToggle = document.getElementById('themeToggle');
+             const mobileThemeToggle = document.getElementById('mobileThemeToggle');
              const html = document.documentElement;
              const savedTheme = localStorage.getItem('theme') || 'dark';
              
              html.setAttribute('data-theme', savedTheme);
              
-             if(themeToggle) {
-                 themeToggle.addEventListener('click', () => {
-                     const currentTheme = html.getAttribute('data-theme');
-                     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                     html.setAttribute('data-theme', newTheme);
-                     localStorage.setItem('theme', newTheme);
+             function toggleTheme() {
+                 const currentTheme = html.getAttribute('data-theme');
+                 const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                 html.setAttribute('data-theme', newTheme);
+                 localStorage.setItem('theme', newTheme);
+             }
+             
+             if(themeToggle) themeToggle.addEventListener('click', toggleTheme);
+             if(mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
+             
+             // Mobile Menu
+             const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+             const mobileMenuClose = document.getElementById('mobileMenuClose');
+             const mobileMenu = document.getElementById('authMobileMenu');
+             const mobileOverlay = document.getElementById('authMobileOverlay');
+             
+             function openAuthMenu() {
+                 if (mobileMenu) mobileMenu.classList.add('active');
+                 if (mobileOverlay) mobileOverlay.classList.add('active');
+                 document.body.style.overflow = 'hidden';
+             }
+             function closeAuthMenu() {
+                 if (mobileMenu) mobileMenu.classList.remove('active');
+                 if (mobileOverlay) mobileOverlay.classList.remove('active');
+                 document.body.style.overflow = '';
+             }
+             
+             if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openAuthMenu);
+             if (mobileMenuClose) mobileMenuClose.addEventListener('click', closeAuthMenu);
+             if (mobileOverlay) mobileOverlay.addEventListener('click', closeAuthMenu);
+             
+             // Close menu when clicking a link
+             if (mobileMenu) {
+                 mobileMenu.querySelectorAll('a').forEach(link => {
+                     link.addEventListener('click', closeAuthMenu);
                  });
              }
         });
