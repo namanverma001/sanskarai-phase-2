@@ -127,6 +127,7 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     // Profile
     Router::get('/profile', 'UserController@profile', [], 'user.profile');
     Router::post('/profile', 'UserController@updateProfile');
+    Router::post('/profile/password', 'UserController@updatePassword');
 
     // Family Management
     Router::get('/families', 'UserController@families', [], 'user.families');

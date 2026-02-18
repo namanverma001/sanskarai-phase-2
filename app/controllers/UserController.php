@@ -1540,4 +1540,50 @@ class UserController extends Controller
             $this->back(['error' => 'Failed to update profile: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Update user password
+     */
+    public function updatePassword(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+
+        $currentPassword = $this->input('current_password');
+        $newPassword = $this->input('new_password');
+        $confirmPassword = $this->input('confirm_password');
+
+        if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+            $this->back(['error' => 'All fields are required.']);
+            return;
+        }
+
+        if ($newPassword !== $confirmPassword) {
+            $this->back(['error' => 'New password and confirm password do not match.']);
+            return;
+        }
+
+        if (strlen($newPassword) < 6) {
+            $this->back(['error' => 'Password must be at least 6 characters long.']);
+            return;
+        }
+
+        $userId = Auth::id();
+        $userModel = new User();
+        $user = $userModel->find($userId);
+
+        if (!password_verify($currentPassword, $user['password_hash'])) {
+            $this->back(['error' => 'Incorrect current password.']);
+            return;
+        }
+
+        try {
+            $userModel->update($userId, ['password_hash' => password_hash($newPassword, PASSWORD_DEFAULT)]);
+            $this->redirect('/user/profile', ['success' => 'Password changed successfully.']);
+        } catch (\Exception $e) {
+            $this->back(['error' => 'Failed to update password: ' . $e->getMessage()]);
+        }
+    }
 }

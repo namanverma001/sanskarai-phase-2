@@ -87,6 +87,70 @@
                 </div>
             </form>
         </div>
+
+    <!-- Security Settings -->
+    <div class="card" style="margin-top: 25px;">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-lock"></i> Security Settings</h3>
+            </div>
+            
+            <form action="/user/profile/password" method="POST">
+                <?= \App\Core\Auth::csrfField() ?>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="current_password">Current Password <span class="text-danger">*</span></label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="current_password" 
+                                name="current_password" 
+                                class="form-control" 
+                                required
+                            >
+                            <i class="fas fa-eye password-toggle"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_password">New Password <span class="text-danger">*</span></label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="new_password" 
+                                name="new_password" 
+                                class="form-control" 
+                                required
+                                minlength="6"
+                            >
+                            <i class="fas fa-eye password-toggle"></i>
+                        </div>
+                        <small class="text-muted">Minimum 6 characters</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password <span class="text-danger">*</span></label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="confirm_password" 
+                                name="confirm_password" 
+                                class="form-control" 
+                                required
+                                minlength="6"
+                            >
+                            <i class="fas fa-eye password-toggle"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 25px;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Sidebar / Additional Info -->
@@ -156,4 +220,34 @@
             grid-column: span 2;
         }
     }
+    .password-wrapper {
+        position: relative;
+    }
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6b7280;
+        z-index: 10;
+    }
+    .password-toggle:hover {
+        color: #374151;
+    }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.password-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const input = this.previousElementSibling;
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+    });
+});
+</script>
+

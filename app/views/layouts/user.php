@@ -240,16 +240,68 @@ $roleDisplay = match($userRole) {
         }
 
         .sidebar {
-            width: 260px;
+            width: 260px; /* Default full width for mobile */
             background: var(--sidebar-bg);
             color: white;
             position: fixed;
             top: 70px;
             height: calc(100vh - 70px);
             overflow-y: auto;
-            transition: transform 0.3s ease;
+            overflow-x: hidden;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+            transition: all 0.3s ease;
             z-index: 100;
         }
+
+        /* Desktop Mini-Sidebar Styles */
+        @media (min-width: 769px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar.expanded {
+                width: 260px;
+            }
+
+            .sidebar:not(.expanded) .sidebar-header h1,
+            .sidebar:not(.expanded) .menu-section-title,
+            .sidebar:not(.expanded) .menu-item span,
+            .sidebar:not(.expanded) .menu-item:after {
+                display: none;
+            }
+
+            .sidebar:not(.expanded) .sidebar-header {
+                padding: 20px 0;
+                text-align: center;
+            }
+            
+            .sidebar:not(.expanded) .menu-section {
+                padding: 0 5px;
+            }
+
+            .sidebar:not(.expanded) .menu-item {
+                justify-content: center;
+                padding: 15px 0;
+            }
+
+            .sidebar:not(.expanded) .menu-item i {
+                margin-right: 0;
+                font-size: 1.4rem;
+                width: auto;
+            } 
+
+            /* Hover effect for collapsed state */
+            .sidebar:not(.expanded) .menu-item:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        .sidebar::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+
+
 
         .sidebar.collapsed {
             transform: translateX(-100%);
@@ -310,14 +362,16 @@ $roleDisplay = match($userRole) {
 
         .main-content {
             flex: 1;
-            margin-left: 260px;
+            margin-left: 60px;
             padding: 30px;
             min-height: calc(100vh - 70px);
             transition: margin-left 0.3s ease;
+            max-width: 100vw;
+            overflow-x: hidden;
         }
 
-        .sidebar.collapsed ~ .main-content {
-            margin-left: 0;
+        .sidebar.expanded ~ .main-content {
+            margin-left: 260px;
         }
 
         .top-bar {
@@ -666,8 +720,13 @@ $roleDisplay = match($userRole) {
             background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
             color: white;
             padding: 60px 5% 30px;
-            margin-left: 260px;
+            padding: 60px 5% 30px;
+            margin-left: 60px;
             transition: margin-left 0.3s ease;
+        }
+
+        .sidebar.expanded ~ .main-footer {
+            margin-left: 260px;
         }
         
         .footer-content {
@@ -795,6 +854,17 @@ $roleDisplay = match($userRole) {
 
             .sidebar {
                 transform: translateX(-100%);
+                top: 70px;
+                bottom: 0;
+                height: auto;
+                display: flex;
+                flex-direction: column;
+                width: 260px;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.expanded {
+                width: 260px;
             }
 
             .sidebar.collapsed {
@@ -808,14 +878,18 @@ $roleDisplay = match($userRole) {
             .main-content {
                 margin-left: 0;
                 padding: 20px 15px;
+                max-width: 100vw;
+                overflow-x: hidden;
             }
 
-            .sidebar.collapsed ~ .main-content {
+            .sidebar.expanded ~ .main-content {
                 margin-left: 0;
             }
 
             .main-footer {
                 margin-left: 0;
+                max-width: 100vw;
+                box-sizing: border-box;
             }
 
             .top-bar {
@@ -904,6 +978,21 @@ $roleDisplay = match($userRole) {
                 font-size: 0.85rem;
             }
         }
+
+        .sidebar-account-section {
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 10px;
+        }
+
+        .sidebar-menu {
+            /* Ensure smooth scrolling within menu if content is tall, 
+               but flex-grow to push bottom content down */
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
     </style>
 </head>
 
@@ -983,8 +1072,9 @@ $roleDisplay = match($userRole) {
                     <a
                         href="/user/dashboard"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/dashboard') !== false ? 'active' : '' ?>"
+                        title="Dashboard"
                     >
-                        <i class="fas fa-home"></i> Dashboard
+                        <i class="fas fa-home"></i> <span>Dashboard</span>
                     </a>
                 </div>
                 <div class="menu-section">
@@ -992,26 +1082,30 @@ $roleDisplay = match($userRole) {
                     <a
                         href="/user/rituals"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/rituals') !== false && strpos($_SERVER['REQUEST_URI'], 'my-rituals') === false && strpos($_SERVER['REQUEST_URI'], 'custom') === false ? 'active' : '' ?>"
+                        title="Explore Rituals"
                     >
-                        <i class="fas fa-search"></i> Explore Rituals
+                        <i class="fas fa-search"></i> <span>Explore Rituals</span>
                     </a>
                     <a
                         href="/user/my-rituals"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/my-rituals') !== false ? 'active' : '' ?>"
+                        title="My Rituals"
                     >
-                        <i class="fas fa-book-reader"></i> My Rituals
+                        <i class="fas fa-book-reader"></i> <span>My Rituals</span>
                     </a>
                     <a
                         href="/user/custom-rituals"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/custom-rituals') !== false ? 'active' : '' ?>"
+                        title="Custom Rituals"
                     >
-                        <i class="fas fa-magic"></i> Custom Rituals
+                        <i class="fas fa-magic"></i> <span>Custom Rituals</span>
                     </a>
                     <a
                         href="/user/ai-suggestions"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/ai-suggestions') !== false ? 'active' : '' ?>"
+                        title="AI Suggestions"
                     >
-                        <i class="fas fa-robot"></i> AI Suggestions
+                        <i class="fas fa-robot"></i> <span>AI Suggestions</span>
                     </a>
                 </div>
                 <div class="menu-section">
@@ -1019,32 +1113,37 @@ $roleDisplay = match($userRole) {
                     <a
                         href="/user/select-pandit"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/select-pandit') !== false ? 'active' : '' ?>"
+                        title="Find Pandit"
                     >
-                        <i class="fas fa-pray"></i> Find Pandit
+                        <i class="fas fa-pray"></i> <span>Find Pandit</span>
                     </a>
                     <a
                         href="/user/bookings"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/bookings') !== false ? 'active' : '' ?>"
+                        title="My Bookings"
                     >
-                        <i class="fas fa-calendar"></i> My Bookings
+                        <i class="fas fa-calendar"></i> <span>My Bookings</span>
                     </a>
                     <a
                         href="/user/shopping-list"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/shopping-list') !== false ? 'active' : '' ?>"
+                        title="Shopping List"
                     >
-                        <i class="fas fa-shopping-cart"></i> Shopping List
+                        <i class="fas fa-shopping-cart"></i> <span>Shopping List</span>
                     </a>
                     <a
                         href="/user/orders"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/orders') !== false ? 'active' : '' ?>"
+                        title="My Orders"
                     >
-                        <i class="fas fa-receipt"></i> My Orders
+                        <i class="fas fa-receipt"></i> <span>My Orders</span>
                     </a>
                     <a
                         href="/user/questions"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/questions') !== false ? 'active' : '' ?>"
+                        title="Ask Pandit (Q&A)"
                     >
-                        <i class="fas fa-comments"></i> Ask Pandit (Q&A)
+                        <i class="fas fa-comments"></i> <span>Ask Pandit (Q&A)</span>
                     </a>
                 </div>
                 <div class="menu-section">
@@ -1052,15 +1151,31 @@ $roleDisplay = match($userRole) {
                     <a
                         href="/user/families"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/families') !== false ? 'active' : '' ?>"
+                        title="My Family"
                     >
-                        <i class="fas fa-users"></i> My Family
+                        <i class="fas fa-users"></i> <span>My Family</span>
                     </a>
                     <a
                         href="/user/insights"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/insights') !== false ? 'active' : '' ?>"
+                        title="Cultural Insights"
                     >
-                        <i class="fas fa-lightbulb"></i> Cultural Insights
+                        <i class="fas fa-lightbulb"></i> <span>Cultural Insights</span>
                     </a>
+
+                </div>
+
+                <div class="menu-section sidebar-account-section">
+                    <div class="menu-section-title">Account</div>
+                    <a href="/user/profile" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/profile') !== false ? 'active' : '' ?>" title="My Profile">
+                        <i class="fas fa-user-circle"></i> <span>My Profile</span>
+                    </a>
+                    <form action="/logout" method="POST" style="margin: 0;">
+                        <?= \App\Core\Auth::csrfField() ?>
+                        <button type="submit" class="menu-item" style="width: 100%; border: none; background: transparent; cursor: pointer; font-family: inherit; text-align: left; color: rgba(255, 255, 255, 0.7);" title="Logout">
+                            <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                        </button>
+                    </form>
                 </div>
             </nav>
         </aside>
@@ -1068,23 +1183,7 @@ $roleDisplay = match($userRole) {
         <main class="main-content">
             <div class="top-bar">
                 <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
-                <div class="user-menu">
-                    <div class="user-info">
-                        <div class="user-name"><?= htmlspecialchars($user['name'] ?? 'User') ?></div>
-                        <div class="user-role">Family User</div>
-                    </div>
-                    <form
-                        method="POST"
-                        action="/logout"
-                        style="display: inline;"
-                    >
-                        <?= \App\Core\Auth::csrfField() ?>
-                        <button
-                            type="submit"
-                            class="logout-btn"
-                        ><i class="fas fa-sign-out-alt"></i></button>
-                    </form>
-                </div>
+
             </div>
 
             <?php if (isset($_SESSION['flash']['success'])): ?>
@@ -1158,17 +1257,16 @@ $roleDisplay = match($userRole) {
                 sidebar.classList.toggle('mobile-open');
                 sidebarOverlay.classList.toggle('active');
             } else {
-                // On desktop: toggle collapsed (starts visible)
-                sidebar.classList.toggle('collapsed');
-                if (sidebar.classList.contains('collapsed')) {
-                    if (mainFooter) mainFooter.style.marginLeft = '0';
-                } else {
+                // On desktop: toggle expanded (starts collapsed/mini)
+                sidebar.classList.toggle('expanded');
+                if (sidebar.classList.contains('expanded')) {
                     if (mainFooter) mainFooter.style.marginLeft = '260px';
+                } else {
+                    if (mainFooter) mainFooter.style.marginLeft = '60px';
                 }
             }
             const icon = sidebarToggle.querySelector('i');
-            icon.classList.toggle('fa-bars');
-            icon.classList.toggle('fa-times');
+            // Assuming icon logic remains or needs update based on state
         }
 
         sidebarToggle.addEventListener('click', toggleSidebar);
