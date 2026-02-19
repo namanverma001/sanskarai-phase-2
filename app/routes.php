@@ -95,6 +95,7 @@ Router::group(['prefix' => 'pandit', 'middleware' => ['pandit']], function () {
     // Profile
     Router::get('/profile', 'PanditController@profile', [], 'pandit.profile');
     Router::post('/profile', 'PanditController@updateProfile');
+    Router::post('/profile/password', 'PanditController@updatePassword');
 
     // Assignments
     Router::get('/assignments', 'PanditController@assignments', [], 'pandit.assignments');

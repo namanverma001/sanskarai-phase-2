@@ -83,6 +83,54 @@ class PanditController extends Controller
         $this->profileModel->update($profile['id'], $data);
         $this->back(['success' => 'Profile updated.']);
     }
+
+    public function updatePassword(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+
+        $currentPassword = $this->input('current_password');
+        $newPassword = $this->input('new_password');
+        $confirmPassword = $this->input('confirm_password');
+
+        if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+            $this->back(['error' => 'All fields are required.']);
+            return;
+        }
+
+        if ($newPassword !== $confirmPassword) {
+            $this->back(['error' => 'New password and confirm password do not match.']);
+            return;
+        }
+
+        if (strlen($newPassword) < 8) {
+            $this->back(['error' => 'Password must be at least 8 characters long.']);
+            return;
+        }
+
+        // Verify current password
+        $user = Auth::user(); // Get session user
+        // Need full user for password hash which is hidden in session usually? 
+        // Auth::user() returns session data. Auth::fullUser() hits DB.
+        $fullUser = Auth::fullUser();
+
+        if (!Auth::verifyPassword($currentPassword, $fullUser['password_hash'])) {
+            $this->back(['error' => 'Incorrect current password.']);
+            return;
+        }
+
+        // Update password
+        $newHash = Auth::hashPassword($newPassword);
+        
+        // Use Database class directly or User model if available
+        // $this->userModel is not injected here directly, but we can instantiate it or use DB
+        $userModel = new \App\Models\User();
+        $userModel->update(Auth::id(), ['password_hash' => $newHash]);
+
+        $this->back(['success' => 'Password updated successfully.']);
+    }
     
     public function assignments(): void
     {

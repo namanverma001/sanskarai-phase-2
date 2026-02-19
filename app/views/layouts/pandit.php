@@ -231,7 +231,7 @@ $roleDisplay = match($userRole) {
             color: white;
             position: fixed;
             top: 70px;
-            height: calc(100vh - 70px);
+            bottom: 0;
             overflow-y: auto;
             transition: transform 0.3s ease;
             z-index: 100;
@@ -396,6 +396,64 @@ $roleDisplay = match($userRole) {
         }
         .sidebar-overlay.active { display: block; opacity: 1; }
         
+        /* Desktop Sidebar Collapse Styles */
+        @media (min-width: 769px) {
+            .sidebar.collapsed {
+                width: 70px;
+                transform: none;
+            }
+            
+            .sidebar.collapsed .sidebar-header {
+                padding: 20px 0;
+                display: flex;
+                justify-content: center;
+            }
+            
+            .sidebar.collapsed .sidebar-header h1 {
+                font-size: 0;
+            }
+            
+            .sidebar.collapsed .sidebar-header h1 i {
+                font-size: 1.5rem;
+                margin: 0;
+            }
+            
+            .sidebar.collapsed .sidebar-header span {
+                display: none;
+            }
+            
+            .sidebar.collapsed .menu-section-title {
+                display: none;
+            }
+            
+            .sidebar.collapsed .menu-item {
+                justify-content: center;
+                padding: 0;
+                width: 50px;
+                height: 50px;
+                margin: 5px auto;
+                border-radius: 12px;
+            }
+            
+            .sidebar.collapsed .menu-item i {
+                margin-right: 0;
+                font-size: 1.4rem;
+                width: auto;
+            }
+            
+            .sidebar.collapsed .menu-item span {
+                display: none;
+            }
+
+            .sidebar.collapsed ~ .main-content {
+                margin-left: 70px;
+            }
+
+            .sidebar.collapsed ~ .main-footer {
+                margin-left: 70px;
+            }
+        }
+        
         /* Table Responsive Wrapper */
         .table-responsive {
             width: 100%;
@@ -408,9 +466,13 @@ $roleDisplay = match($userRole) {
             background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
             color: white;
             padding: 60px 5% 30px;
-            margin-left: 260px;
+            margin-left: 70px; /* Default collapsed margin */
             transition: margin-left 0.3s ease;
         }
+
+
+
+
         
         .footer-content {
             display: grid;
@@ -528,10 +590,12 @@ $roleDisplay = match($userRole) {
             
             .sidebar {
                 transform: translateX(-100%);
+                width: 260px; /* Reset width for mobile if needed */
             }
 
             .sidebar.collapsed {
                 transform: translateX(-100%);
+                width: 260px; /* Ensure mobile sidebar is full width even if collapsed class present */
             }
 
             .sidebar.mobile-open {
@@ -582,6 +646,8 @@ $roleDisplay = match($userRole) {
                 flex-direction: column;
                 text-align: center;
             }
+            
+            .main-footer { margin-left: 0 !important; }
         }
         
         @media (max-width: 480px) {
@@ -652,7 +718,8 @@ $roleDisplay = match($userRole) {
 
     <div class="dashboard-container">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        <aside class="sidebar" id="sidebar">
+        <!-- Sidebar collapsed by default -->
+        <aside class="sidebar collapsed" id="sidebar">
             <div class="sidebar-header">
                 <h1><i class="fas fa-om"></i> Sanskar AI <span>Pandit</span></h1>
             </div>
@@ -660,20 +727,32 @@ $roleDisplay = match($userRole) {
                 <div class="menu-section">
                     <div class="menu-section-title">Main</div>
                     <a href="/pandit/dashboard" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/pandit/dashboard') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
                     </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Services</div>
                     <a href="/pandit/assignments" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/pandit/assignments') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-calendar-check"></i> Bookings
+                        <i class="fas fa-calendar-check"></i> <span>Bookings</span>
                     </a>
                     <a href="/pandit/questions" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/pandit/questions') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-comments"></i> Q&A Requests
+                        <i class="fas fa-comments"></i> <span>Q&A Requests</span>
                     </a>
                     <a href="/pandit/custom-rituals" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/pandit/custom-rituals') !== false ? 'active' : '' ?>">
-                        <i class="fas fa-check-double"></i> Validate Rituals
+                        <i class="fas fa-check-double"></i> <span>Validate Rituals</span>
                     </a>
+                </div>
+                <div class="menu-section">
+                    <div class="menu-section-title">Account</div>
+                    <a href="/pandit/profile" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/pandit/profile') !== false ? 'active' : '' ?>">
+                        <i class="fas fa-user-circle"></i> <span>My Profile</span>
+                    </a>
+                    <form action="/logout" method="POST" style="margin: 0;">
+                        <?= \App\Core\Auth::csrfField() ?>
+                        <button type="submit" class="menu-item" style="width: 100%; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: inherit; text-align: left;">
+                            <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+                        </button>
+                    </form>
                 </div>
             </nav>
         </aside>
@@ -681,16 +760,7 @@ $roleDisplay = match($userRole) {
         <main class="main-content">
             <div class="top-bar">
                 <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
-                <div class="user-menu">
-                    <div class="user-info">
-                        <div class="user-name"><?= htmlspecialchars($user['name'] ?? 'Pandit') ?></div>
-                        <div class="user-role">Certified Pandit</div>
-                    </div>
-                    <form method="POST" action="/logout" style="display: inline;">
-                        <?= \App\Core\Auth::csrfField() ?>
-                        <button type="submit" class="logout-btn-top"><i class="fas fa-sign-out-alt"></i></button>
-                    </form>
-                </div>
+                <!-- User menu removed as per request -->
             </div>
             
             <?php if (isset($_SESSION['flash']['success'])): ?>
@@ -758,18 +828,25 @@ $roleDisplay = match($userRole) {
         const mainFooter = document.querySelector('.main-footer');
         const isMobile = () => window.innerWidth <= 768;
 
+        // Initialize footer margin based on default collapsed state
+        // CSS handles default 70px (collapsed) and 0px (mobile)
+        // JS only needs to reset if we are checking expanded state from localStorage (not implemented yet)
+        if (!isMobile() && !sidebar.classList.contains('collapsed')) {
+             if (mainFooter) mainFooter.style.marginLeft = '260px';
+        }
+
         function toggleSidebar() {
             if (isMobile()) {
                 // On mobile: toggle open/close (starts hidden)
                 sidebar.classList.toggle('mobile-open');
                 sidebarOverlay.classList.toggle('active');
             } else {
-                // On desktop: toggle collapsed (starts visible)
+                // On desktop: toggle collapsed (starts collapsed)
                 sidebar.classList.toggle('collapsed');
                 if (sidebar.classList.contains('collapsed')) {
-                    if (mainFooter) mainFooter.style.marginLeft = '0';
+                    if (mainFooter) mainFooter.style.marginLeft = '70px';
                 } else {
-                    if (mainFooter) mainFooter.style.marginLeft = '260px';
+                    if (mainFooter) mainFooter.style.marginLeft = '260px'; // Expanded margin
                 }
             }
             const icon = sidebarToggle.querySelector('i');
@@ -816,6 +893,16 @@ $roleDisplay = match($userRole) {
                     userDropdownBtn.setAttribute('aria-expanded', 'false');
                     userDropdownBtn.focus();
                 }
+            });
+        }
+        
+        // Mobile Navigation Toggle
+        const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        
+        if (mobileNavToggle) {
+            mobileNavToggle.addEventListener('click', () => {
+                navLinks.classList.toggle('active');
             });
         }
     </script>
