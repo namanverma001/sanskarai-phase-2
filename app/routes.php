@@ -18,6 +18,8 @@ Router::group(['middleware' => ['guest']], function () {
     Router::post('/signup', 'AuthController@signup');
     Router::get('/forgot-password', 'AuthController@showForgotPassword');
     Router::post('/forgot-password', 'AuthController@forgotPassword');
+    Router::get('/reset-password', 'AuthController@showResetPassword');
+    Router::post('/reset-password', 'AuthController@resetPassword');
 });
 
 // Logout (requires auth)

@@ -212,6 +212,95 @@ class User extends Model
     }
     
     /**
+     * Store a password reset token for a user.
+     * Deletes any previous tokens for that user first.
+     *
+     * @param int    $userId    The user's ID
+     * @param string $tokenHash Hashed token (password_hash)
+     * @param string $expiresAt Expiry datetime string (Y-m-d H:i:s)
+     * @return bool
+     */
+    public function storeResetToken(int $userId, string $tokenHash, string $expiresAt): bool
+    {
+        // Remove any old tokens for this user
+        $del = $this->db->prepare("DELETE FROM SAI_password_resets WHERE user_id = :uid");
+        $del->execute(['uid' => $userId]);
+
+        $ins = $this->db->prepare("
+            INSERT INTO SAI_password_resets (user_id, token_hash, expires_at, created_at)
+            VALUES (:uid, :token_hash, :expires_at, NOW())
+        ");
+        return $ins->execute([
+            'uid'        => $userId,
+            'token_hash' => $tokenHash,
+            'expires_at' => $expiresAt,
+        ]);
+    }
+
+    /**
+     * Find a valid (non-expired) reset row by matching the raw token
+     * against all stored hashes for the matching user lookup.
+     *
+     * Because we can't reverse a hash we scan recent rows by user email.
+     *
+     * @param string $rawToken The plain token from the URL
+     * @return array|null      Full row including user_id on success
+     */
+    public function findValidResetToken(string $rawToken): ?array
+    {
+        // Fetch all non-expired rows (there should only be 1 per user)
+        $stmt = $this->db->prepare("
+            SELECT pr.*, u.email
+            FROM SAI_password_resets pr
+            INNER JOIN SAI_users u ON u.id = pr.user_id
+            WHERE pr.expires_at > NOW()
+            ORDER BY pr.created_at DESC
+        ");
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+
+        foreach ($rows as $row) {
+            if (password_verify($rawToken, $row['token_hash'])) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Reset user password and delete the used token.
+     *
+     * @param int    $userId      User to update
+     * @param string $newPassword Plain-text new password
+     * @param int    $resetRowId  ID of the SAI_password_resets row to delete
+     * @return bool
+     */
+    public function consumeResetToken(int $userId, string $newPassword, int $resetRowId): bool
+    {
+        $hash = \App\Core\Auth::hashPassword($newPassword);
+
+        $update = $this->db->prepare("
+            UPDATE SAI_users SET password_hash = :hash, updated_at = NOW() WHERE id = :id
+        ");
+        $updated = $update->execute(['hash' => $hash, 'id' => $userId]);
+
+        // Delete the used token
+        $del = $this->db->prepare("DELETE FROM SAI_password_resets WHERE id = :id");
+        $del->execute(['id' => $resetRowId]);
+
+        return $updated;
+    }
+
+    /**
+     * Delete expired reset tokens (housekeeping, optional)
+     */
+    public function deleteExpiredTokens(): void
+    {
+        $this->db->exec("DELETE FROM SAI_password_resets WHERE expires_at <= NOW()");
+    }
+
+    /**
      * Search users
      */
     public function search(string $query, ?string $role = null): array

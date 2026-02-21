@@ -13,6 +13,8 @@ use App\Core\Router;
 use App\Models\User;
 use App\Models\PanditProfile;
 use App\Config\App;
+use App\Services\MailService;
+
 
 class AuthController extends Controller
 {
@@ -201,7 +203,7 @@ class AuthController extends Controller
             'title' => 'Forgot Password - Sanskar AI',
         ]);
     }
-    
+
     /**
      * Handle forgot password
      */
@@ -212,16 +214,124 @@ class AuthController extends Controller
             $this->back(['error' => 'Invalid security token.']);
             return;
         }
-        
-        $email = $this->input('email');
-        
+
+        $email = trim($this->input('email'));
+
+        if (!$email) {
+            $this->back(['error' => 'Please enter your email address.']);
+            return;
+        }
+
         $user = $this->userModel->findByEmail($email);
-        
-        // Always show success message for security
+
+        if ($user && $user['status'] === App::STATUS_ACTIVE) {
+            // 1. Generate a cryptographically secure token
+            $rawToken  = bin2hex(random_bytes(32)); // 64 hex chars
+            $tokenHash = password_hash($rawToken, PASSWORD_DEFAULT);
+            $expiresAt = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+            // 2. Store the hashed token in the DB
+            $this->userModel->storeResetToken($user['id'], $tokenHash, $expiresAt);
+
+            // 3. Build reset link and send email
+            $appUrl    = rtrim($_ENV['APP_URL'] ?? 'http://sanskarai.com', '/');
+            $resetLink = $appUrl . '/reset-password?token=' . urlencode($rawToken);
+
+            // ✅ TESTING ONLY - logs the link so you can test without real email
+            // ❌ REMOVE THIS LINE BEFORE GOING TO PRODUCTION
+            file_put_contents(BASE_PATH . '/storage/logs/reset_debug.log', date('Y-m-d H:i:s') . " | $email | $resetLink\n", FILE_APPEND);
+
+            $mailer = new MailService();
+            $mailer->sendPasswordReset($email, $resetLink);
+        }
+
+        // Always show the same success message (prevents email enumeration)
         $this->back([
-            'success' => 'If an account exists with this email, you will receive password reset instructions.',
+            'success' => 'If an account exists with this email, you will receive password reset instructions shortly.',
         ]);
-        
-        // TODO: Implement email sending for password reset
+    }
+
+    /**
+     * Show reset password form (validates token from URL)
+     */
+    public function showResetPassword(): void
+    {
+        $rawToken = $this->input('token'); // reads from $_GET (merged with $_POST by base controller)
+
+        if (!$rawToken) {
+            Router::redirect('/forgot-password');
+            return;
+        }
+
+        // Validate the token
+        $resetRow = $this->userModel->findValidResetToken($rawToken);
+
+        if (!$resetRow) {
+            $this->viewWithLayout('auth/reset-password', 'layouts/auth', [
+                'title'   => 'Reset Password - Sanskar AI',
+                'invalid' => true,
+                'token'   => '',
+            ]);
+            return;
+        }
+
+        $this->viewWithLayout('auth/reset-password', 'layouts/auth', [
+            'title' => 'Reset Password - Sanskar AI',
+            'token' => $rawToken,
+            'email' => $resetRow['email'],
+        ]);
+    }
+
+    /**
+     * Handle reset password form submission
+     */
+    public function resetPassword(): void
+    {
+        // Verify CSRF
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+
+        $rawToken = $this->input('token');
+        $password = $this->input('password');
+        $passwordConfirm = $this->input('password_confirmation');
+
+        // Validate
+        if (!$rawToken) {
+            $this->redirect('/forgot-password', ['error' => 'Invalid or missing token.']);
+            return;
+        }
+
+        if (!$password || strlen($password) < 8) {
+            $this->back(['error' => 'Password must be at least 8 characters.', 'token' => $rawToken]);
+            return;
+        }
+
+        if ($password !== $passwordConfirm) {
+            $this->back(['error' => 'Passwords do not match.', 'token' => $rawToken]);
+            return;
+        }
+
+        // Verify token again (race condition / expiry safety)
+        $resetRow = $this->userModel->findValidResetToken($rawToken);
+
+        if (!$resetRow) {
+            $this->back(['error' => 'This reset link has expired or already been used. Please request a new one.', 'token' => '']);
+            return;
+        }
+
+        // Update password and remove token
+        $ok = $this->userModel->consumeResetToken(
+            (int) $resetRow['user_id'],
+            $password,
+            (int) $resetRow['id']
+        );
+
+        if ($ok) {
+            $this->redirect('/login', ['success' => 'Your password has been reset successfully. Please sign in with your new password.']);
+        } else {
+            $this->back(['error' => 'Something went wrong. Please try again.', 'token' => $rawToken]);
+        }
     }
 }

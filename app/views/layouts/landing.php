@@ -1022,9 +1022,9 @@ $roleDisplay = match($userRole) {
             padding: 100px 20px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 80px;
+            gap: 60px;
             align-items: center;
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         .app-content .section-tag { margin-bottom: 15px; }
@@ -1386,8 +1386,20 @@ $roleDisplay = match($userRole) {
             .step-line { display: none; }
             .testimonials-grid { grid-template-columns: 1fr; }
             .testimonial-card.featured { transform: scale(1); }
-            .app-showcase { grid-template-columns: 1fr; text-align: center; }
-            .app-features-list { align-items: center; }
+            .app-showcase { 
+                grid-template-columns: 1fr; 
+                text-align: center; 
+                gap: 50px;
+                padding: 80px 20px;
+            }
+            .app-content { order: 1; }
+            .app-visual  { order: 2; }
+            .app-features-list { 
+                align-items: center; 
+                max-width: 340px;
+                margin-left: auto;
+                margin-right: auto;
+            }
             .app-feature { text-align: left; }
             
             /* Hide center nav links on tablet */
@@ -1706,9 +1718,21 @@ $roleDisplay = match($userRole) {
             .testimonial-card { padding: 25px 20px; }
             
             /* App Showcase - Mobile */
-            .app-showcase { padding: 60px 16px; gap: 40px; }
+            .app-showcase { padding: 60px 16px; gap: 32px; }
             .app-content h2 { font-size: 1.7rem; }
-            .phone-mockup { width: 220px; height: 440px; }
+            .app-visual  { overflow: hidden; width: 100%; justify-content: center; }
+            .phone-mockup { 
+                width: 180px; 
+                height: 360px; 
+                border-radius: 28px;
+                padding: 12px;
+            }
+            .phone-screen { border-radius: 20px; padding: 38px 14px 14px; }
+            .screen-header { margin-bottom: 20px; }
+            .screen-header i { font-size: 1.5rem; }
+            .screen-content { gap: 10px; }
+            .screen-card { padding: 18px 10px; border-radius: 12px; }
+            .screen-card i { font-size: 1.2rem; margin-bottom: 6px; }
             
             /* FAQ - Mobile */
             .faq-section { padding: 60px 16px; }
