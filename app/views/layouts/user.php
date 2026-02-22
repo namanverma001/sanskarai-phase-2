@@ -1145,6 +1145,7 @@ $roleDisplay = match($userRole) {
                     >
                         <i class="fas fa-store"></i> <span>Browse Vendors</span>
                     </a>
+                    <a
                         href="/user/questions"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/questions') !== false ? 'active' : '' ?>"
                         title="Ask Pandit (Q&A)"
