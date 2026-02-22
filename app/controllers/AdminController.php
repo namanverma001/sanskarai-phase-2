@@ -14,6 +14,7 @@ use App\Models\PanditProfile;
 use App\Models\Ritual;
 use App\Models\AIRequest;
 use App\Models\Assignment;
+use App\Models\Vendor;
 use App\Config\App;
 use App\Config\Database;
 
@@ -24,6 +25,10 @@ class AdminController extends Controller
     private Ritual $ritualModel;
     private AIRequest $aiRequestModel;
     private Assignment $assignmentModel;
+<<<<<<< HEAD
+=======
+    private Vendor $vendorModel;
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
     
     public function __construct()
     {
@@ -33,6 +38,10 @@ class AdminController extends Controller
         $this->ritualModel = new Ritual();
         $this->aiRequestModel = new AIRequest();
         $this->assignmentModel = new Assignment();
+<<<<<<< HEAD
+=======
+        $this->vendorModel = new Vendor();
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
     }
 
     /**
@@ -866,5 +875,284 @@ class AdminController extends Controller
                 'old' => $data,
             ]);
         }
+    }
+
+    // ============================================================
+    // VENDOR MANAGEMENT
+    // ============================================================
+
+    /**
+     * List all vendors
+     */
+    public function vendors(): void
+    {
+        $category = $this->input('category');
+        $search = $this->input('search');
+        
+        $vendors = $this->vendorModel->getAllForAdmin($category, $search);
+        
+        $this->viewWithLayout('admin/vendors', 'layouts/admin', [
+            'title' => 'Vendor Management - Sanskar AI',
+            'vendors' => $vendors,
+            'categories' => Vendor::CATEGORIES,
+            'selectedCategory' => $category,
+            'search' => $search,
+        ]);
+    }
+
+    /**
+     * Show create vendor form
+     */
+    public function createVendor(): void
+    {
+        $this->viewWithLayout('admin/vendor-form', 'layouts/admin', [
+            'title' => 'Add Vendor - Sanskar AI',
+            'vendor' => null,
+            'categories' => Vendor::CATEGORIES,
+            'isEdit' => false,
+        ]);
+    }
+
+    /**
+     * Store new vendor
+     */
+    public function storeVendor(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token. Please try again.']);
+            return;
+        }
+        
+        $data = $this->only([
+            'name', 'category', 'description', 'contact_person',
+            'email', 'phone', 'alternate_phone', 'whatsapp', 'website',
+            'address_line1', 'address_line2', 'city', 'state', 'pincode', 'country',
+            'latitude', 'longitude', 'map_url', 'service_area_km',
+            'min_price', 'max_price', 'services_offered',
+        ]);
+        
+        // Validate required fields
+        $errors = $this->validate($data, [
+            'name' => 'required|min:2|max:150',
+            'category' => 'required',
+            'phone' => 'required|min:10|max:20',
+            'address_line1' => 'required|max:255',
+            'city' => 'required|max:100',
+            'state' => 'required|max:100',
+            'pincode' => 'required|max:10',
+            'latitude' => 'required',
+            'longitude' => 'required',
+        ]);
+        
+        if (!empty($errors)) {
+            $this->back([
+                'error' => 'Please correct the errors below.',
+                'errors' => $errors,
+                'old' => $data,
+            ]);
+            return;
+        }
+        
+        try {
+            // Process checkboxes
+            $data['is_active'] = isset($_POST['is_active']) ? 1 : 0;
+            $data['is_featured'] = isset($_POST['is_featured']) ? 1 : 0;
+            $data['is_verified'] = isset($_POST['is_verified']) ? 1 : 0;
+            
+            // Set defaults
+            $data['country'] = $data['country'] ?: 'India';
+            $data['service_area_km'] = $data['service_area_km'] ?: 50;
+            $data['map_url'] = $data['map_url'] ?: null;
+            $data['added_by'] = Auth::user()['id'];
+            
+            // Convert prices to appropriate format
+            $data['min_price'] = $data['min_price'] ? (float)$data['min_price'] : null;
+            $data['max_price'] = $data['max_price'] ? (float)$data['max_price'] : null;
+            
+            $this->vendorModel->create($data);
+            
+            $this->redirect('/admin/vendors', [
+                'success' => 'Vendor "' . $data['name'] . '" added successfully!',
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->back([
+                'error' => 'Failed to add vendor. ' . $e->getMessage(),
+                'old' => $data,
+            ]);
+        }
+    }
+
+    /**
+     * Show edit vendor form
+     */
+    public function editVendor(int $id): void
+    {
+        $vendor = $this->vendorModel->find($id);
+        
+        if (!$vendor) {
+            $this->redirect('/admin/vendors', ['error' => 'Vendor not found.']);
+            return;
+        }
+        
+        $this->viewWithLayout('admin/vendor-form', 'layouts/admin', [
+            'title' => 'Edit Vendor - Sanskar AI',
+            'vendor' => $vendor,
+            'categories' => Vendor::CATEGORIES,
+            'isEdit' => true,
+        ]);
+    }
+
+    /**
+     * Update vendor
+     */
+    public function updateVendor(int $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token. Please try again.']);
+            return;
+        }
+        
+        $vendor = $this->vendorModel->find($id);
+        
+        if (!$vendor) {
+            $this->redirect('/admin/vendors', ['error' => 'Vendor not found.']);
+            return;
+        }
+        
+        $data = $this->only([
+            'name', 'category', 'description', 'contact_person',
+            'email', 'phone', 'alternate_phone', 'whatsapp', 'website',
+            'address_line1', 'address_line2', 'city', 'state', 'pincode', 'country',
+            'latitude', 'longitude', 'map_url', 'service_area_km',
+            'min_price', 'max_price', 'services_offered',
+        ]);
+        
+        // Validate required fields
+        $errors = $this->validate($data, [
+            'name' => 'required|min:2|max:150',
+            'category' => 'required',
+            'phone' => 'required|min:10|max:20',
+            'address_line1' => 'required|max:255',
+            'city' => 'required|max:100',
+            'state' => 'required|max:100',
+            'pincode' => 'required|max:10',
+            'latitude' => 'required',
+            'longitude' => 'required',
+        ]);
+        
+        if (!empty($errors)) {
+            $this->back([
+                'error' => 'Please correct the errors below.',
+                'errors' => $errors,
+                'old' => $data,
+            ]);
+            return;
+        }
+        
+        try {
+            // Process checkboxes
+            $data['is_active'] = isset($_POST['is_active']) ? 1 : 0;
+            $data['is_featured'] = isset($_POST['is_featured']) ? 1 : 0;
+            $data['is_verified'] = isset($_POST['is_verified']) ? 1 : 0;
+            
+            // Set defaults
+            $data['country'] = $data['country'] ?: 'India';
+            $data['service_area_km'] = $data['service_area_km'] ?: 50;
+            $data['map_url'] = $data['map_url'] ?: null;
+            
+            // Convert prices to appropriate format
+            $data['min_price'] = $data['min_price'] ? (float)$data['min_price'] : null;
+            $data['max_price'] = $data['max_price'] ? (float)$data['max_price'] : null;
+            
+            $this->vendorModel->update($id, $data);
+            
+            $this->redirect('/admin/vendors', [
+                'success' => 'Vendor "' . $data['name'] . '" updated successfully!',
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->back([
+                'error' => 'Failed to update vendor. ' . $e->getMessage(),
+                'old' => $data,
+            ]);
+        }
+    }
+
+    /**
+     * Delete vendor
+     */
+    public function deleteVendor(int $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+        
+        $vendor = $this->vendorModel->find($id);
+        
+        if (!$vendor) {
+            $this->redirect('/admin/vendors', ['error' => 'Vendor not found.']);
+            return;
+        }
+        
+        try {
+            $this->vendorModel->delete($id);
+            $this->redirect('/admin/vendors', [
+                'success' => 'Vendor "' . $vendor['name'] . '" deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            $this->back(['error' => 'Failed to delete vendor.']);
+        }
+    }
+
+    /**
+     * Toggle vendor status (active/inactive)
+     */
+    public function toggleVendorStatus(int $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+        
+        $vendor = $this->vendorModel->find($id);
+        
+        if (!$vendor) {
+            $this->redirect('/admin/vendors', ['error' => 'Vendor not found.']);
+            return;
+        }
+        
+        $this->vendorModel->toggleStatus($id);
+        $newStatus = $vendor['is_active'] ? 'deactivated' : 'activated';
+        
+        $this->redirect('/admin/vendors', [
+            'success' => 'Vendor "' . $vendor['name'] . '" has been ' . $newStatus . '.',
+        ]);
+    }
+
+    /**
+     * Toggle vendor featured status
+     */
+    public function toggleVendorFeatured(int $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+        
+        $vendor = $this->vendorModel->find($id);
+        
+        if (!$vendor) {
+            $this->redirect('/admin/vendors', ['error' => 'Vendor not found.']);
+            return;
+        }
+        
+        $this->vendorModel->toggleFeatured($id);
+        $newStatus = $vendor['is_featured'] ? 'removed from featured' : 'marked as featured';
+        
+        $this->redirect('/admin/vendors', [
+            'success' => 'Vendor "' . $vendor['name'] . '" has been ' . $newStatus . '.',
+        ]);
     }
 }

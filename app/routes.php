@@ -85,6 +85,16 @@ Router::group(['prefix' => 'admin', 'middleware' => ['admin']], function () {
     // Admin Account Creation
     Router::get('/create-admin', 'AdminController@showCreateAdmin', [], 'admin.create-admin');
     Router::post('/create-admin', 'AdminController@storeAdmin');
+
+    // Vendor Management
+    Router::get('/vendors', 'AdminController@vendors', [], 'admin.vendors');
+    Router::get('/vendors/create', 'AdminController@createVendor');
+    Router::post('/vendors', 'AdminController@storeVendor');
+    Router::get('/vendors/{id}/edit', 'AdminController@editVendor');
+    Router::post('/vendors/{id}', 'AdminController@updateVendor');
+    Router::post('/vendors/{id}/delete', 'AdminController@deleteVendor');
+    Router::post('/vendors/{id}/toggle-status', 'AdminController@toggleVendorStatus');
+    Router::post('/vendors/{id}/toggle-featured', 'AdminController@toggleVendorFeatured');
 });
 
 // ============================================================
@@ -213,5 +223,10 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     // Ask Pandit / Q&A
     Router::get('/questions', 'UserController@questions', [], 'user.questions');
     Router::post('/ask-pandit', 'UserController@askPandit');
+
+    // Vendor Browsing
+    Router::get('/vendors', 'UserController@vendors', [], 'user.vendors');
+    Router::post('/vendors/nearby', 'UserController@findNearbyVendors');
+    Router::get('/vendors/{id}', 'UserController@viewVendor');
 });
 

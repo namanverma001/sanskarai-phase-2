@@ -19,6 +19,10 @@ use App\Models\CulturalInsight;
 use App\Models\User;
 use App\Models\UserRitual;
 use App\Models\Order;
+<<<<<<< HEAD
+=======
+use App\Models\Vendor;
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
 use App\Services\AIService;
 use App\Config\Database;
 
@@ -33,6 +37,10 @@ class UserController extends Controller
     private UserRitual $userRitualModel;
     private Order $orderModel;
     private AIService $aiService;
+<<<<<<< HEAD
+=======
+    private Vendor $vendorModel;
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
 
     public function __construct()
     {
@@ -46,6 +54,10 @@ class UserController extends Controller
         $this->userRitualModel = new UserRitual();
         $this->orderModel = new Order();
         $this->aiService = new AIService();
+<<<<<<< HEAD
+=======
+        $this->vendorModel = new Vendor();
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
     }
 
     public function dashboard(): void
@@ -1586,4 +1598,115 @@ class UserController extends Controller
             $this->back(['error' => 'Failed to update password: ' . $e->getMessage()]);
         }
     }
+<<<<<<< HEAD
+=======
+
+    // ============================================================
+    // VENDOR BROWSING
+    // ============================================================
+
+    /**
+     * Browse vendors page
+     */
+    public function vendors(): void
+    {
+        $category = $this->input('category');
+        $search = $this->input('search');
+        $city = $this->input('city');
+        
+        // Get featured vendors for showcase
+        $featuredVendors = $this->vendorModel->getFeatured(6);
+        
+        // Get all active vendors (or filtered)
+        $vendors = $this->vendorModel->getActiveVendors($category, $search);
+        
+        // Get available cities for filter
+        $cities = $this->vendorModel->getCities();
+        
+        // Get vendor count by category
+        $categoryCounts = $this->vendorModel->getCountByCategory();
+        
+        $this->viewWithLayout('user/vendors', 'layouts/user', [
+            'title' => 'Browse Vendors - Sanskar AI',
+            'vendors' => $vendors,
+            'featuredVendors' => $featuredVendors,
+            'categories' => Vendor::CATEGORIES,
+            'cities' => $cities,
+            'categoryCounts' => $categoryCounts,
+            'selectedCategory' => $category,
+            'selectedCity' => $city,
+            'search' => $search,
+        ]);
+    }
+
+    /**
+     * Find nearby vendors (AJAX endpoint)
+     */
+    public function findNearbyVendors(): void
+    {
+        header('Content-Type: application/json');
+        
+        $latitude = (float)$this->input('latitude');
+        $longitude = (float)$this->input('longitude');
+        $radiusKm = (float)($this->input('radius') ?: 15);
+        $category = $this->input('category');
+        $search = $this->input('search');
+        
+        if (!$latitude || !$longitude) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Location coordinates are required.',
+            ]);
+            return;
+        }
+        
+        try {
+            $vendors = $this->vendorModel->findNearbyVendors(
+                $latitude,
+                $longitude,
+                $radiusKm,
+                $category,
+                $search
+            );
+            
+            echo json_encode([
+                'success' => true,
+                'vendors' => $vendors,
+                'count' => count($vendors),
+                'radius' => $radiusKm,
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to find vendors. ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * View single vendor details
+     */
+    public function viewVendor(int $id): void
+    {
+        $vendor = $this->vendorModel->find($id);
+        
+        if (!$vendor || !$vendor['is_active']) {
+            $this->redirect('/user/vendors', ['error' => 'Vendor not found.']);
+            return;
+        }
+        
+        // Get similar vendors (same category, same city)
+        $similarVendors = $this->vendorModel->getByCity($vendor['city'], $vendor['category']);
+        // Remove current vendor from similar list
+        $similarVendors = array_filter($similarVendors, fn($v) => $v['id'] != $id);
+        $similarVendors = array_slice($similarVendors, 0, 4);
+        
+        $this->viewWithLayout('user/vendor-detail', 'layouts/user', [
+            'title' => $vendor['name'] . ' - Sanskar AI',
+            'vendor' => $vendor,
+            'similarVendors' => $similarVendors,
+            'categories' => Vendor::CATEGORIES,
+        ]);
+    }
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
 }

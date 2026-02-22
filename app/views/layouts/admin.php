@@ -288,6 +288,10 @@ $roleDisplay = match($userRole) {
         .sidebar-header h1 {
             font-size: 1.3rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+<<<<<<< HEAD
+=======
+            background-clip: text;
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             transition: font-size 0.3s ease, opacity 0.3s ease;
@@ -1030,6 +1034,12 @@ $roleDisplay = match($userRole) {
                     <a href="/admin/rituals" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/rituals') !== false ? 'active' : '' ?>">
                         <i class="fas fa-pray"></i> <span>Rituals</span>
                     </a>
+<<<<<<< HEAD
+=======
+                    <a href="/admin/vendors" class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/vendors') !== false ? 'active' : '' ?>">
+                        <i class="fas fa-store"></i> <span>Vendors</span>
+                    </a>
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">System</div>

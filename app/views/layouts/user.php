@@ -1139,6 +1139,16 @@ $roleDisplay = match($userRole) {
                         <i class="fas fa-receipt"></i> <span>My Orders</span>
                     </a>
                     <a
+<<<<<<< HEAD
+=======
+                        href="/user/vendors"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/vendors') !== false ? 'active' : '' ?>"
+                        title="Browse Vendors"
+                    >
+                        <i class="fas fa-store"></i> <span>Browse Vendors</span>
+                    </a>
+                    <a
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
                         href="/user/questions"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/questions') !== false ? 'active' : '' ?>"
                         title="Ask Pandit (Q&A)"

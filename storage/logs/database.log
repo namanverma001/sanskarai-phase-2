@@ -3,3 +3,8 @@
 [2026-01-26 22:50:54] Database connection failed: SQLSTATE[HY000] [1049] Unknown database 'sai'
 [2026-02-14 19:53:46] Database connection failed: SQLSTATE[HY000] [2002] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
 [2026-02-14 19:54:51] Database connection failed: SQLSTATE[HY000] [2002] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
+<<<<<<< HEAD
+=======
+[2026-02-22 08:54:57] Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO)
+[2026-02-22 08:55:01] Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO)
+>>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
