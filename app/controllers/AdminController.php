@@ -25,10 +25,7 @@ class AdminController extends Controller
     private Ritual $ritualModel;
     private AIRequest $aiRequestModel;
     private Assignment $assignmentModel;
-<<<<<<< HEAD
-=======
     private Vendor $vendorModel;
->>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
     
     public function __construct()
     {
@@ -38,10 +35,7 @@ class AdminController extends Controller
         $this->ritualModel = new Ritual();
         $this->aiRequestModel = new AIRequest();
         $this->assignmentModel = new Assignment();
-<<<<<<< HEAD
-=======
         $this->vendorModel = new Vendor();
->>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
     }
 
     /**

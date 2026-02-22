@@ -19,10 +19,7 @@ use App\Models\CulturalInsight;
 use App\Models\User;
 use App\Models\UserRitual;
 use App\Models\Order;
-<<<<<<< HEAD
-=======
 use App\Models\Vendor;
->>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
 use App\Services\AIService;
 use App\Config\Database;
 
@@ -37,10 +34,7 @@ class UserController extends Controller
     private UserRitual $userRitualModel;
     private Order $orderModel;
     private AIService $aiService;
-<<<<<<< HEAD
-=======
     private Vendor $vendorModel;
->>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
 
     public function __construct()
     {
@@ -54,10 +48,7 @@ class UserController extends Controller
         $this->userRitualModel = new UserRitual();
         $this->orderModel = new Order();
         $this->aiService = new AIService();
-<<<<<<< HEAD
-=======
         $this->vendorModel = new Vendor();
->>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
     }
 
     public function dashboard(): void
@@ -1598,8 +1589,6 @@ class UserController extends Controller
             $this->back(['error' => 'Failed to update password: ' . $e->getMessage()]);
         }
     }
-<<<<<<< HEAD
-=======
 
     // ============================================================
     // VENDOR BROWSING
@@ -1708,5 +1697,4 @@ class UserController extends Controller
             'categories' => Vendor::CATEGORIES,
         ]);
     }
->>>>>>> 2d834f3dee03dfff750bf16ca376855176eab2c0
 }
