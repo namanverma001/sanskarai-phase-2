@@ -26,6 +26,8 @@ class Ritual extends Model
         'best_time',
         'best_tithi',
         'deity',
+        'community_name',
+        'religion',
         'is_active',
         'is_featured',
         'created_by',
@@ -624,5 +626,24 @@ Respond with valid JSON only, no explanation.";
         }
 
         return $ritualId;
+    }
+
+    /**
+     * Semantic search for rituals using OpenAI embeddings.
+     * Handles spelling variations like shelke/shelake, verma/varama, etc.
+     *
+     * @param string $query User's search query (community, religion, or ritual name)
+     * @param int    $limit Max results to return
+     * @return array Matching rituals ranked by similarity
+     */
+    public function semanticSearch(string $query, int $limit = 10): array
+    {
+        try {
+            $embeddingService = new \App\Services\EmbeddingService();
+            return $embeddingService->semanticSearch($query, $limit);
+        } catch (\Exception $e) {
+            error_log('Semantic search failed: ' . $e->getMessage());
+            return [];
+        }
     }
 }

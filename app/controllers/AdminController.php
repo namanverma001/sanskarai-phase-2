@@ -15,6 +15,7 @@ use App\Models\Ritual;
 use App\Models\AIRequest;
 use App\Models\Assignment;
 use App\Models\Vendor;
+use App\Services\EmbeddingService;
 use App\Config\App;
 use App\Config\Database;
 
@@ -339,7 +340,7 @@ class AdminController extends Controller
         $data = $this->only([
             'name', 'name_sanskrit', 'category', 'sub_category', 'description',
             'significance', 'duration_minutes', 'difficulty', 'occasion_type',
-            'best_time', 'deity', 'is_active', 'is_featured'
+            'best_time', 'deity', 'community_name', 'religion', 'is_active', 'is_featured'
         ]);
         
         $errors = $this->validate($data, [
@@ -359,6 +360,14 @@ class AdminController extends Controller
         $data['created_by'] = Auth::id();
         
         $ritualId = $this->ritualModel->create($data);
+        
+        // Auto-generate embedding for semantic search
+        try {
+            $embeddingService = new EmbeddingService();
+            $embeddingService->generateAndStore($ritualId, $data['name'] ?? '', $data['community_name'] ?? null, $data['religion'] ?? null);
+        } catch (\Exception $e) {
+            error_log('Embedding generation failed for ritual #' . $ritualId . ': ' . $e->getMessage());
+        }
         
         $this->redirect('/admin/rituals/' . $ritualId . '/edit', [
             'success' => 'Ritual created successfully. You can now add steps and items.',
@@ -402,13 +411,21 @@ class AdminController extends Controller
         $data = $this->only([
             'name', 'name_sanskrit', 'category', 'sub_category', 'description',
             'significance', 'duration_minutes', 'difficulty', 'occasion_type',
-            'best_time', 'deity', 'is_active', 'is_featured'
+            'best_time', 'deity', 'community_name', 'religion', 'is_active', 'is_featured'
         ]);
         
         $data['is_active'] = isset($data['is_active']) ? 1 : 0;
         $data['is_featured'] = isset($data['is_featured']) ? 1 : 0;
         
         $this->ritualModel->update($ritualId, $data);
+        
+        // Refresh embedding for semantic search
+        try {
+            $embeddingService = new EmbeddingService();
+            $embeddingService->generateAndStore($ritualId, $data['name'] ?? '', $data['community_name'] ?? null, $data['religion'] ?? null);
+        } catch (\Exception $e) {
+            error_log('Embedding refresh failed for ritual #' . $ritualId . ': ' . $e->getMessage());
+        }
         
         $this->back(['success' => 'Ritual updated successfully.']);
     }
@@ -423,7 +440,17 @@ class AdminController extends Controller
             return;
         }
         
-        $this->ritualModel->delete((int) $id);
+        $ritualId = (int) $id;
+        
+        // Delete embedding first
+        try {
+            $embeddingService = new EmbeddingService();
+            $embeddingService->deleteEmbedding($ritualId);
+        } catch (\Exception $e) {
+            error_log('Embedding delete failed for ritual #' . $ritualId . ': ' . $e->getMessage());
+        }
+        
+        $this->ritualModel->delete($ritualId);
         
         $this->redirect('/admin/rituals', ['success' => 'Ritual deleted successfully.']);
     }
@@ -779,6 +806,19 @@ class AdminController extends Controller
             
             // Save to global database
             $globalRitualId = $this->ritualModel->saveFromAI($ritualData, Auth::id());
+            
+            // Auto-generate embedding for semantic search
+            try {
+                $embeddingService = new EmbeddingService();
+                $embeddingService->generateAndStore(
+                    $globalRitualId,
+                    $ritualData['name'] ?? '',
+                    $criteria['community_name'] ?? null,
+                    $criteria['religion'] ?? null
+                );
+            } catch (\Exception $e) {
+                error_log('Embedding generation failed for AI ritual #' . $globalRitualId . ': ' . $e->getMessage());
+            }
             
             // Redirect to edit page so admin can review and modify
             $this->redirect('/admin/rituals/' . $globalRitualId . '/edit', [

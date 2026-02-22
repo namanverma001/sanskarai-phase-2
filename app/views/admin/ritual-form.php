@@ -58,6 +58,20 @@
             </div>
             
             <div class="form-group">
+                <label for="community_name">Community Name</label>
+                <input type="text" id="community_name" name="community_name" class="form-control"
+                       placeholder="e.g., Shelke, Brahmin, Maratha"
+                       value="<?= htmlspecialchars($ritual['community_name'] ?? '') ?>">
+            </div>
+            
+            <div class="form-group">
+                <label for="religion">Religion</label>
+                <input type="text" id="religion" name="religion" class="form-control"
+                       placeholder="e.g., Hinduism, Jainism"
+                       value="<?= htmlspecialchars($ritual['religion'] ?? '') ?>">
+            </div>
+
+            <div class="form-group">
                 <label for="occasion_type">Occasion Type</label>
                 <input type="text" id="occasion_type" name="occasion_type" class="form-control"
                        value="<?= htmlspecialchars($ritual['occasion_type'] ?? '') ?>">
