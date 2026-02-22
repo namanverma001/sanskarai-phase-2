@@ -1,0 +1,601 @@
+<?php
+/**
+ * Sanskar AI - AI Service
+ * ========================
+ * OpenAI Integration for ritual generation and chatbot assistance
+ */
+
+namespace App\Services;
+
+use App\Models\AIRequest;
+
+class AIService
+{
+    private AIRequest $aiRequestModel;
+    private string $provider;
+    private string $apiKey;
+    private string $model;
+
+    public function __construct()
+    {
+        $this->aiRequestModel = new AIRequest();
+        $this->provider = getenv('AI_PROVIDER') ?: 'openai';
+        $this->apiKey = getenv('AI_API_KEY') ?: '';
+        $this->model = getenv('AI_MODEL') ?: 'gpt-4o-mini';
+    }
+
+    /**
+     * Generate ritual based on search criteria
+     */
+    public function generateRitual(int $userId, array $criteria): array
+    {
+        $prompt = $this->buildRitualGenerationPrompt($criteria);
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_generation', $prompt, $criteria);
+
+        try {
+            $startTime = microtime(true);
+
+            $response = $this->getResponse($prompt, 'ritual_generation', $criteria);
+
+            $processingTime = (int) ((microtime(true) - $startTime) * 1000);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                'tokens_used' => $response['tokens'] ?? 0,
+                'processing_time_ms' => $processingTime,
+            ]);
+
+            $this->aiRequestModel->log('info', 'ritual_generation_complete', 'Ritual generated successfully', [], $requestId);
+
+            // Parse the ritual data from the response
+            $ritualData = $response['data']['ritual'] ?? $this->parseRitualFromText($response['text'], $criteria);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'ritual' => $ritualData,
+                'raw_response' => $response['text'],
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+            $this->aiRequestModel->log('error', 'ritual_generation_failed', $e->getMessage(), [], $requestId);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Chatbot for ritual assistance during execution
+     */
+    public function chatAssistant(int $userId, array $context): array
+    {
+        $prompt = $this->buildChatPrompt($context);
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_chat', $prompt, $context);
+
+        try {
+            $startTime = microtime(true);
+
+            $response = $this->getResponse($prompt, 'ritual_chat', $context);
+
+            $processingTime = (int) ((microtime(true) - $startTime) * 1000);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                'tokens_used' => $response['tokens'] ?? 0,
+                'processing_time_ms' => $processingTime,
+            ]);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'answer' => $response['text'],
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get ritual suggestion based on user context
+     */
+    public function suggestRitual(int $userId, array $context): array
+    {
+        $prompt = $this->buildPrompt('ritual_suggestion', $context);
+
+        // Create request record
+        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_suggestion', $prompt, $context);
+
+        try {
+            $startTime = microtime(true);
+
+            // Get response (mock or real)
+            $response = $this->getResponse($prompt, 'ritual_suggestion', $context);
+
+            $processingTime = (int) ((microtime(true) - $startTime) * 1000);
+
+            // Update request with response
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                'tokens_used' => $response['tokens'] ?? 0,
+                'processing_time_ms' => $processingTime,
+            ]);
+
+            // Log success
+            $this->aiRequestModel->log('info', 'ritual_suggestion_complete', 'Ritual suggestion generated successfully', [], $requestId);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'suggestion' => $response['text'],
+                'rituals' => $response['data']['rituals'] ?? [],
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+            $this->aiRequestModel->log('error', 'ritual_suggestion_failed', $e->getMessage(), [], $requestId);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get mantra explanation
+     */
+    public function explainMantra(int $userId, string $mantra): array
+    {
+        $prompt = "Explain the meaning and significance of this mantra: $mantra";
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'mantra_explanation', $prompt);
+
+        try {
+            $response = $this->getResponse($prompt, 'mantra_explanation', ['mantra' => $mantra]);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text']);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'explanation' => $response['text'],
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get ritual guidance
+     */
+    public function getRitualGuidance(int $userId, int $ritualId, string $question): array
+    {
+        $prompt = "Question about ritual #$ritualId: $question";
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_guidance', $prompt, [
+            'ritual_id' => $ritualId,
+        ]);
+
+        try {
+            $response = $this->getResponse($prompt, 'ritual_guidance', [
+                'ritual_id' => $ritualId,
+                'question' => $question,
+            ]);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text']);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'guidance' => $response['text'],
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get auspicious timing
+     */
+    public function getAuspiciousTiming(int $userId, array $context): array
+    {
+        $prompt = $this->buildPrompt('auspicious_timing', $context);
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'auspicious_timing', $prompt, $context);
+
+        try {
+            $response = $this->getResponse($prompt, 'auspicious_timing', $context);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text']);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'timing' => $response['text'],
+                'dates' => $response['data']['dates'] ?? [],
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Find nearby shops for item
+     */
+    public function findNearbyShops(string $location, string $item): array
+    {
+        $prompt = "Identify specific shops or market areas in or near '$location' where I can buy '$item' for a Hindu ritual. 
+        Provide a list of 3-5 likely places. 
+        For each place, provide a name, approximate distance/location details, and why it's a good matching shop.
+        
+        OUTPUT JSON FORMAT:
+        {
+            \"shops\": [
+                {
+                    \"name\": \"Shop Name\",
+                    \"location\": \"Location/Area Details\",
+                    \"type\": \"Type of shop (e.g. General Store, Pooja Samagri)\",
+                    \"reason\": \"Why this is a good match\"
+                }
+            ]
+        }";
+
+        // We use a mock response logic if provider is 'mock', similar to other methods
+        // But here we rely on the getResponse method which handles the provider check
+        try {
+            // Using 'ritual_generation' logic for structured JSON response from OpenAI if active
+            // Or we handle 'shop_finder' custom type if we want mock data
+            $response = $this->getResponse($prompt, 'shop_finder', ['location' => $location, 'item' => $item]);
+
+            return [
+                'success' => true,
+                'shops' => $response['data']['shops'] ?? [],
+                'raw' => $response['text']
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Build ritual generation prompt
+     */
+    private function buildRitualGenerationPrompt(array $criteria): string
+    {
+        $communityName = $criteria['community_name'] ?? 'Hindu';
+        $ritualName = $criteria['ritual_name'] ?? '';
+        $religion = $criteria['religion'] ?? 'Hinduism';
+        $occasion = $criteria['occasion'] ?? '';
+        $additionalInfo = $criteria['additional_info'] ?? '';
+
+        $prompt = "Generate a comprehensive and authentic ritual guide for the following:
+
+Community/Tradition: {$communityName}
+Religion: {$religion}
+Ritual Name: {$ritualName}
+Occasion: {$occasion}
+Additional Information: {$additionalInfo}
+
+Please rigorously follow this structure and format:
+
+**CRITICAL FORMATTING RULE**: 
+Every Hindi/Sanskrit word written in Devanagari script MUST be immediately followed by its English transliteration in brackets.
+Example formats:
+- गृहप्रवेश (Gruhapravesh)
+- दक्षिणा (Dakshina)
+- ॐ नमो भगवते वासुदेवाय (Om Namo Bhagavate Vasudevaya)
+
+1. **Ritual Name**: English translated Name
+2. **Sanskrit Name**: MUST be in format \"देवनागरी (Transliteration)\"
+   Example: \"गृहप्रवेश (Gruhapravesh)\"
+3. **Community**: As specified
+4. **Purpose**: Clear English 1 or 2 lines
+5. **Scriptural Basis**: Mention referenced texts (Vedas, Puranas, etc.) in the 'significance' field.
+6. **Items Required**: Each Sanskrit/Local name MUST include transliteration in brackets
+7. **Ritual Steps**: MUST include:
+   - Sanskrit Title in format \"देवनागरी (Transliteration)\"
+   - English Title
+   - Who Performs (e.g., Kartan, Pandit)
+   - Purpose of the step
+   - Method (How to Perform) in numbered points
+   - Mantra in format \"देवनागरी (Transliteration)\" + Meaning
+8. **Concluding Rites**: Visarjan, Prasad, Dakshina instructions (Include these as the final steps)
+9. **Post-Ritual Guidelines**: Clean up and observances (Include as the very last step)
+
+OUTPUT JSON FORMAT:
+{
+    \"name\": \"Ritual Name in English\",
+    \"name_sanskrit\": \"देवनागरी (Transliteration)\",
+    \"community_name\": \"{$communityName}\",
+    \"religion\": \"{$religion}\",
+    \"category\": \"Category (Puja/Sanskar/Festival)\",
+    \"description\": \"Brief overview of the ritual including Purpose.\",
+    \"significance\": \"Scriptural Basis and Spiritual Significance.\",
+    \"duration_minutes\": 60,
+    \"difficulty\": \"medium\",
+    \"deity\": \"Main Deity\",
+    \"best_time\": \"Best time/tithi\",
+    \"steps\": [
+        {
+            \"step_number\": 1,
+            \"title\": \"English Title\",
+            \"title_sanskrit\": \"देवनागरी (Transliteration)\",
+            \"description\": \"Who Performs: [Role]\\nPurpose: [Why]\\n\\nHow to Perform:\\n1. [Instruction]\\n2. [Instruction]...\",
+            \"mantra\": \"देवनागरी (Transliteration)\\n\\nNote: If no mantra for this step, use null\",
+            \"mantra_meaning\": \"English meaning of the mantra (or null if no mantra)\",
+            \"duration_minutes\": 5,
+            \"is_optional\": false,
+            \"special_instructions\": \"Practical Notes and Tips (use transliteration for any Devanagari words)\",
+            \"items_needed\": \"List of items for this step (use transliteration for any Devanagari words)\"
+        }
+    ],
+    \"items\": [
+        {
+            \"item_name\": \"English Name\",
+            \"item_name_local\": \"देवनागरी (Transliteration)\",
+            \"quantity\": 1,
+            \"unit\": \"unit\",
+            \"is_mandatory\": true,
+            \"description\": \"Category (e.g., Panchamrit, Aushadhi, Vastram) - [Description]\"
+        }
+    ]
+}
+
+REMEMBER: Every single Devanagari word MUST have (Transliteration) in brackets immediately after it.
+Provide 10-20 detailed steps covering the entire ritual from preparation to conclusion. Be religiously accurate.";
+
+        return $prompt;
+    }
+
+    /**
+     * Build chat assistant prompt
+     */
+    private function buildChatPrompt(array $context): string
+    {
+        $ritualName = $context['ritual_name'] ?? '';
+        $ritualDescription = $context['ritual_description'] ?? '';
+        $currentStep = $context['current_step'] ?? [];
+        $stepNumber = $context['step_number'] ?? 1;
+        $question = $context['question'] ?? '';
+        $allSteps = $context['all_steps'] ?? [];
+
+        $stepsContext = '';
+        if (!empty($allSteps)) {
+            $stepsContext = "\n\nAll steps of this ritual:\n";
+            foreach ($allSteps as $step) {
+                $stepsContext .= "Step {$step['step_number']}: {$step['title']}\n";
+                if (!empty($step['description'])) {
+                    $stepsContext .= "Description: {$step['description']}\n";
+                }
+                if (!empty($step['items_needed'])) {
+                    $stepsContext .= "Items needed: {$step['items_needed']}\n";
+                }
+                $stepsContext .= "\n";
+            }
+        }
+
+        $currentStepContext = '';
+        if (!empty($currentStep)) {
+            $currentStepContext = "\n\nUser is currently on Step {$stepNumber}: {$currentStep['title']}";
+            if (!empty($currentStep['description'])) {
+                $currentStepContext .= "\nStep description: {$currentStep['description']}";
+            }
+            if (!empty($currentStep['mantra'])) {
+                $currentStepContext .= "\nMantra: {$currentStep['mantra']}";
+            }
+            if (!empty($currentStep['items_needed'])) {
+                $currentStepContext .= "\nItems needed for this step: {$currentStep['items_needed']}";
+            }
+        }
+
+        $prompt = "You are a knowledgeable spiritual assistant helping someone perform a ritual. Be helpful, respectful, and provide accurate information.
+
+Ritual being performed: {$ritualName}
+Ritual description: {$ritualDescription}
+{$stepsContext}
+{$currentStepContext}
+
+User's question: {$question}
+
+Please provide a helpful, concise answer. If the user is asking about alternatives for items, suggest appropriate substitutes. If they're confused about a step, explain it clearly. Be respectful of traditions while being practical.";
+
+        return $prompt;
+    }
+
+    /**
+     * Build prompt based on type and context
+     */
+    private function buildPrompt(string $type, array $context): string
+    {
+        switch ($type) {
+            case 'ritual_suggestion':
+                $occasion = $context['occasion'] ?? 'general';
+                $family = $context['family_info'] ?? '';
+                return "Suggest appropriate Hindu rituals for occasion: $occasion. Family details: $family";
+
+            case 'auspicious_timing':
+                $ritual = $context['ritual_name'] ?? 'puja';
+                $month = $context['month'] ?? date('F');
+                return "Find auspicious dates for $ritual in $month based on Hindu calendar.";
+
+            default:
+                return json_encode($context);
+        }
+    }
+
+    /**
+     * Get response based on provider
+     */
+    private function getResponse(string $prompt, string $type, array $context = []): array
+    {
+        if ($this->provider === 'openai') {
+            return $this->callOpenAI($prompt, $type);
+        }
+        
+        throw new \Exception('Invalid AI provider configured. Please set AI_PROVIDER to "openai" in .env file.');
+    }
+
+    /**
+     * Call OpenAI API
+     */
+    private function callOpenAI(string $prompt, string $type = 'general'): array
+    {
+        if (empty($this->apiKey)) {
+            throw new \Exception('OpenAI API key not configured. Please set AI_API_KEY in .env file.');
+        }
+
+        $systemPrompt = "You are Sanskar AI, a knowledgeable assistant specializing in Hindu rituals, traditions, and spiritual practices. Provide accurate, respectful, and helpful information.";
+
+        if ($type === 'ritual_generation') {
+            $systemPrompt = "You are Sanskar AI, an expert in Hindu and Indian religious rituals and traditions. Generate detailed, accurate ritual guides in the specified JSON format. Always respond with valid JSON only, no additional text.";
+        }
+
+        $data = [
+            'model' => $this->model,
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $prompt],
+            ],
+            'temperature' => 0.7,
+            'max_tokens' => 4000,
+        ];
+
+        if ($type === 'ritual_generation' || $type === 'shop_finder') {
+            $data['response_format'] = ['type' => 'json_object'];
+        }
+
+        // Increase PHP execution time limit for AI requests (they can take 60+ seconds)
+        set_time_limit(120);
+
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->apiKey,
+            ],
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            // SSL options for Windows development environment
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            throw new \Exception("cURL Error: $error");
+        }
+
+        if ($httpCode !== 200) {
+            $errorData = json_decode($response, true);
+            $errorMessage = $errorData['error']['message'] ?? "HTTP Error: $httpCode";
+            throw new \Exception("OpenAI API Error: $errorMessage");
+        }
+
+        $result = json_decode($response, true);
+
+        if (!isset($result['choices'][0]['message']['content'])) {
+            throw new \Exception('Invalid response from OpenAI API');
+        }
+
+        $content = $result['choices'][0]['message']['content'];
+        $tokensUsed = $result['usage']['total_tokens'] ?? 0;
+
+        $responseData = [];
+        if ($type === 'ritual_generation' || $type === 'shop_finder') {
+            $parsedContent = json_decode($content, true);
+            if ($parsedContent) {
+                if ($type === 'ritual_generation') {
+                    $responseData['ritual'] = $parsedContent;
+                } elseif ($type === 'shop_finder') {
+                    $responseData['shops'] = $parsedContent['shops'] ?? [];
+                }
+            }
+        }
+
+        return [
+            'text' => $content,
+            'tokens' => $tokensUsed,
+            'data' => $responseData,
+        ];
+    }
+
+    /**
+     * Parse ritual data from text response (fallback)
+     */
+    private function parseRitualFromText(string $text, array $criteria): array
+    {
+        // Try to extract JSON from text
+        if (preg_match('/\{[\s\S]*\}/m', $text, $matches)) {
+            $parsed = json_decode($matches[0], true);
+            if ($parsed) {
+                return $parsed;
+            }
+        }
+
+        // Fallback structure
+        return [
+            'name' => $criteria['ritual_name'] ?? 'Generated Ritual',
+            'community_name' => $criteria['community_name'] ?? null,
+            'religion' => $criteria['religion'] ?? 'Hinduism',
+            'category' => 'General',
+            'description' => $text,
+            'duration_minutes' => 60,
+            'difficulty' => 'medium',
+            'steps' => [],
+            'items' => [],
+        ];
+    }
+
+    /**
+     * Get user's request history
+     */
+    public function getHistory(int $userId, int $limit = 20): array
+    {
+        return $this->aiRequestModel->getByUser($userId, $limit);
+    }
+
+    /**
+     * Get request details
+     */
+    public function getRequest(int $requestId): ?array
+    {
+        return $this->aiRequestModel->find($requestId);
+    }
+}
