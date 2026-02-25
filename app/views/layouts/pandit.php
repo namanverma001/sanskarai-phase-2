@@ -1050,7 +1050,7 @@ $roleDisplay = match ($userRole) {
     <div class="dashboard-container">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
         <!-- Sidebar collapsed by default -->
-        <aside class="sidebar collapsed" id="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1><i class="fas fa-om"></i> Sanskar AI <span>Pandit</span></h1>
             </div>
@@ -1167,11 +1167,14 @@ $roleDisplay = match ($userRole) {
         const mainFooter = document.querySelector('.main-footer');
         const isMobile = () => window.innerWidth <= 768;
 
-        // Initialize footer margin based on default collapsed state
-        // CSS handles default 70px (collapsed) and 0px (mobile)
-        // JS only needs to reset if we are checking expanded state from localStorage (not implemented yet)
+        // Initialize footer margin based on default state
         if (!isMobile() && !sidebar.classList.contains('collapsed')) {
             if (mainFooter) mainFooter.style.marginLeft = '260px';
+        }
+
+        // Set correct icon on page load
+        if (!isMobile()) {
+            sidebarToggle.querySelector('i').className = sidebar.classList.contains('collapsed') ? 'fas fa-bars' : 'fas fa-times';
         }
 
         function toggleSidebar() {

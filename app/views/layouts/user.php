@@ -1070,7 +1070,7 @@ $roleDisplay = match ($userRole) {
 
     <div class="dashboard-container">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar expanded" id="sidebar">
             <div class="sidebar-header">
                 <h1><i class="fas fa-om"></i> User Dashboard</h1>
             </div>
@@ -1252,7 +1252,7 @@ $roleDisplay = match ($userRole) {
                 sidebar.classList.toggle('mobile-open');
                 sidebarOverlay.classList.toggle('active');
             } else {
-                // On desktop: toggle expanded (starts collapsed/mini)
+                // On desktop: toggle expanded
                 sidebar.classList.toggle('expanded');
                 if (sidebar.classList.contains('expanded')) {
                     if (mainFooter) mainFooter.style.marginLeft = '260px';
@@ -1261,7 +1261,11 @@ $roleDisplay = match ($userRole) {
                 }
             }
             const icon = sidebarToggle.querySelector('i');
-            // Assuming icon logic remains or needs update based on state
+            if (isMobile()) {
+                icon.className = sidebar.classList.contains('mobile-open') ? 'fas fa-times' : 'fas fa-bars';
+            } else {
+                icon.className = sidebar.classList.contains('expanded') ? 'fas fa-times' : 'fas fa-bars';
+            }
         }
 
         sidebarToggle.addEventListener('click', toggleSidebar);
@@ -1275,6 +1279,12 @@ $roleDisplay = match ($userRole) {
                 }
             });
         });
+
+        // Set correct icon & footer margin on page load
+        if (!isMobile()) {
+            sidebarToggle.querySelector('i').className = sidebar.classList.contains('expanded') ? 'fas fa-times' : 'fas fa-bars';
+            if (mainFooter) mainFooter.style.marginLeft = sidebar.classList.contains('expanded') ? '260px' : '60px';
+        }
 
         // User Profile Dropdown Toggle
         const userDropdown = document.getElementById('userDropdown');

@@ -1268,7 +1268,7 @@ $roleDisplay = match ($userRole) {
 
     <div class="dashboard-container">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        <aside class="sidebar collapsed" id="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h1><i class="fas fa-om"></i> Sanskar AI <span>Admin</span></h1>
             </div>
@@ -1482,6 +1482,11 @@ $roleDisplay = match ($userRole) {
 
         // Initial footer margin
         updateFooterMargin();
+
+        // Set correct icon on page load
+        if (!isMobile()) {
+            sidebarToggle.querySelector('i').className = sidebar.classList.contains('collapsed') ? 'fas fa-bars' : 'fas fa-times';
+        }
 
         // User Profile Dropdown Toggle
         const userDropdown = document.getElementById('userDropdown');
