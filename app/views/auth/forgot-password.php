@@ -14,6 +14,11 @@
 <?php if (isset($_SESSION['flash']['error'])): ?>
     <div class="alert alert-error">
         <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($_SESSION['flash']['error']) ?>
+        <?php if (strpos($_SESSION['flash']['error'], 'not registered') !== false): ?>
+            <br><a href="/signup" style="color: var(--saffron); font-weight: 600; text-decoration: underline; margin-top: 5px; display: inline-block;">
+                <i class="fas fa-user-plus"></i> Create Your Account
+            </a>
+        <?php endif; ?>
     </div>
     <?php unset($_SESSION['flash']['error']); ?>
 <?php endif; ?>

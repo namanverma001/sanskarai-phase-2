@@ -224,30 +224,38 @@ class AuthController extends Controller
 
         $user = $this->userModel->findByEmail($email);
 
-        if ($user && $user['status'] === App::STATUS_ACTIVE) {
-            // 1. Generate a cryptographically secure token
-            $rawToken  = bin2hex(random_bytes(32)); // 64 hex chars
-            $tokenHash = password_hash($rawToken, PASSWORD_DEFAULT);
-            $expiresAt = date('Y-m-d H:i:s', strtotime('+30 minutes'));
-
-            // 2. Store the hashed token in the DB
-            $this->userModel->storeResetToken($user['id'], $tokenHash, $expiresAt);
-
-            // 3. Build reset link and send email
-            $appUrl    = rtrim($_ENV['APP_URL'] ?? 'http://sanskarai.com', '/');
-            $resetLink = $appUrl . '/reset-password?token=' . urlencode($rawToken);
-
-            // ✅ TESTING ONLY - logs the link so you can test without real email
-            // ❌ REMOVE THIS LINE BEFORE GOING TO PRODUCTION
-            file_put_contents(BASE_PATH . '/storage/logs/reset_debug.log', date('Y-m-d H:i:s') . " | $email | $resetLink\n", FILE_APPEND);
-
-            $mailer = new MailService();
-            $mailer->sendPasswordReset($email, $resetLink);
+        if (!$user) {
+            // Email not found in database
+            $this->back(['error' => 'This email is not registered with us. Please create your account first.']);
+            return;
         }
 
-        // Always show the same success message (prevents email enumeration)
+        if ($user['status'] !== App::STATUS_ACTIVE) {
+            $this->back(['error' => 'Your account is not active. Please contact support.']);
+            return;
+        }
+
+        // 1. Generate a cryptographically secure token
+        $rawToken  = bin2hex(random_bytes(32)); // 64 hex chars
+        $tokenHash = password_hash($rawToken, PASSWORD_DEFAULT);
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+
+        // 2. Store the hashed token in the DB
+        $this->userModel->storeResetToken($user['id'], $tokenHash, $expiresAt);
+
+        // 3. Build reset link and send email
+        $appUrl    = rtrim($_ENV['APP_URL'] ?? 'http://sanskarai.com', '/');
+        $resetLink = $appUrl . '/reset-password?token=' . urlencode($rawToken);
+
+        // ✅ TESTING ONLY - logs the link so you can test without real email
+        // ❌ REMOVE THIS LINE BEFORE GOING TO PRODUCTION
+        file_put_contents(BASE_PATH . '/storage/logs/reset_debug.log', date('Y-m-d H:i:s') . " | $email | $resetLink\n", FILE_APPEND);
+
+        $mailer = new MailService();
+        $mailer->sendPasswordReset($email, $resetLink);
+
         $this->back([
-            'success' => 'If an account exists with this email, you will receive password reset instructions shortly.',
+            'success' => 'Password reset link has been sent to your email. Please check your inbox and reset your password.',
         ]);
     }
 
