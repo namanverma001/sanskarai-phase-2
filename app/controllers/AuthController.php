@@ -20,14 +20,14 @@ class AuthController extends Controller
 {
     private User $userModel;
     private PanditProfile $panditProfileModel;
-    
+
     public function __construct()
     {
         parent::__construct();
         $this->userModel = new User();
         $this->panditProfileModel = new PanditProfile();
     }
-    
+
     /**
      * Show login form
      */
@@ -37,7 +37,7 @@ class AuthController extends Controller
             'title' => 'Login - Sanskar AI',
         ]);
     }
-    
+
     /**
      * Handle login
      */
@@ -48,10 +48,10 @@ class AuthController extends Controller
             $this->back(['error' => 'Invalid security token. Please try again.']);
             return;
         }
-        
+
         $identifier = $this->input('identifier'); // Email or mobile
         $password = $this->input('password');
-        
+
         // Validate inputs
         $errors = $this->validate([
             'identifier' => $identifier,
@@ -60,34 +60,34 @@ class AuthController extends Controller
             'identifier' => 'required',
             'password' => 'required|min:6',
         ]);
-        
+
         if (!empty($errors)) {
             $this->back(['error' => 'Please fill in all required fields correctly.', 'errors' => $errors]);
             return;
         }
-        
+
         // Try to login with email first
         $success = Auth::attempt($identifier, $password);
-        
+
         // If failed, try with mobile
         if (!$success && preg_match('/^[0-9]{10}$/', $identifier)) {
             $success = Auth::attemptWithMobile($identifier, $password);
         }
-        
+
         if ($success) {
             // Update last login
             $this->userModel->updateLastLogin(Auth::id());
-            
+
             // Redirect to intended URL or landing page (where navbar shows user dropdown)
             $intendedUrl = $_SESSION['intended_url'] ?? '/';
             unset($_SESSION['intended_url']);
-            
+
             Router::redirect($intendedUrl);
         } else {
             $this->back(['error' => 'Invalid credentials or account is blocked.']);
         }
     }
-    
+
     /**
      * Show signup form
      */
@@ -97,7 +97,7 @@ class AuthController extends Controller
             'title' => 'Sign Up - Sanskar AI',
         ]);
     }
-    
+
     /**
      * Handle user signup
      */
@@ -108,9 +108,9 @@ class AuthController extends Controller
             $this->back(['error' => 'Invalid security token. Please try again.']);
             return;
         }
-        
+
         $data = $this->only(['name', 'email', 'mobile', 'community_name', 'kul_devi_devta', 'password', 'password_confirmation', 'role']);
-        
+
         // Validate inputs
         $errors = $this->validate($data, [
             'name' => 'required|min:2|max:100',
@@ -119,17 +119,17 @@ class AuthController extends Controller
             'password' => 'required|min:8|confirmed',
             'role' => 'required|in:user,pandit',
         ]);
-        
+
         // Check if email already exists
         if ($this->userModel->findByEmail($data['email'])) {
             $errors['email'][] = 'This email is already registered.';
         }
-        
+
         // Check if mobile already exists
         if ($this->userModel->findByMobile($data['mobile'])) {
             $errors['mobile'][] = 'This mobile number is already registered.';
         }
-        
+
         if (!empty($errors)) {
             $this->back([
                 'error' => 'Please correct the errors below.',
@@ -138,7 +138,7 @@ class AuthController extends Controller
             ]);
             return;
         }
-        
+
         try {
             // Create user
             $userId = $this->userModel->createUser([
@@ -151,19 +151,19 @@ class AuthController extends Controller
                 'role' => $data['role'],
                 'status' => App::STATUS_ACTIVE,
             ]);
-            
+
             // If pandit, create profile
             if ($data['role'] === App::ROLE_PANDIT) {
                 $specialization = $this->input('specialization', 'General Puja');
                 $experience = (int) $this->input('experience_years', 0);
                 $bio = $this->input('bio', '');
-                
+
                 $this->panditProfileModel->createProfile($userId, [
                     'specialization' => $specialization,
                     'experience_years' => $experience,
                     'bio' => $bio,
                 ]);
-                
+
                 // Login and redirect to landing page with message
                 Auth::attempt($data['email'], $data['password']);
                 $this->redirect('/', [
@@ -176,7 +176,7 @@ class AuthController extends Controller
                     'success' => 'Account created successfully! Please create your family profile to get started.',
                 ]);
             }
-            
+
         } catch (\Exception $e) {
             $this->back([
                 'error' => 'Failed to create account. Please try again.',
@@ -184,7 +184,7 @@ class AuthController extends Controller
             ]);
         }
     }
-    
+
     /**
      * Handle logout
      */
@@ -193,7 +193,7 @@ class AuthController extends Controller
         Auth::logout();
         $this->redirect('/login', ['success' => 'You have been logged out successfully.']);
     }
-    
+
     /**
      * Show forgot password form
      */
@@ -236,7 +236,7 @@ class AuthController extends Controller
         }
 
         // 1. Generate a cryptographically secure token
-        $rawToken  = bin2hex(random_bytes(32)); // 64 hex chars
+        $rawToken = bin2hex(random_bytes(32)); // 64 hex chars
         $tokenHash = password_hash($rawToken, PASSWORD_DEFAULT);
         $expiresAt = date('Y-m-d H:i:s', strtotime('+30 minutes'));
 
@@ -244,7 +244,7 @@ class AuthController extends Controller
         $this->userModel->storeResetToken($user['id'], $tokenHash, $expiresAt);
 
         // 3. Build reset link and send email
-        $appUrl    = rtrim($_ENV['APP_URL'] ?? 'http://sanskarai.com', '/');
+        $appUrl = rtrim($_ENV['APP_URL'] ?? 'http://sanskarai.com', '/');
         $resetLink = $appUrl . '/reset-password?token=' . urlencode($rawToken);
 
         // ✅ TESTING ONLY - logs the link so you can test without real email
@@ -276,9 +276,9 @@ class AuthController extends Controller
 
         if (!$resetRow) {
             $this->viewWithLayout('auth/reset-password', 'layouts/auth', [
-                'title'   => 'Reset Password - Sanskar AI',
+                'title' => 'Reset Password - Sanskar AI',
                 'invalid' => true,
-                'token'   => '',
+                'token' => '',
             ]);
             return;
         }
