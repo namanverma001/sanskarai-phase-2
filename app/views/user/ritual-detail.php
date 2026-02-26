@@ -1,8 +1,17 @@
+<style>
+    /* Mobile responsive fix for ritual detail page */
+    @media (max-width: 768px) {
+        .ritual-detail-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+
 <a href="/user/rituals" class="btn btn-sm" style="background: #E5E7EB; color: #374151; margin-bottom: 20px;">
     <i class="fas fa-arrow-left"></i> Back to Rituals
 </a>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
+<div class="ritual-detail-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
     <div>
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">

@@ -1,11 +1,3 @@
-<?php if ($profile && $profile['approval_status'] !== 'approved'): ?>
-<div class="alert alert-warning">
-    <i class="fas fa-clock"></i> 
-    Your profile is <strong><?= $profile['approval_status'] ?></strong>. 
-    <?= $profile['approval_status'] === 'pending' ? 'Please wait for admin approval to access all features.' : 'Please contact admin for more information.' ?>
-</div>
-<?php endif; ?>
-
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon orange"><i class="fas fa-clock"></i></div>
@@ -38,23 +30,33 @@
         <p style="text-align: center; color: #6B7280; padding: 30px;">No upcoming assignments</p>
     <?php else: ?>
         <table class="table">
-            <thead><tr><th>Ritual</th><th>User</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Ritual</th>
+                    <th>User</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
             <tbody>
                 <?php foreach ($upcomingAssignments as $a): ?>
-                <tr>
-                    <td><?= htmlspecialchars($a['ritual_name'] ?? $a['custom_ritual_name'] ?? 'N/A') ?></td>
-                    <td><?= htmlspecialchars($a['user_name']) ?></td>
-                    <td><?= $a['scheduled_date'] ? date('M d, Y', strtotime($a['scheduled_date'])) : 'TBD' ?></td>
-                    <td><span class="badge badge-<?= $a['status'] === 'confirmed' ? 'success' : 'warning' ?>"><?= ucfirst($a['status']) ?></span></td>
-                    <td>
-                        <?php if ($a['status'] === 'pending'): ?>
-                        <form method="POST" action="/pandit/assignments/<?= $a['id'] ?>/confirm" style="display: inline;">
-                            <?= \App\Core\Auth::csrfField() ?>
-                            <button class="btn btn-sm btn-success">Confirm</button>
-                        </form>
-                        <?php endif; ?>
-                    </td>
-                </tr>
+                    <tr>
+                        <td><?= htmlspecialchars($a['ritual_name'] ?? $a['custom_ritual_name'] ?? 'N/A') ?></td>
+                        <td><?= htmlspecialchars($a['user_name']) ?></td>
+                        <td><?= $a['scheduled_date'] ? date('M d, Y', strtotime($a['scheduled_date'])) : 'TBD' ?></td>
+                        <td><span
+                                class="badge badge-<?= $a['status'] === 'confirmed' ? 'success' : 'warning' ?>"><?= ucfirst($a['status']) ?></span>
+                        </td>
+                        <td>
+                            <?php if ($a['status'] === 'pending'): ?>
+                                <form method="POST" action="/pandit/assignments/<?= $a['id'] ?>/confirm" style="display: inline;">
+                                    <?= \App\Core\Auth::csrfField() ?>
+                                    <button class="btn btn-sm btn-success">Confirm</button>
+                                </form>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>

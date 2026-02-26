@@ -21,7 +21,7 @@ class PanditController extends Controller
     private Assignment $assignmentModel;
     private Ritual $ritualModel;
     private CustomRitual $customRitualModel;
-    
+
     public function __construct()
     {
         parent::__construct();
@@ -30,27 +30,66 @@ class PanditController extends Controller
         $this->ritualModel = new Ritual();
         $this->customRitualModel = new CustomRitual();
     }
-    
+
     public function dashboard(): void
     {
         $userId = Auth::id();
         $profile = $this->profileModel->getFullProfile($userId);
-        
+
+        // If pandit is NOT approved, show pending approval page
+        if (!$profile || $profile['approval_status'] !== 'approved') {
+            $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
+                'title' => 'Profile Under Review - Sanskar AI',
+                'profile' => $profile,
+                'showCongrats' => false,
+            ]);
+            return;
+        }
+
+        // Check if this is the first visit after approval (show congrats)
+        $showCongrats = false;
+        if (isset($_SESSION['pandit_just_approved'])) {
+            $showCongrats = true;
+            unset($_SESSION['pandit_just_approved']);
+            $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
+                'title' => 'Congratulations! - Sanskar AI',
+                'profile' => $profile,
+                'showCongrats' => true,
+            ]);
+            return;
+        }
+
+        // Check if pandit was recently approved and hasn't seen congrats yet
+        if ($profile['approved_at'] && !isset($_SESSION['pandit_congrats_seen'])) {
+            $approvedTime = strtotime($profile['approved_at']);
+            $now = time();
+            // Show congrats if approved within last 7 days and not seen yet
+            if (($now - $approvedTime) < 604800) {
+                $_SESSION['pandit_congrats_seen'] = true;
+                $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
+                    'title' => 'Congratulations! - Sanskar AI',
+                    'profile' => $profile,
+                    'showCongrats' => true,
+                ]);
+                return;
+            }
+        }
+
         $stats = [
             'pending' => count($this->assignmentModel->getForPandit($userId, 'pending')),
             'confirmed' => count($this->assignmentModel->getForPandit($userId, 'confirmed')),
             'completed' => count($this->assignmentModel->getForPandit($userId, 'completed')),
         ];
-        
+
         // Get both pending and confirmed assignments for upcoming section
         $pendingAssignments = $this->assignmentModel->getForPandit($userId, 'pending');
         $confirmedAssignments = $this->assignmentModel->getForPandit($userId, 'confirmed');
         $upcomingAssignments = array_merge($pendingAssignments, $confirmedAssignments);
         // Sort by scheduled date
-        usort($upcomingAssignments, function($a, $b) {
+        usort($upcomingAssignments, function ($a, $b) {
             return strtotime($a['scheduled_date'] ?? '9999-12-31') - strtotime($b['scheduled_date'] ?? '9999-12-31');
         });
-        
+
         $this->viewWithLayout('pandit/dashboard', 'layouts/pandit', [
             'title' => 'Pandit Dashboard',
             'profile' => $profile,
@@ -58,7 +97,7 @@ class PanditController extends Controller
             'upcomingAssignments' => array_slice($upcomingAssignments, 0, 5),
         ]);
     }
-    
+
     public function profile(): void
     {
         $profile = $this->profileModel->getFullProfile(Auth::id());
@@ -67,7 +106,7 @@ class PanditController extends Controller
             'profile' => $profile,
         ]);
     }
-    
+
     public function updateProfile(): void
     {
         if (!$this->verifyCsrf()) {
@@ -123,7 +162,7 @@ class PanditController extends Controller
 
         // Update password
         $newHash = Auth::hashPassword($newPassword);
-        
+
         // Use Database class directly or User model if available
         // $this->userModel is not injected here directly, but we can instantiate it or use DB
         $userModel = new \App\Models\User();
@@ -131,7 +170,7 @@ class PanditController extends Controller
 
         $this->back(['success' => 'Password updated successfully.']);
     }
-    
+
     public function assignments(): void
     {
         $status = $this->input('status');
@@ -141,7 +180,7 @@ class PanditController extends Controller
             'assignments' => $assignments,
         ]);
     }
-    
+
     /**
      * View booking requests (assignments with booking purposes)
      */
@@ -154,7 +193,7 @@ class PanditController extends Controller
             'bookings' => $assignments,
         ]);
     }
-    
+
     public function confirmAssignment(string $id): void
     {
         if (!$this->verifyCsrf()) {
@@ -164,7 +203,7 @@ class PanditController extends Controller
         $this->assignmentModel->confirm((int) $id);
         $this->back(['success' => 'Assignment confirmed.']);
     }
-    
+
     public function completeAssignment(string $id): void
     {
         if (!$this->verifyCsrf()) {
@@ -175,7 +214,7 @@ class PanditController extends Controller
         $this->profileModel->updateRating(Auth::id());
         $this->back(['success' => 'Assignment completed.']);
     }
-    
+
     public function questions(): void
     {
         $sql = "SELECT q.*, u.name as user_name FROM SAI_pandit_qna q 
@@ -187,7 +226,7 @@ class PanditController extends Controller
             'questions' => $questions,
         ]);
     }
-    
+
     public function answerQuestion(string $id): void
     {
         if (!$this->verifyCsrf()) {
@@ -195,11 +234,13 @@ class PanditController extends Controller
             return;
         }
         $answer = $this->input('answer');
-        Database::execute("UPDATE SAI_pandit_qna SET answer=:a, status='answered', answered_at=NOW() WHERE id=:id", 
-            ['a' => $answer, 'id' => (int)$id]);
+        Database::execute(
+            "UPDATE SAI_pandit_qna SET answer=:a, status='answered', answered_at=NOW() WHERE id=:id",
+            ['a' => $answer, 'id' => (int) $id]
+        );
         $this->back(['success' => 'Answer submitted.']);
     }
-    
+
     public function customRituals(): void
     {
         $rituals = $this->customRitualModel->getPendingValidation(Auth::id());
@@ -210,7 +251,7 @@ class PanditController extends Controller
             'history' => $history,
         ]);
     }
-    
+
     public function validateCustomRitual(string $id): void
     {
         if (!$this->verifyCsrf()) {
@@ -220,10 +261,10 @@ class PanditController extends Controller
         $action = $this->input('action');
         $notes = $this->input('notes', '');
         if ($action === 'approve') {
-            $this->customRitualModel->approve((int)$id, Auth::id(), $notes);
+            $this->customRitualModel->approve((int) $id, Auth::id(), $notes);
             $this->back(['success' => 'Approved.']);
         } else {
-            $this->customRitualModel->reject((int)$id, Auth::id(), $notes);
+            $this->customRitualModel->reject((int) $id, Auth::id(), $notes);
             $this->back(['success' => 'Rejected.']);
         }
     }
@@ -236,7 +277,7 @@ class PanditController extends Controller
         // 1. Verify Assignment
         $sql = "SELECT * FROM SAI_pandit_assignments WHERE id = :id AND pandit_id = :pid";
         $assignment = Database::queryOne($sql, ['id' => $id, 'pid' => Auth::id()]);
-        
+
         if (!$assignment) {
             $this->redirect('/pandit/assignments', ['error' => 'Assignment not found or access denied.']);
             return;
@@ -301,11 +342,13 @@ class PanditController extends Controller
         // Let's use getWithDetails for now or direct query if optimized.
         $details = $userRitualModel->getWithDetails($userRitual['id']);
         foreach ($details['steps'] as $step) {
-            if ($step['step_number'] > $maxStep) $maxStep = $step['step_number'];
+            if ($step['step_number'] > $maxStep)
+                $maxStep = $step['step_number'];
         }
 
         $stepNumber = (int) $this->input('step_number', 0);
-        if ($stepNumber <= 0) $stepNumber = $maxStep + 1;
+        if ($stepNumber <= 0)
+            $stepNumber = $maxStep + 1;
 
         $data = [
             'step_number' => $stepNumber,
@@ -331,14 +374,14 @@ class PanditController extends Controller
     {
         // For updates, we just need to verify the step belongs to a ritual owned by a user assigned to this pandit
         // This is complex join. Simplified: Find step -> Find UserRitual -> Find User -> Check active assignment with Pandit
-        
+
         $userRitualModel = new \App\Models\UserRitual();
         $sql = "SELECT s.user_ritual_id, ur.user_id, ur.global_ritual_id 
                 FROM SAI_user_ritual_steps s 
                 JOIN SAI_user_rituals ur ON s.user_ritual_id = ur.id 
                 WHERE s.id = :id";
         $stepInfo = Database::queryOne($sql, ['id' => $id]);
-        
+
         if (!$stepInfo) {
             $this->json(['error' => 'Step not found'], 404);
             return;
@@ -349,7 +392,7 @@ class PanditController extends Controller
                 WHERE pandit_id = :pid AND user_id = :uid AND ritual_id = :rid 
                 AND status IN ('confirmed', 'in_progress')";
         $assignment = Database::queryOne($sql, [
-            'pid' => Auth::id(), 
+            'pid' => Auth::id(),
             'uid' => $stepInfo['user_id'],
             'rid' => $stepInfo['global_ritual_id']
         ]);
@@ -360,7 +403,7 @@ class PanditController extends Controller
         }
 
         $data = $this->only(['title', 'description', 'mantra', 'mantra_meaning', 'duration_minutes', 'special_instructions']);
-        $userRitualModel->updateStep((int)$id, $data);
+        $userRitualModel->updateStep((int) $id, $data);
         $this->json(['success' => true]);
     }
 
@@ -376,7 +419,7 @@ class PanditController extends Controller
                 JOIN SAI_user_rituals ur ON s.user_ritual_id = ur.id 
                 WHERE s.id = :id";
         $stepInfo = Database::queryOne($sql, ['id' => $id]);
-        
+
         if (!$stepInfo) {
             $this->json(['error' => 'Step not found'], 404);
             return;
@@ -386,7 +429,7 @@ class PanditController extends Controller
                 WHERE pandit_id = :pid AND user_id = :uid AND ritual_id = :rid 
                 AND status IN ('confirmed', 'in_progress')";
         $assignment = Database::queryOne($sql, [
-            'pid' => Auth::id(), 
+            'pid' => Auth::id(),
             'uid' => $stepInfo['user_id'],
             'rid' => $stepInfo['global_ritual_id']
         ]);
@@ -396,7 +439,7 @@ class PanditController extends Controller
             return;
         }
 
-        $userRitualModel->deleteStep((int)$id);
+        $userRitualModel->deleteStep((int) $id);
         $this->json(['success' => true]);
     }
 }

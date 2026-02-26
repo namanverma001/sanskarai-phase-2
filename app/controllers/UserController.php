@@ -1036,18 +1036,27 @@ class UserController extends Controller
         }
         
         $panditId = $this->input('pandit_id');
+        $ritualId = $this->input('ritual_id');
         $bookingPurpose = $this->input('booking_purpose');
+        $scheduledDate = $this->input('scheduled_date');
         
-        if (empty($panditId) || empty($bookingPurpose)) {
-            $this->back(['error' => 'Please fill in all required fields.']);
+        // Validate required fields - need pandit, date, and either ritual_id or booking_purpose
+        if (empty($panditId) || empty($scheduledDate)) {
+            $this->back(['error' => 'Please select a pandit and preferred date.']);
+            return;
+        }
+        
+        if (empty($ritualId) && empty($bookingPurpose)) {
+            $this->back(['error' => 'Please specify a ritual or booking purpose.']);
             return;
         }
         
         $data = [
             'pandit_id' => $panditId,
             'user_id' => Auth::id(),
-            'booking_purpose' => $bookingPurpose,
-            'scheduled_date' => $this->input('scheduled_date') ?: null,
+            'ritual_id' => !empty($ritualId) ? (int)$ritualId : null,
+            'booking_purpose' => $bookingPurpose ?: null,
+            'scheduled_date' => $scheduledDate ?: null,
             'scheduled_time' => $this->input('scheduled_time') ?: null,
             'venue' => $this->input('venue') ?: null,
             'user_notes' => $this->input('additional_notes') ?: null,

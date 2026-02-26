@@ -24,14 +24,14 @@ class PanditMiddleware
             Router::redirect('/login');
             return false;
         }
-        
+
         // Check if user is pandit
         if (!Auth::isPandit()) {
             $_SESSION['flash']['error'] = 'Access denied. Pandit account required.';
             Router::redirect(Auth::dashboardUrl());
             return false;
         }
-        
+
         // Check if user is blocked
         $user = Auth::user();
         if ($user['status'] === App::STATUS_BLOCKED) {
@@ -40,14 +40,21 @@ class PanditMiddleware
             Router::redirect('/login');
             return false;
         }
-        
-        // Check if pandit is approved
+
+        // Check if pandit is approved - only allow dashboard and profile for unapproved
         if (!Auth::isPanditApproved()) {
-            $_SESSION['flash']['warning'] = 'Your pandit profile is pending approval. Some features are restricted.';
-            // Allow access but with limited functionality
-            // The controller should check approval status for specific features
+            $currentUri = strtok($_SERVER['REQUEST_URI'], '?');
+            $currentUri = rtrim($currentUri, '/');
+
+            $allowedRoutes = ['/pandit/dashboard', '/pandit/profile'];
+
+            if (!in_array($currentUri, $allowedRoutes)) {
+                $_SESSION['flash']['warning'] = 'Your profile is under review. Please wait for admin approval.';
+                Router::redirect('/pandit/dashboard');
+                return false;
+            }
         }
-        
+
         return true;
     }
 }

@@ -1,2 +1,7 @@
 [2026-02-22 08:54:57] Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO)
 [2026-02-22 08:55:01] Database connection failed: SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost' (using password: NO)
+[2026-02-26 17:57:59] Database connection failed: SQLSTATE[HY000] [2006] MySQL server has gone away
+[2026-02-26 19:52:59] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known
+[2026-02-26 19:53:03] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known
+[2026-02-26 19:53:03] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known
+[2026-02-26 19:53:28] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known
