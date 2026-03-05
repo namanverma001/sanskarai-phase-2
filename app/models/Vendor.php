@@ -308,4 +308,77 @@ class Vendor extends Model
         $stmt = $this->db->prepare($sql);
         return $stmt->execute(['id' => $id]);
     }
+
+    /**
+     * Get trust badges for a vendor
+     */
+    public function getBadges(int $vendorId): array
+    {
+        $vendor = $this->find($vendorId);
+        if (!$vendor || empty($vendor['trust_badges'])) {
+            return [];
+        }
+        
+        $badges = json_decode($vendor['trust_badges'], true);
+        return is_array($badges) ? $badges : [];
+    }
+
+    /**
+     * Update trust badges for a vendor
+     */
+    public function updateBadges(int $vendorId, array $badges): bool
+    {
+        $sql = "UPDATE {$this->table} SET trust_badges = :badges, updated_at = NOW() WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'id' => $vendorId,
+            'badges' => json_encode(array_values(array_unique($badges)))
+        ]);
+    }
+
+    /**
+     * Add a badge to vendor
+     */
+    public function addBadge(int $vendorId, string $badge): bool
+    {
+        $badges = $this->getBadges($vendorId);
+        if (!in_array($badge, $badges)) {
+            $badges[] = $badge;
+            return $this->updateBadges($vendorId, $badges);
+        }
+        return true;
+    }
+
+    /**
+     * Remove a badge from vendor
+     */
+    public function removeBadge(int $vendorId, string $badge): bool
+    {
+        $badges = $this->getBadges($vendorId);
+        $badges = array_filter($badges, fn($b) => $b !== $badge);
+        return $this->updateBadges($vendorId, $badges);
+    }
+
+    /**
+     * Check if vendor has a specific badge
+     */
+    public function hasBadge(int $vendorId, string $badge): bool
+    {
+        return in_array($badge, $this->getBadges($vendorId));
+    }
+
+    /**
+     * Get vendors with specific badge
+     */
+    public function getByBadge(string $badge): array
+    {
+        $sql = "
+            SELECT * FROM {$this->table}
+            WHERE is_active = 1
+            AND JSON_CONTAINS(trust_badges, :badge)
+            ORDER BY average_rating DESC, name ASC
+        ";
+        
+        return $this->rawMany($sql, ['badge' => json_encode($badge)]);
+    }
 }

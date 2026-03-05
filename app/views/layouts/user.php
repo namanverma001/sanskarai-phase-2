@@ -1156,6 +1156,11 @@ $roleDisplay = match ($userRole) {
 
                 <div class="menu-section sidebar-account-section">
                     <div class="menu-section-title">Account</div>
+                    <a href="/user/my-reviews"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/my-reviews') !== false || strpos($_SERVER['REQUEST_URI'], '/user/reviews') !== false ? 'active' : '' ?>"
+                        title="My Reviews">
+                        <i class="fas fa-star"></i> <span>My Reviews</span>
+                    </a>
                     <a href="/user/profile"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/profile') !== false ? 'active' : '' ?>"
                         title="My Profile">

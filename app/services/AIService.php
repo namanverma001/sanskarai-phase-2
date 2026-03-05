@@ -598,4 +598,197 @@ Please provide a helpful, concise answer. If the user is asking about alternativ
     {
         return $this->aiRequestModel->find($requestId);
     }
+
+    /**
+     * Moderate review text for spam, abuse, and fake content
+     * @param string $reviewText The review text to moderate
+     * @param int $rating The rating given (1-5)
+     * @param string $targetType 'pandit' or 'vendor'
+     * @return array ['flagged' => bool, 'reason' => string|null, 'confidence' => float]
+     */
+    public function moderateReview(string $reviewText, int $rating, string $targetType): array
+    {
+        // Basic validation - empty or too short reviews auto-pass
+        if (empty(trim($reviewText)) || mb_strlen(trim($reviewText)) < 10) {
+            return ['flagged' => false, 'reason' => null, 'confidence' => 1.0];
+        }
+
+        // First, run quick local pattern checks (faster, no API cost)
+        $localCheck = $this->runLocalModerationChecks($reviewText, $rating);
+        if ($localCheck['flagged']) {
+            return $localCheck;
+        }
+
+        // If local checks pass, use AI for deeper analysis
+        if ($this->provider === 'openai' && !empty($this->apiKey)) {
+            try {
+                return $this->runAIModerationCheck($reviewText, $rating, $targetType);
+            } catch (\Exception $e) {
+                error_log("AI moderation failed: " . $e->getMessage());
+                // Fall back to local check result if AI fails
+                return $localCheck;
+            }
+        }
+
+        return ['flagged' => false, 'reason' => null, 'confidence' => 0.7];
+    }
+
+    /**
+     * Run local pattern-based moderation checks
+     */
+    private function runLocalModerationChecks(string $text, int $rating): array
+    {
+        $text = strtolower(trim($text));
+        $confidence = 0.8;
+
+        // Check for spam patterns
+        $spamPatterns = [
+            '/(.)\1{5,}/',                          // Repeated characters (aaaaaaa)
+            '/\b(spam|fake|test)\b/i',              // Spam keywords
+            '/\b(buy|sell|discount|offer|click)\s+\w*\s*(here|now)/i', // Commercial spam
+            '/https?:\/\/[^\s]+/i',                 // URLs (often spam)
+            '/[\$£€]\d+/',                          // Price mentions (spam indicator)
+            '/\b(whatsapp|telegram|call me)\b/i',   // Contact solicitation
+            '/(^|\s)@\w+/i',                        // Social media handles
+        ];
+
+        foreach ($spamPatterns as $pattern) {
+            if (preg_match($pattern, $text)) {
+                return ['flagged' => true, 'reason' => 'Detected spam pattern', 'confidence' => $confidence];
+            }
+        }
+
+        // Check for abusive/offensive language
+        $abusePatterns = [
+            '/\b(idiot|stupid|fool|dumb|worst|terrible|horrible|scam|fraud|cheat|liar|thief|steal|robber)\b/i',
+            '/\b(hate|sucks|disgusting|pathetic|useless|garbage|trash|crap|lousy)\b/i',
+        ];
+
+        foreach ($abusePatterns as $pattern) {
+            if (preg_match($pattern, $text)) {
+                return ['flagged' => true, 'reason' => 'Potentially abusive language detected', 'confidence' => $confidence];
+            }
+        }
+
+        // Check for fake praise patterns (5 stars with generic text)
+        if ($rating === 5) {
+            $fakePraisePatterns = [
+                '/^(good|nice|great|excellent|best|awesome|amazing|wonderful|fantastic|superb)[.!]*$/i',
+                '/^(very (good|nice)|highly recommended?)[.!]*$/i',
+                '/^(five stars?|5 stars?)[.!]*$/i',
+            ];
+
+            foreach ($fakePraisePatterns as $pattern) {
+                if (preg_match($pattern, $text)) {
+                    return ['flagged' => true, 'reason' => 'Generic or potentially fake review', 'confidence' => 0.6];
+                }
+            }
+        }
+
+        // Check for copy-paste patterns (multiple sentences that look templated)
+        if (preg_match('/lorem ipsum/i', $text)) {
+            return ['flagged' => true, 'reason' => 'Placeholder text detected', 'confidence' => 0.95];
+        }
+
+        // Check for extreme contrast (5 stars with negative words or 1 star with positive words)
+        $positiveWords = ['excellent', 'amazing', 'wonderful', 'great', 'best', 'love', 'perfect', 'outstanding'];
+        $negativeWords = ['bad', 'poor', 'terrible', 'worst', 'horrible', 'disappointing', 'awful', 'never'];
+
+        $hasPositive = false;
+        $hasNegative = false;
+
+        foreach ($positiveWords as $word) {
+            if (stripos($text, $word) !== false) {
+                $hasPositive = true;
+                break;
+            }
+        }
+
+        foreach ($negativeWords as $word) {
+            if (stripos($text, $word) !== false) {
+                $hasNegative = true;
+                break;
+            }
+        }
+
+        // Flag if there's a mismatch between rating and sentiment
+        if (($rating >= 4 && $hasNegative && !$hasPositive) || ($rating <= 2 && $hasPositive && !$hasNegative)) {
+            return ['flagged' => true, 'reason' => 'Rating-sentiment mismatch detected', 'confidence' => 0.7];
+        }
+
+        return ['flagged' => false, 'reason' => null, 'confidence' => $confidence];
+    }
+
+    /**
+     * Run AI-based moderation check using OpenAI
+     */
+    private function runAIModerationCheck(string $text, int $rating, string $targetType): array
+    {
+        $targetLabel = $targetType === 'pandit' ? 'Pandit (Hindu priest)' : 'Vendor';
+
+        $prompt = "Analyze this review for a {$targetLabel} service. The user gave {$rating} out of 5 stars.
+
+Review text: \"{$text}\"
+
+Check for:
+1. Spam content (promotional, irrelevant, repetitive)
+2. Fake praise (generic, templated, bot-like patterns)
+3. Abusive or offensive language
+4. Rating-sentiment mismatch (positive words with low rating or vice versa)
+5. Copy-pasted or bot-generated content
+
+Respond in JSON format:
+{
+    \"flagged\": true/false,
+    \"reason\": \"reason if flagged, null if not\",
+    \"confidence\": 0.0-1.0
+}
+
+Be lenient with genuine reviews. Only flag clearly problematic content.";
+
+        $data = [
+            'model' => 'gpt-4o-mini',
+            'messages' => [
+                ['role' => 'system', 'content' => 'You are a content moderation assistant. Analyze reviews for authenticity and appropriateness. Respond only with valid JSON.'],
+                ['role' => 'user', 'content' => $prompt],
+            ],
+            'temperature' => 0.3,
+            'max_tokens' => 200,
+            'response_format' => ['type' => 'json_object'],
+        ];
+
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->apiKey,
+            ],
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error || $httpCode !== 200) {
+            throw new \Exception("AI moderation API error: " . ($error ?: "HTTP $httpCode"));
+        }
+
+        $result = json_decode($response, true);
+        $content = $result['choices'][0]['message']['content'] ?? '{}';
+        $parsed = json_decode($content, true);
+
+        return [
+            'flagged' => $parsed['flagged'] ?? false,
+            'reason' => $parsed['reason'] ?? null,
+            'confidence' => (float)($parsed['confidence'] ?? 0.8),
+        ];
+    }
 }

@@ -326,6 +326,23 @@ $roleDisplay = match ($userRole) {
             margin-right: 12px;
         }
 
+        /* Logout button specific styles */
+        .logout-menu-btn {
+            width: 100%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
+            text-align: left;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .logout-menu-btn:hover {
+            background: rgba(139, 92, 246, 0.2);
+            color: white;
+        }
+
         .main-content {
             flex: 1;
             margin-left: 260px;
@@ -710,6 +727,25 @@ $roleDisplay = match ($userRole) {
                 display: none;
             }
 
+            .sidebar.collapsed .logout-menu-btn {
+                justify-content: center;
+                padding: 0;
+                width: 50px;
+                height: 50px;
+                margin: 5px auto;
+                border-radius: 12px;
+            }
+
+            .sidebar.collapsed .logout-menu-btn i {
+                margin-right: 0;
+                font-size: 1.4rem;
+                width: auto;
+            }
+
+            .sidebar.collapsed .logout-menu-btn span {
+                display: none;
+            }
+
             .sidebar.collapsed~.main-content {
                 margin-left: 70px;
             }
@@ -731,9 +767,12 @@ $roleDisplay = match ($userRole) {
             background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
             color: white;
             padding: 60px 5% 30px;
-            margin-left: 70px;
-            /* Default collapsed margin */
+            margin-left: 260px;
             transition: margin-left 0.3s ease;
+        }
+
+        .sidebar.collapsed ~ .main-footer {
+            margin-left: 70px;
         }
 
 
@@ -1085,8 +1124,7 @@ $roleDisplay = match ($userRole) {
                     </a>
                     <form action="/logout" method="POST" style="margin: 0;">
                         <?= \App\Core\Auth::csrfField() ?>
-                        <button type="submit" class="menu-item"
-                            style="width: 100%; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: inherit; text-align: left;">
+                        <button type="submit" class="menu-item logout-menu-btn">
                             <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
                         </button>
                     </form>
@@ -1167,15 +1205,30 @@ $roleDisplay = match ($userRole) {
         const mainFooter = document.querySelector('.main-footer');
         const isMobile = () => window.innerWidth <= 768;
 
-        // Initialize footer margin based on default state
-        if (!isMobile() && !sidebar.classList.contains('collapsed')) {
-            if (mainFooter) mainFooter.style.marginLeft = '260px';
+        // Initialize footer margin based on sidebar state
+        function updateFooterMargin() {
+            if (!isMobile()) {
+                if (mainFooter) {
+                    mainFooter.style.marginLeft = sidebar.classList.contains('collapsed') ? '70px' : '260px';
+                }
+            } else {
+                if (mainFooter) mainFooter.style.marginLeft = '0';
+            }
         }
+        updateFooterMargin();
 
-        // Set correct icon on page load
-        if (!isMobile()) {
-            sidebarToggle.querySelector('i').className = sidebar.classList.contains('collapsed') ? 'fas fa-bars' : 'fas fa-times';
+        // Set correct icon on page load based on sidebar state
+        function updateToggleIcon() {
+            if (sidebarToggle) {
+                const icon = sidebarToggle.querySelector('i');
+                if (isMobile()) {
+                    icon.className = sidebar.classList.contains('mobile-open') ? 'fas fa-times' : 'fas fa-bars';
+                } else {
+                    icon.className = sidebar.classList.contains('collapsed') ? 'fas fa-bars' : 'fas fa-times';
+                }
+            }
         }
+        updateToggleIcon();
 
         function toggleSidebar() {
             if (isMobile()) {
@@ -1183,14 +1236,10 @@ $roleDisplay = match ($userRole) {
                 sidebar.classList.toggle('mobile-open');
                 sidebarOverlay.classList.toggle('active');
             } else {
-                // On desktop: toggle collapsed (starts collapsed)
+                // On desktop: toggle collapsed
                 sidebar.classList.toggle('collapsed');
-                if (sidebar.classList.contains('collapsed')) {
-                    if (mainFooter) mainFooter.style.marginLeft = '70px';
-                } else {
-                    if (mainFooter) mainFooter.style.marginLeft = '260px'; // Expanded margin
-                }
             }
+            updateFooterMargin();
             const icon = sidebarToggle.querySelector('i');
             icon.classList.toggle('fa-bars');
             icon.classList.toggle('fa-times');
@@ -1199,8 +1248,19 @@ $roleDisplay = match ($userRole) {
         sidebarToggle.addEventListener('click', toggleSidebar);
         sidebarOverlay.addEventListener('click', toggleSidebar);
 
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            updateFooterMargin();
+            updateToggleIcon();
+            // Close mobile sidebar on resize to desktop
+            if (!isMobile() && sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+                sidebarOverlay.classList.remove('active');
+            }
+        });
+
         // Close sidebar when clicking menu items on mobile
-        sidebar.querySelectorAll('.menu-item').forEach(item => {
+        sidebar.querySelectorAll('.menu-item, .logout-menu-btn').forEach(item => {
             item.addEventListener('click', () => {
                 if (isMobile()) {
                     toggleSidebar();

@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Models\UserRitual;
 use App\Models\Order;
 use App\Models\Vendor;
+use App\Models\Review;
 use App\Services\AIService;
 use App\Config\Database;
 
@@ -35,6 +36,7 @@ class UserController extends Controller
     private Order $orderModel;
     private AIService $aiService;
     private Vendor $vendorModel;
+    private Review $reviewModel;
 
     public function __construct()
     {
@@ -48,6 +50,8 @@ class UserController extends Controller
         $this->userRitualModel = new UserRitual();
         $this->orderModel = new Order();
         $this->aiService = new AIService();
+        $this->vendorModel = new Vendor();
+        $this->reviewModel = new Review();
         $this->vendorModel = new Vendor();
     }
 
@@ -1070,6 +1074,18 @@ class UserController extends Controller
     public function bookings(): void
     {
         $bookings = $this->assignmentModel->getForUser(Auth::id());
+        
+        // Check if each completed booking has a review
+        foreach ($bookings as &$booking) {
+            if ($booking['status'] === 'completed') {
+                $booking['has_review'] = $this->reviewModel->hasReviewedPandit(
+                    Auth::id(),
+                    (int) $booking['id']
+                );
+            }
+        }
+        unset($booking);
+        
         $this->viewWithLayout('user/bookings', 'layouts/user', [
             'title' => 'My Bookings',
             'bookings' => $bookings,
@@ -1335,6 +1351,17 @@ class UserController extends Controller
     {
         $userId = Auth::id();
         $orders = $this->orderModel->getByUser($userId);
+
+        // Check if each completed order has a review
+        foreach ($orders as &$order) {
+            if ($order['status'] === 'completed') {
+                $order['has_review'] = $this->reviewModel->hasReviewedVendor(
+                    $userId,
+                    (int) $order['id']
+                );
+            }
+        }
+        unset($order);
 
         $this->viewWithLayout('user/orders', 'layouts/user', [
             'title' => 'My Orders',
@@ -1699,11 +1726,234 @@ class UserController extends Controller
         $similarVendors = array_filter($similarVendors, fn($v) => $v['id'] != $id);
         $similarVendors = array_slice($similarVendors, 0, 4);
         
+        // Get vendor reviews
+        $reviews = $this->reviewModel->getVendorReviews($id, 5);
+        
         $this->viewWithLayout('user/vendor-detail', 'layouts/user', [
             'title' => $vendor['name'] . ' - Sanskar AI',
             'vendor' => $vendor,
             'similarVendors' => $similarVendors,
             'categories' => Vendor::CATEGORIES,
+            'reviews' => $reviews,
+        ]);
+    }
+
+    // =========================================================================
+    // REVIEW MANAGEMENT
+    // =========================================================================
+
+    /**
+     * Show review form for a Pandit (after completed assignment)
+     */
+    public function reviewPanditForm(int $assignmentId): void
+    {
+        $userId = Auth::id();
+        
+        // Check eligibility
+        $eligibility = $this->reviewModel->canReviewPandit($userId, $assignmentId);
+        
+        if (!$eligibility['valid']) {
+            $this->redirect('/user/bookings', ['error' => $eligibility['error']]);
+            return;
+        }
+        
+        $assignment = $eligibility['assignment'];
+        
+        $this->viewWithLayout('user/review-pandit-form', 'layouts/user', [
+            'title' => 'Review Pandit - Sanskar AI',
+            'assignment' => $assignment,
+        ]);
+    }
+
+    /**
+     * Submit Pandit review
+     */
+    public function submitPanditReview(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->json(['success' => false, 'error' => 'Invalid security token.'], 403);
+            return;
+        }
+
+        $userId = Auth::id();
+        $assignmentId = (int)$this->input('assignment_id');
+        
+        if (!$assignmentId) {
+            $this->json(['success' => false, 'error' => 'Invalid booking.'], 400);
+            return;
+        }
+
+        // Collect review data
+        $data = [
+            'rating_overall' => $this->input('rating_overall'),
+            'punctuality' => $this->input('punctuality'),
+            'knowledge' => $this->input('knowledge'),
+            'behavior' => $this->input('behavior'),
+            'clarity' => $this->input('clarity'),
+            'review_text' => $this->input('review_text'),
+        ];
+
+        // Create review
+        $result = $this->reviewModel->createPanditReview($userId, $assignmentId, $data);
+
+        if (!$result['success']) {
+            if (isset($result['errors'])) {
+                $this->json(['success' => false, 'errors' => $result['errors']], 400);
+            } else {
+                $this->json(['success' => false, 'error' => $result['error']], 400);
+            }
+            return;
+        }
+
+        // Run AI moderation
+        if (!empty($data['review_text'])) {
+            $moderation = $this->aiService->moderateReview(
+                $data['review_text'],
+                (int)$data['rating_overall'],
+                'pandit'
+            );
+
+            if ($moderation['flagged']) {
+                $this->reviewModel->updateModerationStatus(
+                    $result['review_id'],
+                    true,
+                    $moderation['reason']
+                );
+            } else {
+                // Auto-approve if not flagged
+                $this->reviewModel->updateModerationStatus($result['review_id'], false);
+            }
+        } else {
+            // Auto-approve reviews without text
+            $this->reviewModel->updateModerationStatus($result['review_id'], false);
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => $result['message'],
+            'redirect' => '/user/bookings',
+        ]);
+    }
+
+    /**
+     * Show review form for a Vendor (after delivered order)
+     */
+    public function reviewVendorForm(int $orderId): void
+    {
+        $userId = Auth::id();
+        
+        // Check eligibility
+        $eligibility = $this->reviewModel->canReviewVendor($userId, $orderId);
+        
+        if (!$eligibility['valid']) {
+            $this->redirect('/user/orders', ['error' => $eligibility['error']]);
+            return;
+        }
+        
+        $order = $eligibility['order'];
+        
+        $this->viewWithLayout('user/review-vendor-form', 'layouts/user', [
+            'title' => 'Review Vendor - Sanskar AI',
+            'order' => $order,
+        ]);
+    }
+
+    /**
+     * Submit Vendor review
+     */
+    public function submitVendorReview(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->json(['success' => false, 'error' => 'Invalid security token.'], 403);
+            return;
+        }
+
+        $userId = Auth::id();
+        $orderId = (int)$this->input('order_id');
+        
+        if (!$orderId) {
+            $this->json(['success' => false, 'error' => 'Invalid order.'], 400);
+            return;
+        }
+
+        // Collect review data
+        $data = [
+            'rating_overall' => $this->input('rating_overall'),
+            'item_quality' => $this->input('item_quality'),
+            'delivery_time' => $this->input('delivery_time'),
+            'packaging' => $this->input('packaging'),
+            'value_for_money' => $this->input('value_for_money'),
+            'review_text' => $this->input('review_text'),
+        ];
+
+        // Create review
+        $result = $this->reviewModel->createVendorReview($userId, $orderId, $data);
+
+        if (!$result['success']) {
+            if (isset($result['errors'])) {
+                $this->json(['success' => false, 'errors' => $result['errors']], 400);
+            } else {
+                $this->json(['success' => false, 'error' => $result['error']], 400);
+            }
+            return;
+        }
+
+        // Run AI moderation
+        if (!empty($data['review_text'])) {
+            $moderation = $this->aiService->moderateReview(
+                $data['review_text'],
+                (int)$data['rating_overall'],
+                'vendor'
+            );
+
+            if ($moderation['flagged']) {
+                $this->reviewModel->updateModerationStatus(
+                    $result['review_id'],
+                    true,
+                    $moderation['reason']
+                );
+            } else {
+                // Auto-approve if not flagged
+                $this->reviewModel->updateModerationStatus($result['review_id'], false);
+            }
+        } else {
+            // Auto-approve reviews without text
+            $this->reviewModel->updateModerationStatus($result['review_id'], false);
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => $result['message'],
+            'redirect' => '/user/orders',
+        ]);
+    }
+
+    /**
+     * Get user's submitted reviews
+     */
+    public function myReviews(): void
+    {
+        $userId = Auth::id();
+        $reviews = $this->reviewModel->getUserReviews($userId);
+        
+        $this->viewWithLayout('user/my-reviews', 'layouts/user', [
+            'title' => 'My Reviews - Sanskar AI',
+            'reviews' => $reviews,
+        ]);
+    }
+
+    /**
+     * Get pending review notifications for current user
+     */
+    public function reviewNotifications(): void
+    {
+        $userId = Auth::id();
+        $notifications = $this->reviewModel->getPendingNotifications($userId);
+        
+        $this->json([
+            'success' => true,
+            'notifications' => $notifications,
+            'count' => count($notifications),
         ]);
     }
 }

@@ -15,6 +15,7 @@ use App\Models\Ritual;
 use App\Models\AIRequest;
 use App\Models\Assignment;
 use App\Models\Vendor;
+use App\Models\Review;
 use App\Services\EmbeddingService;
 use App\Config\App;
 use App\Config\Database;
@@ -27,6 +28,7 @@ class AdminController extends Controller
     private AIRequest $aiRequestModel;
     private Assignment $assignmentModel;
     private Vendor $vendorModel;
+    private Review $reviewModel;
     
     public function __construct()
     {
@@ -37,6 +39,7 @@ class AdminController extends Controller
         $this->aiRequestModel = new AIRequest();
         $this->assignmentModel = new Assignment();
         $this->vendorModel = new Vendor();
+        $this->reviewModel = new Review();
     }
 
     /**
@@ -1187,6 +1190,239 @@ class AdminController extends Controller
         
         $this->redirect('/admin/vendors', [
             'success' => 'Vendor "' . $vendor['name'] . '" has been ' . $newStatus . '.',
+        ]);
+    }
+
+    // =========================================================================
+    // REVIEW MANAGEMENT
+    // =========================================================================
+
+    /**
+     * List all reviews with filters
+     */
+    public function reviews(): void
+    {
+        $page = (int)$this->input('page', 1);
+        $status = $this->input('status');
+        $targetType = $this->input('target_type');
+        $aiFlagged = $this->input('ai_flagged');
+
+        $filters = [];
+        if ($status) $filters['status'] = $status;
+        if ($targetType) $filters['target_type'] = $targetType;
+        if ($aiFlagged) $filters['ai_flag'] = 1;
+
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        $reviews = $this->reviewModel->getAdminReviews($filters, $perPage, $offset);
+        $stats = $this->reviewModel->getStats();
+
+        $this->viewWithLayout('admin/reviews', 'layouts/admin', [
+            'title' => 'Review Management - Sanskar AI',
+            'reviews' => $reviews,
+            'stats' => $stats,
+            'filters' => [
+                'status' => $status,
+                'target_type' => $targetType,
+                'ai_flagged' => $aiFlagged,
+            ],
+            'page' => $page,
+        ]);
+    }
+
+    /**
+     * View single review details
+     */
+    public function viewReview(int $id): void
+    {
+        $review = $this->reviewModel->find($id);
+
+        if (!$review) {
+            $this->redirect('/admin/reviews', ['error' => 'Review not found.']);
+            return;
+        }
+
+        // Get reviewer info
+        $reviewer = $this->userModel->find($review['reviewer_id']);
+
+        // Get target info
+        $target = null;
+        if ($review['target_type'] === 'pandit') {
+            $target = $this->userModel->find($review['target_id']);
+            $target['type'] = 'pandit';
+            $target['profile'] = $this->panditProfileModel->getByUserId($review['target_id']);
+        } else {
+            $target = $this->vendorModel->find($review['target_id']);
+            $target['type'] = 'vendor';
+        }
+
+        $this->viewWithLayout('admin/review-detail', 'layouts/admin', [
+            'title' => 'Review Details - Sanskar AI',
+            'review' => $review,
+            'reviewer' => $reviewer,
+            'target' => $target,
+        ]);
+    }
+
+    /**
+     * Approve a review
+     */
+    public function approveReview(int $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+
+        $review = $this->reviewModel->find($id);
+
+        if (!$review) {
+            $this->redirect('/admin/reviews', ['error' => 'Review not found.']);
+            return;
+        }
+
+        $adminId = Auth::id();
+        $success = $this->reviewModel->approveReview($id, $adminId);
+
+        if ($success) {
+            $this->redirect('/admin/reviews', ['success' => 'Review approved successfully.']);
+        } else {
+            $this->back(['error' => 'Failed to approve review.']);
+        }
+    }
+
+    /**
+     * Reject a review
+     */
+    public function rejectReview(int $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+
+        $review = $this->reviewModel->find($id);
+
+        if (!$review) {
+            $this->redirect('/admin/reviews', ['error' => 'Review not found.']);
+            return;
+        }
+
+        $reason = $this->input('reason');
+        $adminId = Auth::id();
+
+        $success = $this->reviewModel->rejectReview($id, $adminId, $reason);
+
+        if ($success) {
+            $this->redirect('/admin/reviews', ['success' => 'Review rejected.']);
+        } else {
+            $this->back(['error' => 'Failed to reject review.']);
+        }
+    }
+
+    /**
+     * Delete a review permanently
+     */
+    public function deleteReview(int $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+
+        $review = $this->reviewModel->find($id);
+
+        if (!$review) {
+            $this->redirect('/admin/reviews', ['error' => 'Review not found.']);
+            return;
+        }
+
+        // Store target info for recalculation
+        $targetType = $review['target_type'];
+        $targetId = $review['target_id'];
+
+        $success = $this->reviewModel->delete($id);
+
+        if ($success) {
+            // Recalculate ratings after deletion
+            $this->reviewModel->recalculateRatings($targetType, $targetId);
+            $this->redirect('/admin/reviews', ['success' => 'Review deleted permanently.']);
+        } else {
+            $this->back(['error' => 'Failed to delete review.']);
+        }
+    }
+
+    /**
+     * Bulk approve reviews
+     */
+    public function bulkApproveReviews(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->json(['success' => false, 'error' => 'Invalid security token.'], 403);
+            return;
+        }
+
+        $reviewIds = $this->input('review_ids');
+        
+        if (!is_array($reviewIds) || empty($reviewIds)) {
+            $this->json(['success' => false, 'error' => 'No reviews selected.'], 400);
+            return;
+        }
+
+        $adminId = Auth::id();
+        $approved = 0;
+
+        foreach ($reviewIds as $id) {
+            if ($this->reviewModel->approveReview((int)$id, $adminId)) {
+                $approved++;
+            }
+        }
+
+        $this->json([
+            'success' => true,
+            'message' => "Approved $approved review(s).",
+            'approved_count' => $approved,
+        ]);
+    }
+
+    /**
+     * Verify Pandit documents and add badge
+     */
+    public function verifyPanditDocuments(int $userId): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+
+        $profile = $this->panditProfileModel->getByUserId($userId);
+
+        if (!$profile) {
+            $this->redirect('/admin/pandits/pending', ['error' => 'Pandit profile not found.']);
+            return;
+        }
+
+        // Update documents verified status
+        $sql = "UPDATE SAI_pandit_profiles SET is_documents_verified = 1, updated_at = NOW() WHERE user_id = :user_id";
+        Database::query($sql, ['user_id' => $userId]);
+
+        // Recalculate badges
+        $this->reviewModel->recalculateRatings('pandit', $userId);
+
+        $this->back(['success' => 'Pandit documents verified. Verified badge added.']);
+    }
+
+    /**
+     * Get review statistics for dashboard
+     */
+    public function reviewStats(): void
+    {
+        $stats = $this->reviewModel->getStats();
+        
+        $this->json([
+            'success' => true,
+            'stats' => $stats,
         ]);
     }
 }

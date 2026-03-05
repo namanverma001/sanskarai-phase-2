@@ -46,33 +46,21 @@ class PanditController extends Controller
             return;
         }
 
-        // Check if this is the first visit after approval (show congrats)
+        // Pandit is approved - check if we should show congratulations
+        // Use database flag for reliable tracking across sessions
         $showCongrats = false;
-        if (isset($_SESSION['pandit_just_approved'])) {
-            $showCongrats = true;
-            unset($_SESSION['pandit_just_approved']);
+        
+        // Check if pandit hasn't seen the congratulations yet (database flag)
+        if (empty($profile['congrats_shown'])) {
+            // Mark as shown in database so it only shows once ever
+            $this->profileModel->markCongratsShown($profile['id']);
+            
             $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
                 'title' => 'Congratulations! - Sanskar AI',
                 'profile' => $profile,
                 'showCongrats' => true,
             ]);
             return;
-        }
-
-        // Check if pandit was recently approved and hasn't seen congrats yet
-        if ($profile['approved_at'] && !isset($_SESSION['pandit_congrats_seen'])) {
-            $approvedTime = strtotime($profile['approved_at']);
-            $now = time();
-            // Show congrats if approved within last 7 days and not seen yet
-            if (($now - $approvedTime) < 604800) {
-                $_SESSION['pandit_congrats_seen'] = true;
-                $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
-                    'title' => 'Congratulations! - Sanskar AI',
-                    'profile' => $profile,
-                    'showCongrats' => true,
-                ]);
-                return;
-            }
         }
 
         $stats = [
@@ -202,6 +190,33 @@ class PanditController extends Controller
         }
         $this->assignmentModel->confirm((int) $id);
         $this->back(['success' => 'Assignment confirmed.']);
+    }
+
+    public function rejectAssignment(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+        
+        $assignment = $this->assignmentModel->find((int) $id);
+        if (!$assignment || (int)$assignment['pandit_id'] !== Auth::id()) {
+            $this->back(['error' => 'Assignment not found.']);
+            return;
+        }
+        
+        if ($assignment['status'] !== 'pending') {
+            $this->back(['error' => 'Can only reject pending bookings.']);
+            return;
+        }
+        
+        $reason = $this->input('rejection_reason');
+        $this->assignmentModel->update((int) $id, [
+            'status' => 'rejected',
+            'rejection_reason' => $reason
+        ]);
+        
+        $this->back(['success' => 'Booking request rejected.']);
     }
 
     public function completeAssignment(string $id): void

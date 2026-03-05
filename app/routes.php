@@ -95,6 +95,15 @@ Router::group(['prefix' => 'admin', 'middleware' => ['admin']], function () {
     Router::post('/vendors/{id}/delete', 'AdminController@deleteVendor');
     Router::post('/vendors/{id}/toggle-status', 'AdminController@toggleVendorStatus');
     Router::post('/vendors/{id}/toggle-featured', 'AdminController@toggleVendorFeatured');
+
+    // Review Management
+    Router::get('/reviews', 'AdminController@reviews', [], 'admin.reviews');
+    Router::get('/reviews/{id}', 'AdminController@viewReview');
+    Router::post('/reviews/{id}/approve', 'AdminController@approveReview');
+    Router::post('/reviews/{id}/reject', 'AdminController@rejectReview');
+    Router::post('/reviews/{id}/delete', 'AdminController@deleteReview');
+    Router::post('/reviews/bulk-approve', 'AdminController@bulkApproveReviews');
+    Router::post('/pandits/{id}/verify-documents', 'AdminController@verifyPanditDocuments');
 });
 
 // ============================================================
@@ -228,5 +237,13 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::get('/vendors', 'UserController@vendors', [], 'user.vendors');
     Router::post('/vendors/nearby', 'UserController@findNearbyVendors');
     Router::get('/vendors/{id}', 'UserController@viewVendor');
+
+    // Review System
+    Router::get('/reviews/pandit/{assignmentId}', 'UserController@reviewPanditForm');
+    Router::post('/reviews/pandit', 'UserController@submitPanditReview');
+    Router::get('/reviews/vendor/{orderId}', 'UserController@reviewVendorForm');
+    Router::post('/reviews/vendor', 'UserController@submitVendorReview');
+    Router::get('/my-reviews', 'UserController@myReviews', [], 'user.my-reviews');
+    Router::get('/review-notifications', 'UserController@reviewNotifications');
 });
 

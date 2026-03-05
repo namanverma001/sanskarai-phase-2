@@ -27,6 +27,7 @@ class PanditProfile extends Model
         'approved_by',
         'approved_at',
         'rejection_reason',
+        'congrats_shown',
     ];
     
     /**
@@ -55,12 +56,23 @@ class PanditProfile extends Model
     {
         $sql = "
             UPDATE SAI_pandit_profiles 
-            SET approval_status = 'approved', approved_by = :approved_by, approved_at = NOW(), updated_at = NOW()
+            SET approval_status = 'approved', approved_by = :approved_by, approved_at = NOW(), 
+                congrats_shown = 0, updated_at = NOW()
             WHERE id = :id
         ";
         
         $stmt = $this->db->prepare($sql);
         return $stmt->execute(['id' => $profileId, 'approved_by' => $approvedBy]);
+    }
+    
+    /**
+     * Mark congratulations as shown
+     */
+    public function markCongratsShown(int $profileId): bool
+    {
+        $sql = "UPDATE SAI_pandit_profiles SET congrats_shown = 1, updated_at = NOW() WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute(['id' => $profileId]);
     }
     
     /**
@@ -127,5 +139,79 @@ class PanditProfile extends Model
         ";
         
         return $this->rawOne($sql, ['user_id' => $userId]);
+    }
+
+    /**
+     * Get trust badges for a pandit
+     */
+    public function getBadges(int $profileId): array
+    {
+        $profile = $this->find($profileId);
+        if (!$profile || empty($profile['trust_badges'])) {
+            return [];
+        }
+        
+        $badges = json_decode($profile['trust_badges'], true);
+        return is_array($badges) ? $badges : [];
+    }
+
+    /**
+     * Update trust badges for a pandit
+     */
+    public function updateBadges(int $profileId, array $badges): bool
+    {
+        $sql = "UPDATE {$this->table} SET trust_badges = :badges, updated_at = NOW() WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            'id' => $profileId,
+            'badges' => json_encode(array_values(array_unique($badges)))
+        ]);
+    }
+
+    /**
+     * Add a badge to pandit profile
+     */
+    public function addBadge(int $profileId, string $badge): bool
+    {
+        $badges = $this->getBadges($profileId);
+        if (!in_array($badge, $badges)) {
+            $badges[] = $badge;
+            return $this->updateBadges($profileId, $badges);
+        }
+        return true;
+    }
+
+    /**
+     * Remove a badge from pandit profile
+     */
+    public function removeBadge(int $profileId, string $badge): bool
+    {
+        $badges = $this->getBadges($profileId);
+        $badges = array_filter($badges, fn($b) => $b !== $badge);
+        return $this->updateBadges($profileId, $badges);
+    }
+
+    /**
+     * Check if pandit has a specific badge
+     */
+    public function hasBadge(int $profileId, string $badge): bool
+    {
+        return in_array($badge, $this->getBadges($profileId));
+    }
+
+    /**
+     * Get pandits with specific badge
+     */
+    public function getByBadge(string $badge): array
+    {
+        $sql = "
+            SELECT p.*, u.name, u.email
+            FROM {$this->table} p
+            INNER JOIN SAI_users u ON p.user_id = u.id
+            WHERE p.approval_status = 'approved'
+            AND JSON_CONTAINS(p.trust_badges, :badge)
+        ";
+        
+        return $this->rawMany($sql, ['badge' => json_encode($badge)]);
     }
 }

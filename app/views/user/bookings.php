@@ -50,6 +50,14 @@
                                 <i class="fas fa-times"></i> Cancel
                             </button>
                         </form>
+                        <?php elseif ($booking['status'] === 'completed'): ?>
+                            <?php if (empty($booking['has_review'])): ?>
+                            <a href="/user/reviews/pandit/<?= $booking['id'] ?>" class="btn btn-sm btn-primary">
+                                <i class="fas fa-star"></i> Leave Review
+                            </a>
+                            <?php else: ?>
+                            <span class="badge badge-success"><i class="fas fa-check"></i> Reviewed</span>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </td>
                 </tr>

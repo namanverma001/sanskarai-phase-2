@@ -30,6 +30,7 @@
     .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
     .empty-state i { font-size: 4rem; color: #cbd5e0; margin-bottom: 15px; }
     .empty-state h4 { color: #718096; margin-bottom: 15px; }
+    .order-actions { margin-top: 15px; padding-top: 12px; border-top: 1px solid #edf2f7; display: flex; gap: 10px; }
 </style>
 
 <div class="orders-header d-flex justify-content-between align-items-center">
@@ -53,8 +54,8 @@
     </div>
 <?php else: ?>
     <?php foreach ($orders as $order): ?>
-    <a href="/user/orders/<?= $order['id'] ?>" style="text-decoration: none;">
-        <div class="order-card">
+    <div class="order-card">
+        <a href="/user/orders/<?= $order['id'] ?>" style="text-decoration: none; color: inherit;">
             <div class="order-header">
                 <div>
                     <span class="order-id">Order #<?= $order['id'] ?></span>
@@ -75,7 +76,21 @@
                     <div class="total">₹<?= number_format($order['estimated_total']) ?></div>
                 </div>
             </div>
+        </a>
+        <?php if ($order['status'] === 'completed'): ?>
+        <div class="order-actions">
+            <?php if (empty($order['has_review'])): ?>
+            <a href="/user/reviews/vendor/<?= $order['id'] ?>" class="btn btn-sm btn-primary" onclick="event.stopPropagation();">
+                <i class="fas fa-star"></i> Leave Review
+            </a>
+            <?php else: ?>
+            <span class="badge badge-success" style="padding: 6px 12px;"><i class="fas fa-check"></i> Reviewed</span>
+            <?php endif; ?>
+            <a href="/user/orders/<?= $order['id'] ?>" class="btn btn-sm btn-secondary" onclick="event.stopPropagation();">
+                <i class="fas fa-eye"></i> View Details
+            </a>
         </div>
-    </a>
+        <?php endif; ?>
+    </div>
     <?php endforeach; ?>
 <?php endif; ?>
