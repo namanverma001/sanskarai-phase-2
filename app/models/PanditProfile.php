@@ -27,7 +27,6 @@ class PanditProfile extends Model
         'approved_by',
         'approved_at',
         'rejection_reason',
-        'congrats_shown',
     ];
     
     /**
@@ -57,22 +56,12 @@ class PanditProfile extends Model
         $sql = "
             UPDATE SAI_pandit_profiles 
             SET approval_status = 'approved', approved_by = :approved_by, approved_at = NOW(), 
-                congrats_shown = 0, updated_at = NOW()
+                updated_at = NOW()
             WHERE id = :id
         ";
         
         $stmt = $this->db->prepare($sql);
         return $stmt->execute(['id' => $profileId, 'approved_by' => $approvedBy]);
-    }
-    
-    /**
-     * Mark congratulations as shown
-     */
-    public function markCongratsShown(int $profileId): bool
-    {
-        $sql = "UPDATE SAI_pandit_profiles SET congrats_shown = 1, updated_at = NOW() WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute(['id' => $profileId]);
     }
     
     /**

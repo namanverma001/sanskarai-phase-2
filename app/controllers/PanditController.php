@@ -46,23 +46,6 @@ class PanditController extends Controller
             return;
         }
 
-        // Pandit is approved - check if we should show congratulations
-        // Use database flag for reliable tracking across sessions
-        $showCongrats = false;
-        
-        // Check if pandit hasn't seen the congratulations yet (database flag)
-        if (empty($profile['congrats_shown'])) {
-            // Mark as shown in database so it only shows once ever
-            $this->profileModel->markCongratsShown($profile['id']);
-            
-            $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
-                'title' => 'Congratulations! - Sanskar AI',
-                'profile' => $profile,
-                'showCongrats' => true,
-            ]);
-            return;
-        }
-
         $stats = [
             'pending' => count($this->assignmentModel->getForPandit($userId, 'pending')),
             'confirmed' => count($this->assignmentModel->getForPandit($userId, 'confirmed')),
