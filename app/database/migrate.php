@@ -877,6 +877,235 @@ try {
         }
     }
 
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add community_name and religion to SAI_users
+    // (from add_user_profile_fields.php)
+    // ============================================================
+    echo "\n      Adding profile fields to SAI_users...\n";
+    try {
+        $columns = $pdo->query("SHOW COLUMNS FROM SAI_users LIKE 'community_name'")->fetchAll();
+        if (empty($columns)) {
+            $pdo->exec("ALTER TABLE SAI_users ADD COLUMN community_name VARCHAR(150) NULL AFTER mobile");
+            echo "      ✓ 'community_name' added to SAI_users\n";
+        } else {
+            echo "      - 'community_name' already exists in SAI_users\n";
+        }
+
+        $columns = $pdo->query("SHOW COLUMNS FROM SAI_users LIKE 'religion'")->fetchAll();
+        if (empty($columns)) {
+            $pdo->exec("ALTER TABLE SAI_users ADD COLUMN religion VARCHAR(100) NULL AFTER community_name");
+            echo "      ✓ 'religion' added to SAI_users\n";
+        } else {
+            echo "      - 'religion' already exists in SAI_users\n";
+        }
+    } catch (\Exception $e) {
+        echo "      ! Could not add user profile fields: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add kul_devi_devta to SAI_users
+    // (from run_add_kul_devi_devta.php)
+    // ============================================================
+    echo "\n      Adding kul_devi_devta to SAI_users...\n";
+    try {
+        $columns = $pdo->query("SHOW COLUMNS FROM SAI_users LIKE 'kul_devi_devta'")->fetchAll();
+        if (empty($columns)) {
+            $pdo->exec("ALTER TABLE SAI_users ADD COLUMN kul_devi_devta VARCHAR(150) NULL AFTER community_name");
+            echo "      ✓ 'kul_devi_devta' added to SAI_users\n";
+        } else {
+            echo "      - 'kul_devi_devta' already exists in SAI_users\n";
+        }
+    } catch (\Exception $e) {
+        echo "      ! Could not add kul_devi_devta: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add country to SAI_families
+    // (from add_country_to_families.php)
+    // ============================================================
+    echo "\n      Adding country column to SAI_families...\n";
+    try {
+        $columns = $pdo->query("SHOW COLUMNS FROM SAI_families LIKE 'country'")->fetchAll();
+        if (empty($columns)) {
+            $pdo->exec("ALTER TABLE SAI_families ADD COLUMN country VARCHAR(100) NULL AFTER state");
+            echo "      ✓ 'country' added to SAI_families\n";
+        } else {
+            echo "      - 'country' already exists in SAI_families\n";
+        }
+    } catch (\Exception $e) {
+        echo "      ! Could not add country to families: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_password_resets table
+    // (from add_password_resets_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_password_resets...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_password_resets (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id INT UNSIGNED NOT NULL,
+                token_hash VARCHAR(255) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB
+        ");
+        echo "      ✓ SAI_password_resets created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_password_resets: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_vendors table
+    // (from create_vendors_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_vendors...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_vendors (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                name VARCHAR(150) NOT NULL,
+                category ENUM('photographer', 'catering', 'decorator', 'florist', 'music', 'lighting', 'tent_house', 'makeup_artist', 'mehendi_artist', 'videographer', 'invitation_cards', 'travel', 'other') NOT NULL DEFAULT 'other',
+                description TEXT NULL,
+                contact_person VARCHAR(100) NULL,
+                email VARCHAR(150) NULL,
+                phone VARCHAR(20) NOT NULL,
+                alternate_phone VARCHAR(20) NULL,
+                whatsapp VARCHAR(20) NULL,
+                website VARCHAR(255) NULL,
+                address_line1 VARCHAR(255) NOT NULL,
+                address_line2 VARCHAR(255) NULL,
+                city VARCHAR(100) NOT NULL,
+                state VARCHAR(100) NOT NULL,
+                pincode VARCHAR(10) NOT NULL,
+                country VARCHAR(100) DEFAULT 'India',
+                latitude DECIMAL(10, 8) NOT NULL,
+                longitude DECIMAL(11, 8) NOT NULL,
+                service_area_km INT DEFAULT 50 COMMENT 'Service radius in kilometers',
+                min_price DECIMAL(12, 2) NULL COMMENT 'Minimum service price',
+                max_price DECIMAL(12, 2) NULL COMMENT 'Maximum service price',
+                services_offered TEXT NULL COMMENT 'JSON array of services',
+                logo_url VARCHAR(255) NULL,
+                gallery_images TEXT NULL COMMENT 'JSON array of image URLs',
+                average_rating DECIMAL(3, 2) DEFAULT 0.00,
+                total_reviews INT DEFAULT 0,
+                is_active TINYINT(1) DEFAULT 1,
+                is_featured TINYINT(1) DEFAULT 0,
+                is_verified TINYINT(1) DEFAULT 0,
+                added_by INT UNSIGNED NULL COMMENT 'Admin who added',
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                INDEX idx_category (category),
+                INDEX idx_city (city),
+                INDEX idx_state (state),
+                INDEX idx_pincode (pincode),
+                INDEX idx_is_active (is_active),
+                INDEX idx_is_featured (is_featured),
+                INDEX idx_location (latitude, longitude),
+                INDEX idx_rating (average_rating DESC)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_vendors created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_vendors: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add map_url to SAI_vendors
+    // (from add_vendor_map_url.php)
+    // ============================================================
+    echo "\n      Adding map_url to SAI_vendors...\n";
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM SAI_vendors LIKE 'map_url'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("
+                ALTER TABLE SAI_vendors 
+                ADD COLUMN map_url VARCHAR(500) NULL 
+                COMMENT 'Google Maps or custom directions URL' 
+                AFTER longitude
+            ");
+            echo "      ✓ 'map_url' added to SAI_vendors\n";
+        } else {
+            echo "      - 'map_url' already exists in SAI_vendors\n";
+        }
+    } catch (\Exception $e) {
+        echo "      ! Could not add map_url: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_ritual_embeddings table
+    // (from migrate_embeddings.php)
+    // ============================================================
+    echo "\n      Creating SAI_ritual_embeddings...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_ritual_embeddings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ritual_id INT NOT NULL,
+                ritual_name VARCHAR(150) NULL,
+                community_name VARCHAR(150) NULL,
+                religion VARCHAR(100) NULL,
+                combined_text TEXT NULL,
+                embedding JSON NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_ritual (ritual_id),
+                FOREIGN KEY (ritual_id) REFERENCES SAI_rituals(id) ON DELETE CASCADE,
+                INDEX idx_ritual_id (ritual_id),
+                INDEX idx_community_name (community_name),
+                INDEX idx_religion (religion)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_ritual_embeddings created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_ritual_embeddings: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Widen ritual columns for longer AI content
+    // (from widen_ritual_columns.php)
+    // ============================================================
+    echo "\n      Widening ritual columns...\n";
+    $widenQueries = [
+        "ALTER TABLE SAI_rituals MODIFY best_time VARCHAR(500) NULL",
+        "ALTER TABLE SAI_rituals MODIFY best_tithi VARCHAR(500) NULL",
+        "ALTER TABLE SAI_rituals MODIFY deity VARCHAR(500) NULL",
+        "ALTER TABLE SAI_rituals MODIFY occasion_type VARCHAR(500) NULL",
+        "ALTER TABLE SAI_rituals MODIFY name VARCHAR(300) NOT NULL",
+        "ALTER TABLE SAI_rituals MODIFY name_sanskrit VARCHAR(300) NULL",
+        "ALTER TABLE SAI_rituals MODIFY category VARCHAR(300) NOT NULL",
+        "ALTER TABLE SAI_rituals MODIFY sub_category VARCHAR(300) NULL",
+    ];
+    foreach ($widenQueries as $sql) {
+        try {
+            $pdo->exec($sql);
+            echo "      ✓ OK: $sql\n";
+        } catch (\Exception $e) {
+            echo "      ! SKIP: $sql\n";
+        }
+    }
+
+    // Also widen user_rituals columns
+    $userRitualWidenQueries = [
+        "ALTER TABLE SAI_user_rituals MODIFY best_time VARCHAR(500) NULL",
+        "ALTER TABLE SAI_user_rituals MODIFY best_tithi VARCHAR(500) NULL",
+        "ALTER TABLE SAI_user_rituals MODIFY deity VARCHAR(500) NULL",
+        "ALTER TABLE SAI_user_rituals MODIFY occasion_type VARCHAR(500) NULL",
+        "ALTER TABLE SAI_user_rituals MODIFY name VARCHAR(300) NOT NULL",
+        "ALTER TABLE SAI_user_rituals MODIFY category VARCHAR(300) NULL",
+    ];
+    foreach ($userRitualWidenQueries as $sql) {
+        try {
+            $pdo->exec($sql);
+            echo "      ✓ OK: $sql\n";
+        } catch (\Exception $e) {
+            echo "      ! SKIP (column may not exist): $sql\n";
+        }
+    }
+
     echo "\n[3/3] Verifying tables...\n";
 
     // Verify all tables exist
@@ -905,6 +1134,9 @@ try {
         'SAI_user_ritual_items',
         'SAI_ritual_progress',
         'SAI_step_completion',
+        'SAI_password_resets',
+        'SAI_vendors',
+        'SAI_ritual_embeddings',
     ];
 
     $pdo->exec("USE SAI");
@@ -927,7 +1159,7 @@ try {
     echo "\n==============================================\n";
     if ($allExist) {
         echo "  ✓ Migration completed successfully!\n";
-        echo "  ✓ All 24 tables created with constraints\n";
+        echo "  ✓ All 27 tables created with constraints\n";
     } else {
         echo "  ✗ Migration completed with errors!\n";
     }
