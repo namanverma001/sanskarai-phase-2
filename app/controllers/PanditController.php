@@ -36,14 +36,52 @@ class PanditController extends Controller
         $userId = Auth::id();
         $profile = $this->profileModel->getFullProfile($userId);
 
-        // If pandit is NOT approved, show pending approval page
+        // If pandit is NOT approved, show appropriate page based on status
         if (!$profile || $profile['approval_status'] !== 'approved') {
-            $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
-                'title' => 'Profile Under Review - Sanskar AI',
-                'profile' => $profile,
-                'showCongrats' => false,
-            ]);
+            $status = $profile['approval_status'] ?? 'pending';
+
+            if ($status === 'rejected') {
+                // Profile was rejected by admin
+                $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
+                    'title' => 'Profile Rejected - Sanskar AI',
+                    'profile' => $profile,
+                    'showCongrats' => false,
+                    'showRejected' => true,
+                ]);
+            } else {
+                // Profile is pending review
+                $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
+                    'title' => 'Profile Under Review - Sanskar AI',
+                    'profile' => $profile,
+                    'showCongrats' => false,
+                    'showRejected' => false,
+                ]);
+            }
             return;
+        }
+
+        // ── First-login-after-approval congratulations logic ──
+        // Dismiss congrats only when pandit explicitly clicks "Continue to Dashboard"
+        if (isset($_GET['welcomed']) && $_GET['welcomed'] === '1') {
+            $_SESSION['congrats_dismissed'] = true;
+        }
+
+        // Show congrats if: pandit is approved, hasn't dismissed it, and this is first login after approval
+        if (empty($_SESSION['congrats_dismissed'])) {
+            $user = Auth::fullUser();
+            $approvedAt = $profile['approved_at'] ?? null;
+            $lastLogin = $user['last_login_at'] ?? null;
+
+            // First login after approval: last_login is null OR last_login was before/equal to approved_at
+            // (last_login gets updated at login time, so within a few seconds of approved_at means first login)
+            if ($approvedAt && (!$lastLogin || strtotime($lastLogin) <= strtotime($approvedAt) + 60)) {
+                $this->viewWithLayout('pandit/pending-approval', 'layouts/pandit', [
+                    'title' => 'Account Approved - Sanskar AI',
+                    'profile' => $profile,
+                    'showCongrats' => true,
+                ]);
+                return;
+            }
         }
 
         $stats = [

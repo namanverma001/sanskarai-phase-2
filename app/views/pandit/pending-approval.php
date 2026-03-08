@@ -652,8 +652,8 @@
                 </div>
             </div>
 
-            <a href="/pandit/dashboard" class="congrats-cta">
-                <i class="fas fa-rocket"></i> Go to Dashboard
+            <a href="/pandit/dashboard?welcomed=1" class="congrats-cta">
+                <i class="fas fa-rocket"></i> Continue to Dashboard
             </a>
         </div>
     </div>
@@ -689,6 +689,82 @@
             }, 5000);
         })();
     </script>
+
+<?php elseif (isset($showRejected) && $showRejected): ?>
+    <!-- ========== REJECTION PAGE ========== -->
+    <div class="approval-page">
+        <div class="approval-container">
+            <div class="approval-icon-wrap">
+                <div class="approval-icon-circle" style="background: linear-gradient(135deg, #FEE2E2, #FECACA); animation: none;">
+                    <i class="fas fa-times-circle" style="color: #DC2626;"></i>
+                </div>
+            </div>
+
+            <h1 class="approval-title">Profile <span style="background: linear-gradient(135deg, #EF4444, #DC2626); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Rejected</span></h1>
+            <p class="approval-subtitle">
+                Unfortunately, your pandit profile has been reviewed and was not approved at this time.
+                Please review the feedback below and update your profile accordingly.
+            </p>
+
+            <!-- Rejection Reason Card -->
+            <div class="approval-status-card" style="background: linear-gradient(135deg, #FEF2F2, #FEE2E2); border-color: #FECACA;">
+                <div class="approval-status-header">
+                    <div class="approval-status-badge" style="background: #FEE2E2; border-color: #EF4444; color: #991B1B;">
+                        <i class="fas fa-exclamation-circle" style="animation: none;"></i>
+                        Rejected
+                    </div>
+                </div>
+
+                <?php if (!empty($profile['rejection_reason'])): ?>
+                    <div style="margin-top: 16px; padding: 16px; background: white; border-radius: 12px; border: 1px solid #FECACA;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #991B1B; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-comment-alt"></i> Admin Feedback
+                        </div>
+                        <p style="font-size: 0.92rem; color: #4B5563; line-height: 1.6; margin: 0;">
+                            <?= htmlspecialchars($profile['rejection_reason']) ?>
+                        </p>
+                    </div>
+                <?php else: ?>
+                    <p style="margin-top: 12px; font-size: 0.9rem; color: #6B7280; text-align: center;">
+                        No specific reason was provided by the admin.
+                    </p>
+                <?php endif; ?>
+            </div>
+
+            <!-- What You Can Do Section -->
+            <div class="approval-info-box">
+                <div class="approval-info-title">
+                    <i class="fas fa-lightbulb" style="color: #F59E0B;"></i> What can you do?
+                </div>
+                <ul class="approval-info-list">
+                    <li>
+                        <i class="fas fa-user-edit" style="color: #8B5CF6;"></i>
+                        <span>Update your profile with correct and complete information based on the feedback above.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-file-alt" style="color: #8B5CF6;"></i>
+                        <span>Make sure your specialization, experience, and bio are accurately filled in.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-redo" style="color: #8B5CF6;"></i>
+                        <span>After updating, your profile will be automatically submitted for re-review.</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-envelope" style="color: #8B5CF6;"></i>
+                        <span>If you believe this was a mistake, please contact our support team for assistance.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <a href="/pandit/profile" class="approval-profile-btn" style="background: linear-gradient(135deg, #EF4444, #DC2626); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                <i class="fas fa-user-edit"></i> Update My Profile
+            </a>
+
+            <p class="approval-footer-note">
+                <i class="fas fa-om"></i> Sanskar AI — Preserving sacred traditions through technology
+            </p>
+        </div>
+    </div>
 
 <?php else: ?>
     <!-- ========== PENDING APPROVAL PAGE ========== -->
