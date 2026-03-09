@@ -21,6 +21,7 @@ use App\Models\UserRitual;
 use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\Review;
+use App\Models\AIRitualFeedback;
 use App\Services\AIService;
 use App\Config\Database;
 
@@ -278,7 +279,7 @@ class UserController extends Controller
     }
 
     /**
-     * Search rituals in global database
+     * Search rituals in global database AND user's My Rituals
      * Auto-injects user's community if not manually specified
      */
     public function searchRituals(): void
@@ -288,11 +289,11 @@ class UserController extends Controller
         ini_set('display_errors', '0');
 
         try {
+            $userId = Auth::id();
             $communityInput = $this->input('community_name');
             
             // If user didn't specify community, use their profile community
             if (empty($communityInput)) {
-                $userId = Auth::id();
                 $userModel = new User();
                 $user = $userModel->find($userId);
                 $communityInput = trim($user['community_name'] ?? '');
@@ -305,14 +306,29 @@ class UserController extends Controller
                 'category' => $this->input('category'),
             ];
 
-            $rituals = $this->ritualModel->advancedSearch($criteria);
+            // Search in global database
+            $globalRituals = $this->ritualModel->advancedSearch($criteria);
+            // Tag global rituals with source
+            foreach ($globalRituals as &$r) {
+                $r['source_type'] = 'global';
+            }
+            unset($r);
+
+            // Also search in user's My Rituals
+            $myRituals = $this->userRitualModel->searchByUser($userId, $criteria);
+            // Already tagged with source_type = 'my_ritual' in the model
+
+            // Merge results (My Rituals first, then global)
+            $allRituals = array_merge($myRituals, $globalRituals);
 
             ob_end_clean();
             $this->json([
                 'success' => true,
-                'count' => count($rituals),
-                'rituals' => $rituals,
+                'count' => count($allRituals),
+                'rituals' => $allRituals,
                 'criteria' => $criteria,
+                'my_rituals_count' => count($myRituals),
+                'global_count' => count($globalRituals),
             ]);
         } catch (\Exception $e) {
             ob_end_clean();
@@ -386,6 +402,164 @@ class UserController extends Controller
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Regenerate ritual with user feedback (feedback loop)
+     */
+    public function regenerateRitual(): void
+    {
+        ob_start();
+        $oldErrorReporting = error_reporting();
+        error_reporting(0);
+        ini_set('display_errors', '0');
+
+        try {
+            if (!$this->verifyCsrf()) {
+                ob_end_clean();
+                error_reporting($oldErrorReporting);
+                $this->json(['success' => false, 'error' => 'Invalid token.'], 400);
+                return;
+            }
+
+            $criteria = [
+                'community_name' => $this->input('community_name', ''),
+                'religion' => $this->input('religion', 'Hinduism'),
+                'ritual_name' => $this->input('ritual_name', ''),
+                'occasion' => $this->input('occasion', ''),
+                'additional_info' => $this->input('additional_info', ''),
+            ];
+
+            $previousResponseRaw = $this->input('previous_response', '');
+            $previousResponse = json_decode($previousResponseRaw, true) ?? [];
+            $userFeedback = $this->input('user_feedback', '');
+            $sessionId = $this->input('session_id', '');
+            $roundNumber = (int) $this->input('round_number', 1);
+
+            if (empty($userFeedback)) {
+                ob_end_clean();
+                error_reporting($oldErrorReporting);
+                $this->json(['success' => false, 'error' => 'Please provide feedback'], 400);
+                return;
+            }
+
+            // Generate session ID if not provided
+            if (empty($sessionId)) {
+                $sessionId = bin2hex(random_bytes(16));
+            }
+
+            $userId = Auth::id();
+            $feedbackModel = new AIRitualFeedback();
+
+            // Store this feedback round
+            $feedbackModel->storeFeedback([
+                'user_id' => $userId,
+                'ritual_name' => $criteria['ritual_name'],
+                'community_name' => $criteria['community_name'] ?: null,
+                'religion' => $criteria['religion'] ?: null,
+                'generation_session_id' => $sessionId,
+                'round_number' => $roundNumber,
+                'ai_response' => $previousResponse,
+                'user_feedback' => $userFeedback,
+                'feedback_type' => 'refined',
+                'search_criteria' => $criteria,
+            ]);
+
+            // Get past learning feedback for same ritual from other users
+            $pastFeedback = $feedbackModel->getLearningFeedback(
+                $criteria['ritual_name'],
+                $criteria['community_name'] ?: null,
+                10
+            );
+
+            // Regenerate with feedback
+            $result = $this->aiService->regenerateRitualWithFeedback(
+                $userId,
+                $criteria,
+                $previousResponse,
+                $userFeedback,
+                $pastFeedback
+            );
+
+            if (!$result['success']) {
+                ob_end_clean();
+                error_reporting($oldErrorReporting);
+                $this->json(['success' => false, 'error' => $result['error']], 500);
+                return;
+            }
+
+            ob_end_clean();
+            error_reporting($oldErrorReporting);
+
+            $this->json([
+                'success' => true,
+                'ritual' => $result['ritual'],
+                'session_id' => $sessionId,
+                'round_number' => $roundNumber + 1,
+                'message' => 'Ritual regenerated with your feedback!',
+            ]);
+
+        } catch (\Exception $e) {
+            ob_end_clean();
+            error_reporting($oldErrorReporting);
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Accept AI generated ritual (final step of feedback loop)
+     */
+    public function acceptAIRitual(): void
+    {
+        ob_start();
+        error_reporting(0);
+        ini_set('display_errors', '0');
+
+        try {
+            if (!$this->verifyCsrf()) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Invalid token.'], 400);
+                return;
+            }
+
+            $ritualDataRaw = $this->input('ritual_data');
+            $sessionId = $this->input('session_id', '');
+            $prompt = $this->input('prompt', '');
+            $userId = Auth::id();
+
+            if (empty($ritualDataRaw)) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'No ritual data received'], 400);
+                return;
+            }
+
+            $ritualData = json_decode($ritualDataRaw, true);
+            if (!$ritualData || empty($ritualData['name'])) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Invalid ritual data'], 400);
+                return;
+            }
+
+            // Mark as accepted in feedback log (if session exists)
+            if (!empty($sessionId)) {
+                $feedbackModel = new AIRitualFeedback();
+                $feedbackModel->markAccepted($sessionId, $userId, $ritualData);
+            }
+
+            // Add to user's My Rituals collection
+            $userRitualId = $this->userRitualModel->createFromAI($userId, $ritualData, $prompt);
+
+            ob_end_clean();
+            $this->json([
+                'success' => true,
+                'user_ritual_id' => $userRitualId,
+                'message' => 'Ritual accepted and added to your collection!',
+            ]);
+        } catch (\Exception $e) {
+            ob_end_clean();
+            error_log("acceptAIRitual error: " . $e->getMessage());
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
 

@@ -380,6 +380,226 @@
         padding: 25px;
     }
 
+    /* Source Badge */
+    .source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .source-badge.global {
+        background: linear-gradient(135deg, #E0E7FF, #C7D2FE);
+        color: #3730A3;
+    }
+    .source-badge.my-ritual {
+        background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+        color: #065F46;
+    }
+
+    /* ===== FEEDBACK LOOP UI ===== */
+    .feedback-section {
+        margin-top: 25px;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    .feedback-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .feedback-header h4 {
+        font-size: 1.1rem;
+        color: #1F2937;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .round-badge {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: white;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.5); }
+    }
+
+    .feedback-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .btn-accept {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 14px 30px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-accept:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-feedback {
+        background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+        color: white;
+        border: none;
+        padding: 14px 30px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-feedback:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+    }
+
+    .feedback-form {
+        display: none;
+        margin-top: 20px;
+        animation: slideDown 0.4s ease;
+    }
+
+    .feedback-form.active {
+        display: block;
+    }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feedback-textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 16px 20px;
+        border: 2px solid #E5E7EB;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-family: inherit;
+        resize: vertical;
+        transition: all 0.3s;
+        background: #F9FAFB;
+    }
+
+    .feedback-textarea:focus {
+        border-color: #6366F1;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        background: white;
+    }
+
+    .feedback-textarea::placeholder {
+        color: #9CA3AF;
+    }
+
+    .feedback-hint {
+        margin-top: 8px;
+        font-size: 0.82rem;
+        color: #6B7280;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-regenerate {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: white;
+        border: none;
+        padding: 14px 35px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 15px;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-regenerate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-regenerate:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .feedback-history {
+        margin-top: 15px;
+        padding: 15px 20px;
+        background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        border-radius: 12px;
+        border-left: 4px solid #F59E0B;
+    }
+
+    .feedback-history h5 {
+        color: #92400E;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .feedback-history-item {
+        color: #78350F;
+        font-size: 0.82rem;
+        padding: 4px 0;
+        border-bottom: 1px dashed rgba(120, 53, 15, 0.15);
+    }
+
+    .feedback-history-item:last-child {
+        border-bottom: none;
+    }
+
     /* Loading State */
     .loading-overlay {
         display: none;
@@ -652,6 +872,48 @@
         class="generated-content"
     >
         <!-- Generated ritual will be shown here -->
+    </div>
+
+    <!-- Feedback Loop Section -->
+    <div class="feedback-section" id="feedbackSection">
+        <div class="feedback-header">
+            <h4>
+                <i class="fas fa-comment-dots" style="color: #6366F1;"></i>
+                Is this ritual accurate?
+            </h4>
+            <span class="round-badge" id="roundBadge" style="display: none;">
+                <i class="fas fa-sync-alt"></i>
+                <span id="roundText">Round 1</span>
+            </span>
+        </div>
+
+        <div class="feedback-actions">
+            <button class="btn-accept" onclick="acceptGeneratedRitual()" id="btnAccept">
+                <i class="fas fa-check-circle"></i> Accept Response
+            </button>
+            <button class="btn-feedback" onclick="toggleFeedbackForm()" id="btnGiveFeedback">
+                <i class="fas fa-edit"></i> Give Feedback
+            </button>
+        </div>
+
+        <!-- Feedback History (previous rounds) -->
+        <div id="feedbackHistory" style="display: none;"></div>
+
+        <!-- Feedback Form -->
+        <div class="feedback-form" id="feedbackForm">
+            <textarea
+                class="feedback-textarea"
+                id="feedbackText"
+                placeholder="Tell us what needs to change... &#10;&#10;Examples:&#10;• 'Is step me aise nahi hota, pehle X karna chahiye tha'&#10;• 'Mantra galat hai, sahi mantra ye hai...'&#10;• 'Ye step missing hai, add karo...'&#10;• 'Duration zyada hai, 30 min me ho jata hai'"
+            ></textarea>
+            <p class="feedback-hint">
+                <i class="fas fa-lightbulb" style="color: #F59E0B;"></i>
+                Be specific — AI will use your exact feedback to improve the ritual
+            </p>
+            <button class="btn-regenerate" onclick="regenerateWithFeedback()" id="btnRegenerate">
+                <i class="fas fa-magic"></i> Regenerate Ritual
+            </button>
+        </div>
     </div>
 </div>
 
@@ -966,6 +1228,11 @@
         }, 3000);
     }
 
+    // === Feedback Loop State ===
+    let generationSessionId = '';
+    let currentRound = 1;
+    let feedbackHistoryList = [];
+
     async function findRitual() {
         const form = document.getElementById('searchForm');
         const formData = new FormData(form);
@@ -977,23 +1244,27 @@
             return;
         }
 
-        showLoading('Searching database...');
+        // Reset feedback state for new search
+        generationSessionId = '';
+        currentRound = 1;
+        feedbackHistoryList = [];
+
+        showLoading('Searching database & your rituals...');
 
         try {
-            // Step 1: Search in database first
+            // Step 1: Search in database (global + My Rituals)
             const searchResponse = await fetch('/user/rituals/search?' + params.toString());
             const searchData = await searchResponse.json();
 
             if (searchData.success && searchData.rituals && searchData.rituals.length > 0) {
-                // Found in database - show results
                 hideLoading();
-                displaySearchResults(searchData.rituals);
-                showToast(`Found ${searchData.rituals.length} ritual(s) in database!`, 'success');
+                displaySearchResults(searchData.rituals, searchData.my_rituals_count || 0, searchData.global_count || 0);
+                showToast(`Found ${searchData.rituals.length} ritual(s)!`, 'success');
                 return;
             }
 
-            // Step 2: Not found in database - Generate with AI
-            showLoading('Not found in database. Generating with AI...');
+            // Step 2: Not found - Generate with AI
+            showLoading('Not found in database. AI is generating...');
             
             formData.append('csrf_token', csrfToken);
 
@@ -1006,8 +1277,12 @@
             hideLoading();
 
             if (generateData.success) {
+                // Initialize session for feedback tracking
+                generationSessionId = generateData.session_id || crypto.randomUUID().replace(/-/g, '').substring(0, 32);
+                currentRound = 1;
+                feedbackHistoryList = [];
                 displayGeneratedRitual(generateData.ritual);
-                showToast('Ritual generated with AI!', 'success');
+                showToast('Ritual generated with AI! Review and accept or refine.', 'success');
             } else {
                 showToast(generateData.error || 'Generation failed', 'error');
             }
@@ -1017,12 +1292,16 @@
         }
     }
 
-    function displaySearchResults(rituals) {
+    function displaySearchResults(rituals, myCount, globalCount) {
         const resultsSection = document.getElementById('searchResults');
         const resultsGrid = document.getElementById('resultsGrid');
         const resultsCount = document.getElementById('resultsCount');
 
-        resultsCount.textContent = `${rituals.length} ritual${rituals.length !== 1 ? 's' : ''} found`;
+        let countText = `${rituals.length} ritual${rituals.length !== 1 ? 's' : ''} found`;
+        if (myCount > 0 && globalCount > 0) {
+            countText += ` (${myCount} from My Rituals, ${globalCount} from Global)`;
+        }
+        resultsCount.textContent = countText;
 
         if (rituals.length === 0) {
             resultsGrid.innerHTML = `
@@ -1032,41 +1311,53 @@
             </div>
         `;
         } else {
-            resultsGrid.innerHTML = rituals.map(ritual => `
-            <div class="ritual-card">
-                <div class="ritual-card-header">
-                    <h4>${escapeHtml(ritual.name)}</h4>
-                    ${ritual.name_sanskrit ? `<span class="sanskrit">${escapeHtml(ritual.name_sanskrit)}</span>` : ''}
-                </div>
-                <div class="ritual-card-body">
-                    <div class="ritual-meta-row">
-                        <span class="ritual-meta-tag tag-category">
-                            <i class="fas fa-tag"></i> ${escapeHtml(ritual.category || 'General')}
-                        </span>
-                        <span class="ritual-meta-tag tag-difficulty-${ritual.difficulty || 'medium'}">
-                            ${(ritual.difficulty || 'medium').charAt(0).toUpperCase() + (ritual.difficulty || 'medium').slice(1)}
-                        </span>
-                        <span class="ritual-meta-tag tag-duration">
-                            <i class="fas fa-clock"></i> ${ritual.duration_minutes || 60} min
-                        </span>
-                        ${ritual.community_name ? `<span class="ritual-meta-tag tag-community">
-                            <i class="fas fa-users"></i> ${escapeHtml(ritual.community_name)}
-                        </span>` : ''}
+            resultsGrid.innerHTML = rituals.map(ritual => {
+                const isMyRitual = ritual.source_type === 'my_ritual';
+                const viewUrl = isMyRitual ? `/user/my-rituals/${ritual.id}` : `/user/rituals/${ritual.id}`;
+                const sourceBadge = isMyRitual 
+                    ? `<span class="source-badge my-ritual"><i class="fas fa-folder-open"></i> My Ritual</span>` 
+                    : `<span class="source-badge global"><i class="fas fa-globe"></i> Global</span>`;
+
+                return `
+                <div class="ritual-card">
+                    <div class="ritual-card-header">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h4>${escapeHtml(ritual.name)}</h4>
+                                ${ritual.name_sanskrit ? `<span class="sanskrit">${escapeHtml(ritual.name_sanskrit)}</span>` : ''}
+                            </div>
+                            ${sourceBadge}
+                        </div>
                     </div>
-                    <p class="ritual-description">
-                        ${escapeHtml((ritual.description || 'Traditional ritual with detailed steps.').substring(0, 100))}...
-                    </p>
-                    <div class="ritual-card-actions">
-                        <a href="/user/rituals/${ritual.id}" class="btn-view">
-                            <i class="fas fa-eye"></i> View Details
-                        </a>
-                        <button class="btn-add" onclick="addToMyRituals(${ritual.id})" title="Add to My Rituals">
-                            <i class="fas fa-plus"></i>
-                        </button>
+                    <div class="ritual-card-body">
+                        <div class="ritual-meta-row">
+                            <span class="ritual-meta-tag tag-category">
+                                <i class="fas fa-tag"></i> ${escapeHtml(ritual.category || 'General')}
+                            </span>
+                            <span class="ritual-meta-tag tag-difficulty-${ritual.difficulty || 'medium'}">
+                                ${(ritual.difficulty || 'medium').charAt(0).toUpperCase() + (ritual.difficulty || 'medium').slice(1)}
+                            </span>
+                            <span class="ritual-meta-tag tag-duration">
+                                <i class="fas fa-clock"></i> ${ritual.duration_minutes || 60} min
+                            </span>
+                            ${ritual.community_name ? `<span class="ritual-meta-tag tag-community">
+                                <i class="fas fa-users"></i> ${escapeHtml(ritual.community_name)}
+                            </span>` : ''}
+                        </div>
+                        <p class="ritual-description">
+                            ${escapeHtml((ritual.description || 'Traditional ritual with detailed steps.').substring(0, 100))}...
+                        </p>
+                        <div class="ritual-card-actions">
+                            <a href="${viewUrl}" class="btn-view">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            ${!isMyRitual ? `<button class="btn-add" onclick="addToMyRituals(${ritual.id})" title="Add to My Rituals">
+                                <i class="fas fa-plus"></i>
+                            </button>` : ''}
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `}).join('');
         }
 
         resultsSection.style.display = 'block';
@@ -1075,9 +1366,8 @@
     }
 
     function displayGeneratedRitual(ritual) {
-        // Store ritual data for later use when adding to My Rituals
         window.generatedRitualData = ritual;
-        window.generatedRitualAdded = false; // Reset the added flag for new ritual
+        window.generatedRitualAdded = false;
         
         const generatedSection = document.getElementById('generatedResult');
         const generatedContent = document.getElementById('generatedContent');
@@ -1105,14 +1395,9 @@
     `).join('');
 
         generatedContent.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
-            <div>
-                <h2 style="font-size: 1.5rem; color: var(--dark);">${escapeHtml(ritual.name)}</h2>
-                ${ritual.name_sanskrit ? `<p style="color: #92400E; font-style: italic;">${escapeHtml(ritual.name_sanskrit)}</p>` : ''}
-            </div>
-            <button class="btn-success" onclick="addGeneratedToMyRituals()" style="padding: 12px 25px; border-radius: 8px; font-weight: 600;">
-                <i class="fas fa-plus"></i> Add to My Rituals
-            </button>
+        <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 1.5rem; color: var(--dark);">${escapeHtml(ritual.name)}</h2>
+            ${ritual.name_sanskrit ? `<p style="color: #92400E; font-style: italic;">${escapeHtml(ritual.name_sanskrit)}</p>` : ''}
         </div>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 25px; padding: 20px; background: #F9FAFB; border-radius: 12px;">
@@ -1171,13 +1456,156 @@
         </div>
     `;
 
-        // Store ritual data for adding to My Rituals
-        window.generatedRitualData = ritual;
-        window.generatedRitualAdded = false; // Reset the added flag for new ritual
+        // Update round badge
+        const roundBadge = document.getElementById('roundBadge');
+        if (currentRound > 1) {
+            roundBadge.style.display = 'inline-flex';
+            document.getElementById('roundText').textContent = `Round ${currentRound}`;
+        } else {
+            roundBadge.style.display = 'none';
+        }
+
+        // Update feedback history display
+        updateFeedbackHistory();
+
+        // Reset feedback form
+        document.getElementById('feedbackForm').classList.remove('active');
+        document.getElementById('feedbackText').value = '';
 
         generatedSection.style.display = 'block';
         document.getElementById('searchResults').style.display = 'none';
         generatedSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleFeedbackForm() {
+        const form = document.getElementById('feedbackForm');
+        form.classList.toggle('active');
+        if (form.classList.contains('active')) {
+            document.getElementById('feedbackText').focus();
+        }
+    }
+
+    function updateFeedbackHistory() {
+        const historyDiv = document.getElementById('feedbackHistory');
+        if (feedbackHistoryList.length === 0) {
+            historyDiv.style.display = 'none';
+            return;
+        }
+
+        historyDiv.style.display = 'block';
+        historyDiv.innerHTML = `
+            <div class="feedback-history">
+                <h5><i class="fas fa-history"></i> Previous Feedback (${feedbackHistoryList.length} round${feedbackHistoryList.length !== 1 ? 's' : ''})</h5>
+                ${feedbackHistoryList.map((fb, i) => `
+                    <div class="feedback-history-item">
+                        <strong>Round ${i + 1}:</strong> ${escapeHtml(fb)}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    async function regenerateWithFeedback() {
+        const feedbackText = document.getElementById('feedbackText').value.trim();
+        if (!feedbackText) {
+            showToast('Please write your feedback first', 'error');
+            document.getElementById('feedbackText').focus();
+            return;
+        }
+
+        if (!window.generatedRitualData) {
+            showToast('No ritual to refine', 'error');
+            return;
+        }
+
+        // Disable the regenerate button
+        const btn = document.getElementById('btnRegenerate');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Regenerating...';
+
+        showLoading('Regenerating ritual with your feedback...');
+
+        try {
+            const form = document.getElementById('searchForm');
+            const formData = new FormData(form);
+            formData.append('csrf_token', csrfToken);
+            formData.append('previous_response', JSON.stringify(window.generatedRitualData));
+            formData.append('user_feedback', feedbackText);
+            formData.append('session_id', generationSessionId);
+            formData.append('round_number', currentRound);
+
+            const response = await fetch('/user/rituals/regenerate', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            hideLoading();
+
+            if (data.success) {
+                // Track feedback history
+                feedbackHistoryList.push(feedbackText);
+
+                // Update session state
+                generationSessionId = data.session_id || generationSessionId;
+                currentRound = data.round_number || (currentRound + 1);
+
+                // Display regenerated ritual
+                displayGeneratedRitual(data.ritual);
+                showToast(`Ritual regenerated (Round ${currentRound})! Review the improvements.`, 'success');
+            } else {
+                showToast(data.error || 'Regeneration failed', 'error');
+            }
+        } catch (error) {
+            hideLoading();
+            showToast('Error: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> Regenerate Ritual';
+        }
+    }
+
+    async function acceptGeneratedRitual() {
+        if (!window.generatedRitualData) {
+            showToast('No ritual data available', 'error');
+            return;
+        }
+
+        if (window.generatedRitualAdded) {
+            showToast('This ritual is already in your collection!', 'info');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
+        formData.append('ritual_data', JSON.stringify(window.generatedRitualData));
+        formData.append('prompt', document.getElementById('ritual_name').value);
+        formData.append('session_id', generationSessionId);
+
+        showLoading('Accepting and saving to your collection...');
+
+        try {
+            const response = await fetch('/user/rituals/accept-ai', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            hideLoading();
+
+            if (data.success) {
+                window.generatedRitualAdded = true;
+                showToast('🎉 Ritual accepted and added to your collection!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/user/my-rituals/' + data.user_ritual_id;
+                }, 1500);
+            } else {
+                showToast(data.error || 'Failed to save ritual', 'error');
+            }
+        } catch (error) {
+            hideLoading();
+            showToast('Error: ' + error.message, 'error');
+        }
     }
 
     async function addToMyRituals(globalRitualId) {
@@ -1200,49 +1628,6 @@
                 showToast(data.error || 'Failed to add ritual', 'error');
             }
         } catch (error) {
-            showToast('Error: ' + error.message, 'error');
-        }
-    }
-
-    async function addGeneratedToMyRituals() {
-        if (!window.generatedRitualData) {
-            showToast('No ritual data available', 'error');
-            return;
-        }
-
-        // Check if already added
-        if (window.generatedRitualAdded) {
-            showToast('This ritual is already in your collection!', 'info');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('csrf_token', csrfToken);
-        formData.append('ritual_data', JSON.stringify(window.generatedRitualData));
-        formData.append('prompt', document.getElementById('ritual_name').value);
-
-        showLoading('Adding to your collection...');
-
-        try {
-            const response = await fetch('/user/my-rituals/add-generated', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-
-            hideLoading();
-
-            if (data.success) {
-                window.generatedRitualAdded = true; // Mark as added
-                showToast('Ritual added to your collection!', 'success');
-                setTimeout(() => {
-                    window.location.href = '/user/my-rituals/' + data.user_ritual_id;
-                }, 1500);
-            } else {
-                showToast(data.error || 'Failed to add ritual', 'error');
-            }
-        } catch (error) {
-            hideLoading();
             showToast('Error: ' + error.message, 'error');
         }
     }
@@ -1270,7 +1655,6 @@
             formData.append('offset', currentOffset);
             formData.append('limit', ritualsPerPage);
 
-            // Pass show_all flag if viewing all rituals
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('all') === '1') {
                 formData.append('show_all', '1');
@@ -1293,7 +1677,6 @@
                 currentOffset += data.rituals.length;
                 document.getElementById('currentCount').textContent = currentOffset;
 
-                // Hide load more button if no more rituals
                 if (currentOffset >= data.total || data.rituals.length < ritualsPerPage) {
                     document.getElementById('loadMoreContainer').style.display = 'none';
                 }

@@ -69,6 +69,102 @@ class AIService
     }
 
     /**
+     * Regenerate ritual incorporating user feedback and historical learning
+     */
+    public function regenerateRitualWithFeedback(int $userId, array $criteria, array $previousResponse, string $userFeedback, array $pastFeedback = []): array
+    {
+        $prompt = $this->buildRefinementPrompt($criteria, $previousResponse, $userFeedback, $pastFeedback);
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_regeneration', $prompt, array_merge($criteria, [
+            'feedback' => $userFeedback,
+            'round' => count($pastFeedback) + 1,
+        ]));
+
+        try {
+            $startTime = microtime(true);
+
+            $response = $this->getResponse($prompt, 'ritual_generation', $criteria);
+
+            $processingTime = (int) ((microtime(true) - $startTime) * 1000);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                'tokens_used' => $response['tokens'] ?? 0,
+                'processing_time_ms' => $processingTime,
+            ]);
+
+            $this->aiRequestModel->log('info', 'ritual_regeneration_complete', 'Ritual regenerated with feedback', [
+                'feedback' => $userFeedback,
+            ], $requestId);
+
+            $ritualData = $response['data']['ritual'] ?? $this->parseRitualFromText($response['text'], $criteria);
+
+            return [
+                'success' => true,
+                'request_id' => $requestId,
+                'ritual' => $ritualData,
+                'raw_response' => $response['text'],
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+            $this->aiRequestModel->log('error', 'ritual_regeneration_failed', $e->getMessage(), [], $requestId);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Build refinement prompt with previous response + feedback + learning
+     */
+    private function buildRefinementPrompt(array $criteria, array $previousResponse, string $userFeedback, array $pastFeedback = []): string
+    {
+        $basePrompt = $this->buildRitualGenerationPrompt($criteria);
+        
+        // Build previous response summary
+        $prevName = $previousResponse['name'] ?? 'Unknown';
+        $prevSteps = '';
+        if (!empty($previousResponse['steps'])) {
+            foreach ($previousResponse['steps'] as $step) {
+                $prevSteps .= "  Step {$step['step_number']}: {$step['title']}\n";
+            }
+        }
+
+        // Build learning context from past feedback
+        $learningContext = '';
+        if (!empty($pastFeedback)) {
+            $learningContext = "\n\n**IMPORTANT - LEARNINGS FROM PAST USER FEEDBACK (avoid these mistakes):**\n";
+            foreach ($pastFeedback as $i => $fb) {
+                $learningContext .= ($i + 1) . ". User feedback: \"{$fb['user_feedback']}\"\n";
+            }
+        }
+
+        $refinementPrompt = "{$basePrompt}
+
+**CRITICAL REFINEMENT CONTEXT:**
+
+The following ritual was previously generated but the user was NOT satisfied:
+
+Previous Ritual Name: {$prevName}
+Previous Steps Summary:
+{$prevSteps}
+
+**USER'S FEEDBACK (MUST address this):**
+\"{$userFeedback}\"
+
+Please generate an IMPROVED version of this ritual that specifically addresses the user's feedback. 
+Keep what was good but fix what the user pointed out.
+The user's feedback is the top priority - make sure every point is addressed.
+{$learningContext}
+
+REMEMBER: Output must be valid JSON in the exact same format as specified above.";
+
+        return $refinementPrompt;
+    }
+
+    /**
      * Chatbot for ritual assistance during execution
      */
     public function chatAssistant(int $userId, array $context): array

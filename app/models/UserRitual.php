@@ -41,6 +41,43 @@ class UserRitual extends Model
     }
 
     /**
+     * Search user's personal rituals by criteria (name, community, religion)
+     */
+    public function searchByUser(int $userId, array $criteria): array
+    {
+        $params = ['user_id' => $userId];
+        $conditions = ['ur.user_id = :user_id'];
+
+        if (!empty($criteria['ritual_name'])) {
+            $conditions[] = "(ur.name LIKE :ritual_name OR ur.name_sanskrit LIKE :ritual_name_s)";
+            $params['ritual_name'] = '%' . $criteria['ritual_name'] . '%';
+            $params['ritual_name_s'] = '%' . $criteria['ritual_name'] . '%';
+        }
+
+        if (!empty($criteria['community_name'])) {
+            $conditions[] = "(ur.community_name LIKE :community_name)";
+            $params['community_name'] = '%' . $criteria['community_name'] . '%';
+        }
+
+        if (!empty($criteria['religion'])) {
+            $conditions[] = "(ur.religion = :religion)";
+            $params['religion'] = $criteria['religion'];
+        }
+
+        $where = implode(' AND ', $conditions);
+
+        $sql = "
+            SELECT ur.*, 'my_ritual' as source_type
+            FROM SAI_user_rituals ur
+            WHERE {$where}
+            ORDER BY ur.created_at DESC
+            LIMIT 20
+        ";
+
+        return $this->raw($sql, $params);
+    }
+
+    /**
      * Get user ritual by global ID
      */
     public function findByUserAndGlobal(int $userId, int $globalRitualId): ?array

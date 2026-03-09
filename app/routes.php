@@ -165,6 +165,8 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::get('/rituals', 'UserController@rituals', [], 'user.rituals');
     Router::get('/rituals/search', 'UserController@searchRituals');
     Router::post('/rituals/generate', 'UserController@generateRitual');
+    Router::post('/rituals/regenerate', 'UserController@regenerateRitual');
+    Router::post('/rituals/accept-ai', 'UserController@acceptAIRitual');
     Router::post('/rituals/load-more', 'UserController@loadMoreRituals');
     Router::get('/rituals/{id}', 'UserController@viewRitual');
 
