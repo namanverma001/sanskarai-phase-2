@@ -904,7 +904,7 @@
             <textarea
                 class="feedback-textarea"
                 id="feedbackText"
-                placeholder="Tell us what needs to change... &#10;&#10;Examples:&#10;• 'Is step me aise nahi hota, pehle X karna chahiye tha'&#10;• 'Mantra galat hai, sahi mantra ye hai...'&#10;• 'Ye step missing hai, add karo...'&#10;• 'Duration zyada hai, 30 min me ho jata hai'"
+                placeholder="Tell us what needs to change... &#10;&#10;Examples:&#10;• 'This step is incorrect, step X should come before step Y'&#10;• 'The mantra is wrong, the correct mantra is...'&#10;• 'A step is missing, please add...'&#10;• 'The duration is too long, it should be around 30 minutes'&#10;• 'More required items are needed for this ritual'"
             ></textarea>
             <p class="feedback-hint">
                 <i class="fas fa-lightbulb" style="color: #F59E0B;"></i>
