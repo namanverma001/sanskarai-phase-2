@@ -1138,6 +1138,11 @@ $roleDisplay = match ($userRole) {
                         title="Ask Pandit (Q&A)">
                         <i class="fas fa-comments"></i> <span>Ask Pandit (Q&A)</span>
                     </a>
+                    <a href="/user/invitations"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/invitations') !== false ? 'active' : '' ?>"
+                        title="Invitations">
+                        <i class="fas fa-envelope-open-text"></i> <span>Invitations</span>
+                    </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Family & Knowledge</div>

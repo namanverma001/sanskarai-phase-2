@@ -28,6 +28,9 @@ Router::post('/logout', 'AuthController@logout', ['auth'], 'logout');
 // Home page (Landing page for guests, dashboard redirect for logged in)
 Router::get('/', 'HomeController@index', [], 'home');
 
+// Public Invitation View (no auth required)
+Router::get('/invitation/{token}', 'InvitationController@viewPublic');
+
 // ============================================================
 // ADMIN ROUTES
 // ============================================================
@@ -247,5 +250,12 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::post('/reviews/vendor', 'UserController@submitVendorReview');
     Router::get('/my-reviews', 'UserController@myReviews', [], 'user.my-reviews');
     Router::get('/review-notifications', 'UserController@reviewNotifications');
+
+    // Invitations
+    Router::get('/invitations', 'InvitationController@index', [], 'user.invitations');
+    Router::get('/invitations/create', 'InvitationController@create');
+    Router::post('/invitations', 'InvitationController@store');
+    Router::get('/invitations/{id}', 'InvitationController@show');
+    Router::post('/invitations/{id}/delete', 'InvitationController@delete');
 });
 

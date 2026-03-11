@@ -887,4 +887,172 @@ Be lenient with genuine reviews. Only flag clearly problematic content.";
             'confidence' => (float)($parsed['confidence'] ?? 0.8),
         ];
     }
+
+    /**
+     * Generate an invitation card HTML using OpenAI
+     * 
+     * @param int $userId The user creating the invitation
+     * @param array $details Invitation details (occasion_type, occasion_title, event_date, venue, host_name, message, additional_details)
+     * @return array ['success' => bool, 'html' => string, 'request_id' => int]
+     */
+    public function generateInvitationCard(int $userId, array $details): array
+    {
+        $occasionType = $details['occasion_type'] ?? 'Celebration';
+        $occasionTitle = $details['occasion_title'] ?? 'You are Invited!';
+        $eventDate = $details['event_date'] ?? '';
+        $venue = $details['venue'] ?? '';
+        $googleMapsLink = $details['google_maps_link'] ?? '';
+        $hostName = $details['host_name'] ?? '';
+        $message = $details['message'] ?? '';
+        $additionalDetails = $details['additional_details'] ?? '';
+
+        $prompt = "Generate a complete, self-contained HTML page for a stunning, premium invitation card. The page must be a single HTML file with all CSS and JavaScript inline (no external dependencies except Google Font CDNs).
+
+INVITATION DETAILS:
+- Occasion Type: {$occasionType}
+- Title: {$occasionTitle}
+- Event Date: {$eventDate}
+- Venue: {$venue}
+- Google Maps Link: {$googleMapsLink}
+- Host: {$hostName}
+- Personal Message: {$message}
+- Additional Details: {$additionalDetails}
+
+CRITICAL DESIGN & TECHNICAL REQUIREMENTS:
+1. FULLSCREEN & IMMERSIVE: The HTML body must be strictly `height: 100vh; width: 100vw; overflow: hidden; margin: 0; padding: 0;`. The entire card should be a beautifully animated, full-screen experience that fills the user's device whether on mobile or desktop.
+2. NO EXTERNAL FILES: Use inline <style> and <script> tags only.
+3. DYNAMIC NAME: Include the exact string `{GUEST_NAME}` as a placeholder wherever the guest's name should appear (e.g., 'Dear {GUEST_NAME},'). We will replace this in PHP.
+4. PREMIUM AESTHETICS & COLOURS (JAW-DROPPING FACTOR):
+   - YOU MUST USE Google Fonts. Import and use 'Great Vibes' or 'Playfair Display' for the enormous, elegant title and names. Import and use 'Montserrat' or 'Lora' for the readable body text.
+   - PERFECT ALIGNMENT: The entire invitation content MUST be perfectly center-aligned (`text-align: center`, `flex-direction: column`, `align-items: center`, `justify-content: center`). It should look symmetrical and balanced like a real printed card.
+   - Use ultra-premium, modern web design techniques: smooth multi-stop CSS gradients, glassmorphism (backdrop-filter: blur, semi-transparent borders), soft glowing shadows, and generous spacing/line-height.
+   - The design MUST feature a breathtaking, rich color combination based exactly on the Occasion Type: (e.g., Deep emerald/gold for luxurious weddings; Vibrant 3D neon gradients for birthdays; Soft peach/rose gold for baby showers; Warm terracotta/copper for housewarming).
+   - Use high-quality CSS-drawn geometric shapes, rich SVG patterns, or gorgeous blending modes for the background.
+5. ADVANCED 3D OCCASION-SPECIFIC ANIMATIONS:
+   - YOU MUST INCLUDE 3D CSS ANIMATIONS (`perspective`, `transform-style: preserve-3d`, `rotateX`, `rotateY`, `translateZ`).
+   - The main invitation card should have a 3D entrance animation (e.g., flipping in, or slightly rotating on moving mouse/hover) to feel like a real physical premium card in a 3D space.
+   - The background animation MUST match the occasion perfectly and have depth (different sizes moving at different speeds to create parallax).
+   - For Weddings/Anniversaries: Slowly falling 3D rose petals, glowing embers, or gentle sparkling bokeh lights.
+   - For Birthdays: Explosive 3D CSS fireworks, 3D floating balloons, or falling confetti with rotation.
+   - For Housewarming/Pujas: Glowing diyas (lamps), soft divine rays of light, or marigold flower garlands swaying in 3D perspective.
+   - For Baby Showers: Floating 3D bubbles with iridescent gradients or soft twinkling stars.
+   - Staggered and smooth entrance animations (fade-in-up, scale-in) for the text elements using CSS @keyframes.
+   - Interactive elements (e.g., an animated envelope opening at the start, or subtle hover effects on the card).
+6. EXPERT COPYWRITING & CONTENT PRESENTATION (CRITICAL):
+   - DO NOT just spit back the raw input data format (e.g., do not just output 'Date: March 10' or 'Host: Sanchit').
+   - You MUST act as an expert invitation copywriter and elegantly expand the raw details into a beautiful, flowing, and emotional invitation message.
+   - For example, instead of 'Host: Sanchit', write 'Sanchit cordially invites you to celebrate...'. 
+   - Instead of 'Venue: Nashik', write 'Please join us at our beautiful venue in Nashik...'.
+   - Weave the personal message naturally into the flow of the invitation card.
+   - PERFECT ALIGNMENT & STRUCTURE: The layout must be immaculate. Use CSS Flexbox or Grid to create a perfectly symmetrical, center-aligned hierarchy (`display: flex; flex-direction: column; align-items: center; justify-content: center`). Elements must be perfectly spaced and never touch the edges.
+   - Enormous, beautiful stylized title using the script font ('Great Vibes' or similar).
+   - DATE & VENUE HIGHLIGHT BOXES: You MUST prominently display BOTH the Event Date (`{$eventDate}`) AND the Venue (`{$venue}`). Do not bury them in the paragraph. Create beautiful, structurally aligned highlight boxes (e.g., glassmorphism cards with subtle borders) or elegant ribbons to display the Date and Venue. They must stand out immediately to the guest as the most important information.
+   - VENUE & MAPS RULE: Inside or directly below the beautifully highlighted Venue box, IF a Google Maps Link is provided (`{$googleMapsLink}`), you MUST create a premium 'Get Directions' button that opens that exact URL.
+   - Ensure plenty of breathing room (padding and margin) between the different sections (Who, When, Where).
+   - An elegant, subtle footer permanently fixed at the bottom reading: 'Created with ♥ by Sanskar AI'.
+   - ZERO SCROLLING: The core content must fit perfectly within the viewport and scale down elegantly for smaller mobile screens using Flexbox/Grid and responsive relative units (vh, vw, rem, %).
+
+OUTPUT: Return ONLY the raw HTML code. Do NOT wrap it in markdown blockquotes like ```html. Start exactly with <!DOCTYPE html> and end with </html>.";
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'invitation_generation', $prompt, $details);
+
+        try {
+            $startTime = microtime(true);
+
+            if (empty($this->apiKey)) {
+                throw new \Exception('OpenAI API key not configured. Please set AI_API_KEY in .env file.');
+            }
+
+            $systemPrompt = "You are an expert web designer specializing in creating beautiful, premium digital invitation cards. You generate complete, self-contained HTML pages with stunning visual designs. Always respond with ONLY the HTML code, no explanations or markdown formatting.";
+
+            $data = [
+                'model' => $this->model,
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'temperature' => 0.8,
+                'max_tokens' => 8000,
+            ];
+
+            set_time_limit(120);
+
+            $ch = curl_init('https://api.openai.com/v1/chat/completions');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: application/json',
+                    'Authorization: Bearer ' . $this->apiKey,
+                ],
+                CURLOPT_POSTFIELDS => json_encode($data),
+                CURLOPT_TIMEOUT => 120,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($error) {
+                throw new \Exception("cURL Error: $error");
+            }
+
+            if ($httpCode !== 200) {
+                $errorData = json_decode($response, true);
+                $errorMessage = $errorData['error']['message'] ?? "HTTP Error: $httpCode";
+                throw new \Exception("OpenAI API Error: $errorMessage");
+            }
+
+            $result = json_decode($response, true);
+
+            if (!isset($result['choices'][0]['message']['content'])) {
+                throw new \Exception('Invalid response from OpenAI API');
+            }
+
+            $html = $result['choices'][0]['message']['content'];
+            $tokensUsed = $result['usage']['total_tokens'] ?? 0;
+            $processingTime = (int) ((microtime(true) - $startTime) * 1000);
+
+            // Clean up the response — remove markdown code fences if present
+            $html = trim($html);
+            if (str_starts_with($html, '```html')) {
+                $html = substr($html, 7);
+            } elseif (str_starts_with($html, '```')) {
+                $html = substr($html, 3);
+            }
+            if (str_ends_with($html, '```')) {
+                $html = substr($html, 0, -3);
+            }
+            $html = trim($html);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $html, [
+                'tokens_used' => $tokensUsed,
+                'processing_time_ms' => $processingTime,
+            ]);
+
+            $this->aiRequestModel->log('info', 'invitation_generation_complete', 'Invitation card generated successfully', [
+                'occasion_type' => $occasionType,
+                'tokens_used' => $tokensUsed,
+            ], $requestId);
+
+            return [
+                'success' => true,
+                'html' => $html,
+                'request_id' => $requestId,
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+            $this->aiRequestModel->log('error', 'invitation_generation_failed', $e->getMessage(), [], $requestId);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
 }
