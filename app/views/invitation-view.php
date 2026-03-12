@@ -279,8 +279,19 @@
                     guestName = 'Honoured Guest';
                 }
 
-                // Replace placeholder with actual name
-                const personalizedHtml = rawHtml.replace(/\{GUEST_NAME\}/g, guestName);
+                // Replace placeholder with actual name - handle all possible variants
+                let personalizedHtml = rawHtml;
+                // Exact match
+                personalizedHtml = personalizedHtml.replace(/\{GUEST_NAME\}/g, guestName);
+                // HTML-encoded curly braces
+                personalizedHtml = personalizedHtml.replace(/\&#123;GUEST_NAME\&#125;/g, guestName);
+                personalizedHtml = personalizedHtml.replace(/&lcub;GUEST_NAME&rcub;/g, guestName);
+                // URL-encoded
+                personalizedHtml = personalizedHtml.replace(/%7BGUEST_NAME%7D/g, guestName);
+                // With spaces around
+                personalizedHtml = personalizedHtml.replace(/\{\s*GUEST_NAME\s*\}/g, guestName);
+                // Case insensitive fallback
+                personalizedHtml = personalizedHtml.replace(/\{guest_name\}/gi, guestName);
 
                 // Show the invitation
                 const display = document.getElementById('invitationDisplay');

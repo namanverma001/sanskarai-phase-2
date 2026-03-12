@@ -921,7 +921,11 @@ INVITATION DETAILS:
 CRITICAL DESIGN & TECHNICAL REQUIREMENTS:
 1. FULLSCREEN & IMMERSIVE: The HTML body must be strictly `height: 100vh; width: 100vw; overflow: hidden; margin: 0; padding: 0;`. The entire card should be a beautifully animated, full-screen experience that fills the user's device whether on mobile or desktop.
 2. NO EXTERNAL FILES: Use inline <style> and <script> tags only.
-3. DYNAMIC NAME: Include the exact string `{GUEST_NAME}` as a placeholder wherever the guest's name should appear (e.g., 'Dear {GUEST_NAME},'). We will replace this in PHP.
+3. DYNAMIC NAME (EXTREMELY IMPORTANT — DO NOT SKIP):
+   - You ABSOLUTELY MUST include the literal text {GUEST_NAME} (with curly braces, exactly as shown) in the HTML output.
+   - Use it in a greeting like: <h2>Dear {GUEST_NAME},</h2> or <p>Dear {GUEST_NAME},</p>
+   - Do NOT write 'Dear Guest' or 'Dear Friend' — you MUST write 'Dear {GUEST_NAME},' so we can replace it dynamically.
+   - The {GUEST_NAME} placeholder must appear prominently in the visible text of the invitation, not hidden or in comments.
 4. PREMIUM AESTHETICS & COLOURS (JAW-DROPPING FACTOR):
    - YOU MUST USE Google Fonts. Import and use 'Great Vibes' or 'Playfair Display' for the enormous, elegant title and names. Import and use 'Montserrat' or 'Lora' for the readable body text.
    - PERFECT ALIGNMENT: The entire invitation content MUST be perfectly center-aligned (`text-align: center`, `flex-direction: column`, `align-items: center`, `justify-content: center`). It should look symmetrical and balanced like a real printed card.
@@ -1039,6 +1043,32 @@ OUTPUT: Return ONLY the raw HTML code. Do NOT wrap it in markdown blockquotes li
                 $html = substr($html, 0, -3);
             }
             $html = trim($html);
+
+            // SAFETY NET: If AI didn't include {GUEST_NAME}, force-inject it
+            if (stripos($html, '{GUEST_NAME}') === false) {
+                // Try to replace common AI-generated greetings with our placeholder
+                $patterns = [
+                    '/Dear\s+Honou?red\s+Guest/i',
+                    '/Dear\s+Esteemed\s+Guest/i',
+                    '/Dear\s+Beloved\s+Guest/i',
+                    '/Dear\s+Special\s+Guest/i',
+                    '/Dear\s+Valued\s+Guest/i',
+                    '/Dear\s+Guest/i',
+                    '/Dear\s+Friend/i',
+                ];
+                $replaced = false;
+                foreach ($patterns as $pattern) {
+                    if (preg_match($pattern, $html)) {
+                        $html = preg_replace($pattern, 'Dear {GUEST_NAME}', $html, 1);
+                        $replaced = true;
+                        break;
+                    }
+                }
+                // If still no match, try to inject after the first <body> tag content
+                if (!$replaced && stripos($html, '<body') !== false) {
+                    $html = preg_replace('/(<body[^>]*>)/i', '$1<div style="display:none" id="guest-placeholder">{GUEST_NAME}</div>', $html, 1);
+                }
+            }
 
             $this->aiRequestModel->updateWithResponse($requestId, $html, [
                 'tokens_used' => $tokensUsed,
