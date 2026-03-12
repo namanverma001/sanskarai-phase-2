@@ -10,17 +10,20 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Auth;
 use App\Models\Invitation;
+use App\Models\UserRitual;
 use App\Services\AIService;
 
 class InvitationController extends Controller
 {
     private Invitation $invitationModel;
+    private UserRitual $userRitualModel;
     private AIService $aiService;
 
     public function __construct()
     {
         parent::__construct();
         $this->invitationModel = new Invitation();
+        $this->userRitualModel = new UserRitual();
         $this->aiService = new AIService();
     }
 
@@ -53,10 +56,14 @@ class InvitationController extends Controller
     public function create()
     {
         $user = Auth::user();
+        
+        // Fetch user's rituals for the occasion type dropdown
+        $userRituals = $this->userRitualModel->getByUser($user['id']);
 
         $this->viewWithLayout('user/invitation-create', 'layouts/user', [
             'title' => 'Create Invitation',
             'user' => $user,
+            'userRituals' => $userRituals,
         ]);
     }
 

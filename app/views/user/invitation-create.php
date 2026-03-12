@@ -26,19 +26,33 @@
                 <label for="occasion_type"><i class="fas fa-star" style="color: var(--primary);"></i> Occasion Type <span style="color: red;">*</span></label>
                 <select name="occasion_type" id="occasion_type" class="form-control" required>
                     <option value="">Select Occasion</option>
-                    <option value="Wedding">💒 Wedding</option>
-                    <option value="Birthday">🎂 Birthday</option>
-                    <option value="Housewarming">🏠 Housewarming (Griha Pravesh)</option>
-                    <option value="Engagement">💍 Engagement</option>
-                    <option value="Anniversary">🎊 Anniversary</option>
-                    <option value="Baby Shower">👶 Baby Shower</option>
-                    <option value="Festival">🪔 Festival Celebration</option>
-                    <option value="Puja">🙏 Puja / Religious Ceremony</option>
-                    <option value="Naming Ceremony">📝 Naming Ceremony</option>
-                    <option value="Graduation">🎓 Graduation</option>
-                    <option value="Retirement">🏖️ Retirement</option>
-                    <option value="Corporate Event">🏢 Corporate Event</option>
-                    <option value="Other">✨ Other</option>
+                    
+                    <?php if (!empty($userRituals)): ?>
+                        <optgroup label="🙏 My Rituals">
+                            <?php foreach ($userRituals as $ritual): ?>
+                                <option value="<?= htmlspecialchars($ritual['name']) ?>">
+                                    🕉️ <?= htmlspecialchars($ritual['name']) ?>
+                                    <?= !empty($ritual['category']) ? ' (' . htmlspecialchars($ritual['category']) . ')' : '' ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endif; ?>
+
+                    <optgroup label="🎉 Common Occasions">
+                        <option value="Wedding">💒 Wedding</option>
+                        <option value="Birthday">🎂 Birthday</option>
+                        <option value="Housewarming">🏠 Housewarming (Griha Pravesh)</option>
+                        <option value="Engagement">💍 Engagement</option>
+                        <option value="Anniversary">🎊 Anniversary</option>
+                        <option value="Baby Shower">👶 Baby Shower</option>
+                        <option value="Festival">🪔 Festival Celebration</option>
+                        <option value="Puja">🙏 Puja / Religious Ceremony</option>
+                        <option value="Naming Ceremony">📝 Naming Ceremony</option>
+                        <option value="Graduation">🎓 Graduation</option>
+                        <option value="Retirement">🏖️ Retirement</option>
+                        <option value="Corporate Event">🏢 Corporate Event</option>
+                        <option value="Other">✨ Other</option>
+                    </optgroup>
                 </select>
             </div>
 

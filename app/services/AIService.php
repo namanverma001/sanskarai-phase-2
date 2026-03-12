@@ -928,19 +928,25 @@ CRITICAL DESIGN & TECHNICAL REQUIREMENTS:
    - Use ultra-premium, modern web design techniques: smooth multi-stop CSS gradients, glassmorphism (backdrop-filter: blur, semi-transparent borders), soft glowing shadows, and generous spacing/line-height.
    - The design MUST feature a breathtaking, rich color combination based exactly on the Occasion Type: (e.g., Deep emerald/gold for luxurious weddings; Vibrant 3D neon gradients for birthdays; Soft peach/rose gold for baby showers; Warm terracotta/copper for housewarming).
    - Use high-quality CSS-drawn geometric shapes, rich SVG patterns, or gorgeous blending modes for the background.
-5. ADVANCED 3D OCCASION-SPECIFIC ANIMATIONS:
-   - YOU MUST INCLUDE 3D CSS ANIMATIONS (`perspective`, `transform-style: preserve-3d`, `rotateX`, `rotateY`, `translateZ`).
-   - The main invitation card should have a 3D entrance animation (e.g., flipping in, or slightly rotating on moving mouse/hover) to feel like a real physical premium card in a 3D space.
-   - The background animation MUST match the occasion perfectly and have depth (different sizes moving at different speeds to create parallax).
-   - For Weddings/Anniversaries: Slowly falling 3D rose petals, glowing embers, or gentle sparkling bokeh lights.
-   - For Birthdays: Explosive 3D CSS fireworks, 3D floating balloons, or falling confetti with rotation.
-   - For Housewarming/Pujas: Glowing diyas (lamps), soft divine rays of light, or marigold flower garlands swaying in 3D perspective.
-   - For Baby Showers: Floating 3D bubbles with iridescent gradients or soft twinkling stars.
+5. 3D CSS OBJECTS & OCCASION-SPECIFIC DECORATIONS:
+   - YOU MUST CREATE actual 3D CSS objects using `perspective`, `transform-style: preserve-3d`, `rotateX`, `rotateY`, `rotateZ`, and `translateZ` — NOT just flat elements with 3D animations.
+   - Build real geometric 3D shapes (cubes, rings, spheres, pyramids) out of multiple CSS divs assembled in 3D space, and give them a slow, elegant continuous rotation.
+   - VISIBILITY IS CRITICAL: The 3D object MUST be clearly visible. It must have a HIGH `z-index` (e.g., z-index: 50), must NOT be inside any container that has `backdrop-filter: blur` or `overflow: hidden`, and must use bright, solid, occasion-matching colors with `box-shadow` glow so it pops out visually.
+   - 3D OBJECT COLOR must match the occasion: Gold/Crimson for weddings, Bright rainbow/neon for birthdays, Saffron/Orange for pujas, Soft Pink for baby showers, Rose Gold for engagement.
+   - The 3D object MUST match the occasion:
+     - For Weddings/Anniversaries: A 3D rotating wedding ring (torus shape using multiple thin divs arranged in a circle in 3D space) or a 3D heart — in GOLD color.
+     - For Birthdays: A 3D rotating birthday cake (stacked cylinders) or a 3D gift box (cube with ribbon) — in BRIGHT NEON colors.
+     - For Housewarming/Pujas/Festivals: A 3D rotating Kalash (pot shape built from CSS), or a 3D diya (lamp) with a glowing CSS flame — in SAFFRON/ORANGE.
+     - For Baby Showers: A 3D rotating baby cradle, or a 3D rattle — in SOFT PINK/LAVENDER.
+     - For Engagement: A 3D rotating diamond ring — in ROSE GOLD/PLATINUM.
+   - Place the 3D object elegantly as a decorative element (top-right corner, or beside the title) — it must NOT overlap or block the text.
+   - Additionally, add subtle background particles (falling petals, confetti, sparkles, bubbles) appropriate for the occasion using CSS @keyframes.
+   - Always add subtle ritual-specific decorative elements (e.g., Om symbol, rangoli patterns for Hindu events; floral arches for weddings; balloons for birthdays).
    - Staggered and smooth entrance animations (fade-in-up, scale-in) for the text elements using CSS @keyframes.
-   - Interactive elements (e.g., an animated envelope opening at the start, or subtle hover effects on the card).
 6. EXPERT COPYWRITING & CONTENT PRESENTATION (CRITICAL):
    - DO NOT just spit back the raw input data format (e.g., do not just output 'Date: March 10' or 'Host: Sanchit').
    - You MUST act as an expert invitation copywriter and elegantly expand the raw details into a beautiful, flowing, and emotional invitation message.
+   - EVEN IF the user provides very little information, YOU MUST still generate a rich, warm, and heartfelt greeting. Fill in beautiful, occasion-appropriate language. For example, if only the host name and occasion type are given, write an elaborate, emotional paragraph like: 'With hearts brimming with joy and gratitude, [Host] warmly invites you to grace this auspicious occasion with your presence and blessings. Your presence would make this celebration truly special and memorable.'
    - For example, instead of 'Host: Sanchit', write 'Sanchit cordially invites you to celebrate...'. 
    - Instead of 'Venue: Nashik', write 'Please join us at our beautiful venue in Nashik...'.
    - Weave the personal message naturally into the flow of the invitation card.
@@ -951,6 +957,11 @@ CRITICAL DESIGN & TECHNICAL REQUIREMENTS:
    - Ensure plenty of breathing room (padding and margin) between the different sections (Who, When, Where).
    - An elegant, subtle footer permanently fixed at the bottom reading: 'Created with ♥ by Sanskar AI'.
    - ZERO SCROLLING: The core content must fit perfectly within the viewport and scale down elegantly for smaller mobile screens using Flexbox/Grid and responsive relative units (vh, vw, rem, %).
+7. SANSKAR AI BRANDING (MANDATORY — BOTTOM ONLY):
+   - DO NOT add any diagonal watermark or background overlay.
+   - You MUST ONLY add a small, elegant footer bar permanently fixed at the very bottom of the page.
+   - The footer should read: 'Powered by SanskarAI' in a subtle, small font (e.g., 10px Montserrat), semi-transparent (opacity: 0.5), center-aligned.
+   - Style it with `position: fixed; bottom: 0; width: 100%; text-align: center; padding: 6px 0; z-index: 999;` and a very subtle background that blends with the card design.
 
 OUTPUT: Return ONLY the raw HTML code. Do NOT wrap it in markdown blockquotes like ```html. Start exactly with <!DOCTYPE html> and end with </html>.";
 
