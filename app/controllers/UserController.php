@@ -23,6 +23,7 @@ use App\Models\Vendor;
 use App\Models\Review;
 use App\Models\AIRitualFeedback;
 use App\Services\AIService;
+use App\Services\MailService;
 use App\Config\Database;
 
 class UserController extends Controller
@@ -38,6 +39,7 @@ class UserController extends Controller
     private AIService $aiService;
     private Vendor $vendorModel;
     private Review $reviewModel;
+    private MailService $mailService;
 
     public function __construct()
     {
@@ -54,6 +56,7 @@ class UserController extends Controller
         $this->vendorModel = new Vendor();
         $this->reviewModel = new Review();
         $this->vendorModel = new Vendor();
+        $this->mailService = new MailService();
     }
 
     public function dashboard(): void
@@ -1242,6 +1245,29 @@ class UserController extends Controller
         ];
         
         $this->assignmentModel->create($data);
+
+        // Send booking notification email to the pandit
+        try {
+            $pandit = (new User())->getPanditProfile((int) $panditId);
+            $booker = (new User())->find(Auth::id());
+
+            if ($pandit && !empty($pandit['email']) && $booker) {
+                $ritualName = null;
+                if (!empty($ritualId)) {
+                    $ritual = $this->ritualModel->find((int) $ritualId);
+                    $ritualName = $ritual['name'] ?? null;
+                }
+                $this->mailService->sendPanditBookingNotification(
+                    $pandit['email'],
+                    $pandit['name'],
+                    array_merge($data, ['ritual_name' => $ritualName]),
+                    $booker
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log('Booking notification email failed: ' . $e->getMessage());
+        }
+
         $this->redirect('/user/bookings', ['success' => 'Booking request sent successfully! The pandit will review your request.']);
     }
 
