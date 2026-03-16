@@ -1106,6 +1106,244 @@ try {
         }
     }
 
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_ai_ritual_feedback table
+    // (from add_ai_feedback_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_ai_ritual_feedback...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_ai_ritual_feedback (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                ritual_name VARCHAR(200) NOT NULL,
+                community_name VARCHAR(150) NULL,
+                religion VARCHAR(100) NULL,
+                generation_session_id VARCHAR(64) NOT NULL,
+                round_number INT NOT NULL DEFAULT 1,
+                ai_response JSON NULL,
+                user_feedback TEXT NULL,
+                feedback_type ENUM('accepted', 'rejected', 'refined') NOT NULL DEFAULT 'refined',
+                search_criteria JSON NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE,
+
+                INDEX idx_user_id (user_id),
+                INDEX idx_ritual_name (ritual_name),
+                INDEX idx_session_id (generation_session_id),
+                INDEX idx_feedback_type (feedback_type),
+                INDEX idx_community (community_name),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_ai_ritual_feedback created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_ai_ritual_feedback: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add updated_at to SAI_ai_ritual_feedback
+    // (from fix_feedback_table.php)
+    // ============================================================
+    echo "\n      Adding updated_at to SAI_ai_ritual_feedback...\n";
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM SAI_ai_ritual_feedback LIKE 'updated_at'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE SAI_ai_ritual_feedback ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at");
+            echo "      ✓ 'updated_at' added to SAI_ai_ritual_feedback\n";
+        } else {
+            echo "      - 'updated_at' already exists in SAI_ai_ritual_feedback\n";
+        }
+    } catch (\Exception $e) {
+        echo "      ! Could not add updated_at: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_invitations table
+    // (from add_invitations_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_invitations...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_invitations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                share_token VARCHAR(64) NOT NULL UNIQUE,
+                occasion_type VARCHAR(100) NOT NULL,
+                occasion_title VARCHAR(200) NOT NULL,
+                event_date DATETIME NULL,
+                venue VARCHAR(300) NULL,
+                host_name VARCHAR(150) NOT NULL,
+                message TEXT NULL,
+                additional_details TEXT NULL,
+                generated_html MEDIUMTEXT NOT NULL,
+                ai_request_id INT NULL,
+                expires_at DATETIME NOT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
+                view_count INT DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (ai_request_id) REFERENCES SAI_ai_requests(id) ON DELETE SET NULL,
+
+                INDEX idx_user_id (user_id),
+                INDEX idx_share_token (share_token),
+                INDEX idx_expires_at (expires_at),
+                INDEX idx_is_active (is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_invitations created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_invitations: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_reviews table
+    // (from create_reviews_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_reviews...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_reviews (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                reviewer_id INT NOT NULL,
+                target_type ENUM('pandit', 'vendor') NOT NULL,
+                target_id INT NOT NULL,
+                assignment_id INT NULL,
+                order_id INT NULL,
+
+                -- Overall rating (required for both)
+                rating_overall TINYINT UNSIGNED NOT NULL CHECK (rating_overall BETWEEN 1 AND 5),
+
+                -- Pandit-specific ratings (NULL for vendor reviews)
+                punctuality TINYINT UNSIGNED NULL CHECK (punctuality IS NULL OR punctuality BETWEEN 1 AND 5),
+                knowledge TINYINT UNSIGNED NULL CHECK (knowledge IS NULL OR knowledge BETWEEN 1 AND 5),
+                behavior TINYINT UNSIGNED NULL CHECK (behavior IS NULL OR behavior BETWEEN 1 AND 5),
+                clarity TINYINT UNSIGNED NULL CHECK (clarity IS NULL OR clarity BETWEEN 1 AND 5),
+
+                -- Vendor-specific ratings (NULL for pandit reviews)
+                item_quality TINYINT UNSIGNED NULL CHECK (item_quality IS NULL OR item_quality BETWEEN 1 AND 5),
+                delivery_time TINYINT UNSIGNED NULL CHECK (delivery_time IS NULL OR delivery_time BETWEEN 1 AND 5),
+                packaging TINYINT UNSIGNED NULL CHECK (packaging IS NULL OR packaging BETWEEN 1 AND 5),
+                value_for_money TINYINT UNSIGNED NULL CHECK (value_for_money IS NULL OR value_for_money BETWEEN 1 AND 5),
+
+                -- Review text
+                review_text TEXT NULL,
+
+                -- Moderation
+                ai_flag TINYINT(1) DEFAULT 0 COMMENT 'AI flagged for review',
+                ai_moderation_reason VARCHAR(255) NULL,
+                status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+                rejection_reason VARCHAR(255) NULL,
+                moderated_by INT NULL,
+                moderated_at DATETIME NULL,
+
+                -- Timestamps
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                -- Foreign keys
+                FOREIGN KEY (reviewer_id) REFERENCES SAI_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (assignment_id) REFERENCES SAI_pandit_assignments(id) ON DELETE SET NULL,
+                FOREIGN KEY (order_id) REFERENCES SAI_orders(id) ON DELETE SET NULL,
+                FOREIGN KEY (moderated_by) REFERENCES SAI_users(id) ON DELETE SET NULL,
+
+                -- Indexes
+                INDEX idx_reviewer (reviewer_id),
+                INDEX idx_target (target_type, target_id),
+                INDEX idx_assignment (assignment_id),
+                INDEX idx_order (order_id),
+                INDEX idx_status (status),
+                INDEX idx_rating (rating_overall),
+                INDEX idx_created (created_at),
+
+                -- Prevent duplicate reviews
+                UNIQUE KEY unique_assignment_review (assignment_id),
+                UNIQUE KEY unique_order_review (order_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_reviews created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_reviews: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add trust_badges to SAI_pandit_profiles
+    // (from create_reviews_table.php)
+    // ============================================================
+    echo "\n      Adding trust_badges to SAI_pandit_profiles...\n";
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM SAI_pandit_profiles LIKE 'trust_badges'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("
+                ALTER TABLE SAI_pandit_profiles 
+                ADD COLUMN trust_badges JSON NULL COMMENT 'Array of earned trust badges',
+                ADD COLUMN positive_review_percentage DECIMAL(5,2) DEFAULT 0.00,
+                ADD COLUMN is_documents_verified TINYINT(1) DEFAULT 0
+            ");
+            echo "      ✓ trust_badges columns added to SAI_pandit_profiles\n";
+        } else {
+            echo "      - trust_badges already exists in SAI_pandit_profiles\n";
+        }
+    } catch (\Exception $e) {
+        echo "      ! Could not add trust_badges to pandit_profiles: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add trust_badges to SAI_vendors
+    // (from create_reviews_table.php)
+    // ============================================================
+    echo "\n      Adding trust_badges to SAI_vendors...\n";
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM SAI_vendors LIKE 'trust_badges'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("
+                ALTER TABLE SAI_vendors 
+                ADD COLUMN trust_badges JSON NULL COMMENT 'Array of earned trust badges',
+                ADD COLUMN positive_review_percentage DECIMAL(5,2) DEFAULT 0.00
+            ");
+            echo "      ✓ trust_badges columns added to SAI_vendors\n";
+        } else {
+            echo "      - trust_badges already exists in SAI_vendors\n";
+        }
+    } catch (\Exception $e) {
+        echo "      ! Could not add trust_badges to vendors: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_review_notifications table
+    // (from create_reviews_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_review_notifications...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_review_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                target_type ENUM('pandit', 'vendor') NOT NULL,
+                target_id INT NOT NULL,
+                assignment_id INT NULL,
+                order_id INT NULL,
+                notification_text VARCHAR(255) NOT NULL,
+                is_read TINYINT(1) DEFAULT 0,
+                is_reviewed TINYINT(1) DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME NULL,
+
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE,
+                INDEX idx_user (user_id),
+                INDEX idx_read (is_read),
+                INDEX idx_reviewed (is_reviewed)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_review_notifications created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_review_notifications: " . $e->getMessage() . "\n";
+    }
+
     echo "\n[3/3] Verifying tables...\n";
 
     // Verify all tables exist
@@ -1137,6 +1375,10 @@ try {
         'SAI_password_resets',
         'SAI_vendors',
         'SAI_ritual_embeddings',
+        'SAI_ai_ritual_feedback',
+        'SAI_invitations',
+        'SAI_reviews',
+        'SAI_review_notifications',
     ];
 
     $pdo->exec("USE SAI");
@@ -1159,7 +1401,7 @@ try {
     echo "\n==============================================\n";
     if ($allExist) {
         echo "  ✓ Migration completed successfully!\n";
-        echo "  ✓ All 27 tables created with constraints\n";
+        echo "  ✓ All 31 tables created with constraints\n";
     } else {
         echo "  ✗ Migration completed with errors!\n";
     }
