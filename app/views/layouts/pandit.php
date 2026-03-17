@@ -1115,6 +1115,10 @@ $roleDisplay = match ($userRole) {
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/pandit/custom-rituals') !== false ? 'active' : '' ?>">
                         <i class="fas fa-check-double"></i> <span>Validate Rituals</span>
                     </a>
+                    <a href="/pandit/mohurat-requests"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/pandit/mohurat-requests') !== false ? 'active' : '' ?>">
+                        <i class="fas fa-moon"></i> <span>Muhurat Requests</span>
+                    </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Account</div>

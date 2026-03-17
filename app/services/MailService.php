@@ -227,6 +227,12 @@ HTML;
         $localDomain = $_SERVER['SERVER_NAME'] ?? (gethostname() ?: 'localhost');
         $timeout    = 30;
 
+        // ── Pre-flight: OpenSSL required for STARTTLS ──
+        if (!extension_loaded('openssl')) {
+            error_log('MailService SMTP: PHP openssl extension is not loaded – cannot use TLS');
+            return false;
+        }
+
         // ── Open plain TCP connection (STARTTLS upgrades it later) ──
         $socket = @stream_socket_client(
             "tcp://{$host}:{$port}",

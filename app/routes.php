@@ -140,6 +140,10 @@ Router::group(['prefix' => 'pandit', 'middleware' => ['pandit']], function () {
     Router::post('/assignments/{id}/ritual/steps', 'PanditController@addClientRitualStep');
     Router::post('/client-ritual-steps/{id}/update', 'PanditController@updateClientRitualStep');
     Router::post('/client-ritual-steps/{id}/delete', 'PanditController@deleteClientRitualStep');
+
+    // Mohurat Requests
+    Router::get('/mohurat-requests', 'PanditController@mohuratRequests', [], 'pandit.mohurat');
+    Router::post('/mohurat-requests/{id}/reply', 'PanditController@replyMohuratRequest');
 });
 
 // ============================================================
@@ -257,5 +261,15 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::post('/invitations', 'InvitationController@store');
     Router::get('/invitations/{id}', 'InvitationController@show');
     Router::post('/invitations/{id}/delete', 'InvitationController@delete');
+
+    // Mohurat Requests
+    Router::get('/mohurat-requests', 'UserController@mohuratRequests', [], 'user.mohurat');
+    Router::get('/mohurat-requests/create', 'UserController@requestMohuratForm');
+    Router::post('/mohurat-requests', 'UserController@submitMohuratRequest');
+    Router::post('/mohurat-requests/{id}/accept', 'UserController@acceptMohuratReply');
+    Router::post('/mohurat-requests/{id}/decline', 'UserController@declineMohuratReply');
+
+    // Plan Festival Ritual (AI-generated)
+    Router::post('/plan-festival-ritual', 'UserController@planFestivalRitual');
 });
 

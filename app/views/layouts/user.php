@@ -1118,6 +1118,11 @@ $roleDisplay = match ($userRole) {
                         title="My Bookings">
                         <i class="fas fa-calendar"></i> <span>My Bookings</span>
                     </a>
+                    <a href="/user/mohurat-requests"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/mohurat-requests') !== false ? 'active' : '' ?>"
+                        title="Muhurat">
+                        <i class="fas fa-moon"></i> <span>Muhurat</span>
+                    </a>
                     <a href="/user/shopping-list"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/shopping-list') !== false ? 'active' : '' ?>"
                         title="Shopping List">

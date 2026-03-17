@@ -22,7 +22,9 @@ use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\Review;
 use App\Models\AIRitualFeedback;
+use App\Models\MohuratRequest;
 use App\Services\AIService;
+use App\Services\CommunityFestivalService;
 use App\Services\MailService;
 use App\Config\Database;
 
@@ -62,12 +64,18 @@ class UserController extends Controller
     public function dashboard(): void
     {
         $userId = Auth::id();
+        $user = (new User())->find($userId);
         $family = $this->familyModel->getPrimaryFamily($userId);
         $assignments = $this->assignmentModel->getForUser($userId);
         $shoppingSummary = $this->shoppingListModel->getSummary($userId);
         $featuredRituals = $this->ritualModel->getFeatured();
         $featuredInsights = $this->insightModel->getFeatured(3);
         $myRituals = $this->userRitualModel->getByUser($userId);
+
+        // Community-based upcoming festivals
+        $communityName = trim($user['community_name'] ?? '');
+        $upcomingFestivals = CommunityFestivalService::getUpcomingForCommunity($communityName, 5);
+        $communityLabel = CommunityFestivalService::getCommunityLabel($communityName);
 
         $this->viewWithLayout('user/dashboard', 'layouts/user', [
             'title' => 'Dashboard - Sanskar AI',
@@ -77,6 +85,8 @@ class UserController extends Controller
             'featuredRituals' => $featuredRituals,
             'featuredInsights' => $featuredInsights,
             'myRituals' => array_slice($myRituals, 0, 3),
+            'upcomingFestivals' => $upcomingFestivals,
+            'communityLabel' => $communityLabel,
         ]);
     }
 
@@ -2154,6 +2164,193 @@ class UserController extends Controller
             'success' => true,
             'notifications' => $notifications,
             'count' => count($notifications),
+        ]);
+    }
+
+    // ============================================================
+    // MOHURAT REQUESTS
+    // ============================================================
+
+    /**
+     * Show mohurat request form
+     */
+    public function requestMohuratForm(): void
+    {
+        $userId = Auth::id();
+        $families = $this->familyModel->getByUserId($userId);
+        $pandits = (new User())->getApprovedPandits();
+
+        $this->viewWithLayout('user/mohurat-request-form', 'layouts/user', [
+            'title' => 'Request Muhurat',
+            'families' => $families,
+            'pandits' => $pandits,
+        ]);
+    }
+
+    /**
+     * Submit mohurat request
+     */
+    public function submitMohuratRequest(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+
+        $data = $this->only([
+            'ritual_type', 'country', 'city', 'preferred_month',
+            'gotra', 'nakshatra', 'time_preference', 'additional_notes', 'family_id', 'pandit_id'
+        ]);
+
+        if (empty($data['ritual_type'])) {
+            $this->back(['error' => 'Ritual type is required.']);
+            return;
+        }
+
+        if (empty($data['pandit_id'])) {
+            $this->back(['error' => 'Please select a pandit.']);
+            return;
+        }
+
+        $data['user_id'] = Auth::id();
+        $data['status'] = 'pending';
+
+        // If family selected, auto-fill gotra/nakshatra if not provided
+        if (!empty($data['family_id'])) {
+            $family = $this->familyModel->find((int) $data['family_id']);
+            if ($family && $family['user_id'] == Auth::id()) {
+                if (empty($data['gotra'])) $data['gotra'] = $family['gotra'] ?? null;
+                if (empty($data['nakshatra'])) $data['nakshatra'] = $family['nakshatra'] ?? null;
+            }
+        }
+
+        $mohuratModel = new MohuratRequest();
+        $mohuratModel->create($data);
+
+        $this->redirect('/user/mohurat-requests', ['success' => 'Muhurat request submitted! Pandits will respond with auspicious timings.']);
+    }
+
+    /**
+     * List user's mohurat requests
+     */
+    public function mohuratRequests(): void
+    {
+        $mohuratModel = new MohuratRequest();
+        $requests = $mohuratModel->getForUser(Auth::id());
+
+        $this->viewWithLayout('user/mohurat-requests', 'layouts/user', [
+            'title' => 'My Muhurat Requests',
+            'requests' => $requests,
+        ]);
+    }
+
+    /**
+     * Accept a mohurat reply - creates a booking
+     */
+    public function acceptMohuratReply(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+
+        $mohuratModel = new MohuratRequest();
+        $request = $mohuratModel->find((int) $id);
+
+        if (!$request || (int)$request['user_id'] !== Auth::id() || $request['status'] !== 'replied') {
+            $this->back(['error' => 'Invalid request.']);
+            return;
+        }
+
+        // Create a pandit assignment (booking)
+        $assignmentData = [
+            'pandit_id' => $request['replied_by'],
+            'user_id' => Auth::id(),
+            'scheduled_date' => $request['reply_date'],
+            'scheduled_time' => $request['reply_time'],
+            'booking_purpose' => 'Muhurat: ' . $request['ritual_type'],
+            'user_notes' => $request['additional_notes'],
+            'amount' => $request['consultation_fee'],
+            'status' => 'confirmed',
+        ];
+
+        $assignmentId = $this->assignmentModel->create($assignmentData);
+
+        // Update mohurat request
+        $mohuratModel->accept((int) $id, $assignmentId);
+
+        $this->redirect('/user/mohurat-requests', ['success' => 'Muhurat accepted! Booking has been created. Check your bookings for details.']);
+    }
+
+    /**
+     * Decline a mohurat reply
+     */
+    public function declineMohuratReply(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+
+        $mohuratModel = new MohuratRequest();
+        $request = $mohuratModel->find((int) $id);
+
+        if (!$request || (int)$request['user_id'] !== Auth::id() || $request['status'] !== 'replied') {
+            $this->back(['error' => 'Invalid request.']);
+            return;
+        }
+
+        $mohuratModel->decline((int) $id);
+        $this->redirect('/user/mohurat-requests', ['success' => 'Muhurat reply declined.']);
+    }
+
+    // ============================================================
+    // PLAN FESTIVAL RITUAL (AI-generated from community festivals)
+    // ============================================================
+
+    /**
+     * Generate an AI ritual for a festival and save to My Rituals
+     */
+    public function planFestivalRitual(): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+
+        $festivalName = trim($this->input('festival_name', ''));
+        if (empty($festivalName)) {
+            $this->back(['error' => 'Festival name is required.']);
+            return;
+        }
+
+        $userId = Auth::id();
+        $user = (new User())->find($userId);
+        $communityName = trim($user['community_name'] ?? 'Hindu');
+
+        // Build criteria for AI generation
+        $criteria = [
+            'ritual_name' => $festivalName,
+            'community_name' => $communityName,
+            'religion' => 'Hinduism',
+            'occasion' => $festivalName,
+            'additional_info' => "This is a {$communityName} tradition. Generate a detailed, authentic ritual guide for {$festivalName} as practiced in the {$communityName} community.",
+        ];
+
+        // Generate via AI
+        $result = $this->aiService->generateRitual($userId, $criteria);
+
+        if (!$result['success']) {
+            $this->redirect('/user/dashboard', ['error' => 'AI could not generate the ritual. Please try again later.']);
+            return;
+        }
+
+        // Save to My Rituals
+        $prompt = "Festival: {$festivalName} | Community: {$communityName}";
+        $userRitualId = $this->userRitualModel->createFromAI($userId, $result['ritual'], $prompt);
+
+        $this->redirect("/user/my-rituals/{$userRitualId}", [
+            'success' => "'{$festivalName}' ritual has been generated and saved to your collection!"
         ]);
     }
 }

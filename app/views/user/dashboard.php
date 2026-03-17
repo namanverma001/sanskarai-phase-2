@@ -21,6 +21,87 @@
     </div>
 </div>
 
+<?php if (!empty($upcomingFestivals)): ?>
+<div class="card" style="margin-bottom: 25px;">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-calendar-star" style="color: #F59E0B;"></i>
+            Upcoming Rituals For You
+            <span style="font-size: 0.75rem; font-weight: 400; color: #6B7280; margin-left: 8px;">
+                Based on <?= htmlspecialchars($communityLabel) ?> traditions
+            </span>
+        </h3>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+        <?php foreach ($upcomingFestivals as $festival): ?>
+        <?php
+            $festDate = strtotime($festival['date']);
+            $daysLeft = (int) ceil(($festDate - time()) / 86400);
+            $prepStart = $daysLeft - $festival['preparation_days'];
+            $isUrgent = $daysLeft <= 7;
+            $isPrepTime = $prepStart <= 0;
+        ?>
+        <div style="background: linear-gradient(135deg, <?= $isUrgent ? 'rgba(239,68,68,0.06), rgba(249,115,22,0.06)' : 'rgba(99,102,241,0.05), rgba(168,85,247,0.05)' ?>);
+             border: 1px solid <?= $isUrgent ? '#FCA5A5' : '#E5E7EB' ?>;
+             border-radius: 14px; padding: 20px; position: relative; transition: all 0.3s; overflow: hidden;">
+
+            <!-- Days badge -->
+            <div style="position: absolute; top: 14px; right: 14px;
+                 background: <?= $isUrgent ? 'linear-gradient(135deg, #EF4444, #F97316)' : 'linear-gradient(135deg, #6366F1, #8B5CF6)' ?>;
+                 color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600;">
+                <?php if ($daysLeft === 0): ?>Today!
+                <?php elseif ($daysLeft === 1): ?>Tomorrow
+                <?php else: ?><?= $daysLeft ?> days
+                <?php endif; ?>
+            </div>
+
+            <!-- Icon + Name -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <div style="width: 44px; height: 44px;
+                     background: <?= $isUrgent ? 'linear-gradient(135deg, #EF4444, #F97316)' : 'linear-gradient(135deg, #6366F1, #A855F7)' ?>;
+                     border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; flex-shrink: 0;">
+                    <i class="fas <?= $festival['icon'] ?>"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-size: 1rem; color: #1E1E2E;"><?= htmlspecialchars($festival['name']) ?></h4>
+                    <span style="font-size: 0.78rem; color: #6B7280;">
+                        <i class="fas fa-calendar-alt"></i> <?= date('D, M d, Y', $festDate) ?>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Significance -->
+            <p style="margin: 0 0 12px; font-size: 0.85rem; color: #4B5563; line-height: 1.5;">
+                <?= htmlspecialchars($festival['significance']) ?>
+            </p>
+
+            <!-- Prep timeline -->
+            <?php if ($isPrepTime): ?>
+            <div style="background: rgba(249,115,22,0.1); color: #C2410C; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fas fa-exclamation-circle"></i> Start preparing now!
+            </div>
+            <?php elseif ($festival['preparation_days'] > 0): ?>
+            <div style="background: rgba(99,102,241,0.08); color: #4338CA; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fas fa-clock"></i> Start preparing <?= $festival['preparation_days'] ?> day<?= $festival['preparation_days'] > 1 ? 's' : '' ?> before
+            </div>
+            <?php endif; ?>
+
+            <!-- Plan Ritual button -->
+            <form method="POST" action="/user/plan-festival-ritual" style="margin: 0;">
+                <?= \App\Core\Auth::csrfField() ?>
+                <input type="hidden" name="festival_name" value="<?= htmlspecialchars($festival['name']) ?>">
+                <button type="submit" class="btn btn-sm btn-primary" style="width: 100%; justify-content: center;"
+                    onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Generating...'; this.form.submit();">
+                    <i class="fas fa-magic"></i> Plan Ritual
+                </button>
+            </form>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="content-grid">
     <div>
         <div class="card">

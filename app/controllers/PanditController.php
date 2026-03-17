@@ -13,6 +13,7 @@ use App\Models\PanditProfile;
 use App\Models\Assignment;
 use App\Models\Ritual;
 use App\Models\CustomRitual;
+use App\Models\MohuratRequest;
 use App\Config\Database;
 
 class PanditController extends Controller
@@ -477,5 +478,57 @@ class PanditController extends Controller
 
         $userRitualModel->deleteStep((int) $id);
         $this->json(['success' => true]);
+    }
+
+    // ============================================================
+    // MOHURAT REQUESTS
+    // ============================================================
+
+    /**
+     * View mohurat requests
+     */
+    public function mohuratRequests(): void
+    {
+        $mohuratModel = new MohuratRequest();
+        $requests = $mohuratModel->getForPandit(Auth::id());
+
+        $this->viewWithLayout('pandit/mohurat-requests', 'layouts/pandit', [
+            'title' => 'Muhurat Requests',
+            'requests' => $requests,
+        ]);
+    }
+
+    /**
+     * Reply to a mohurat request
+     */
+    public function replyMohuratRequest(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid token.']);
+            return;
+        }
+
+        $mohuratModel = new MohuratRequest();
+        $request = $mohuratModel->find((int) $id);
+
+        if (!$request || $request['status'] !== 'pending') {
+            $this->back(['error' => 'Request not found or already replied.']);
+            return;
+        }
+
+        $data = [
+            'reply_date' => $this->input('reply_date'),
+            'reply_time' => $this->input('reply_time'),
+            'reply_explanation' => $this->input('reply_explanation'),
+            'consultation_fee' => $this->input('consultation_fee') ?: null,
+        ];
+
+        if (empty($data['reply_date']) || empty($data['reply_time']) || empty($data['reply_explanation'])) {
+            $this->back(['error' => 'Date, time, and explanation are required.']);
+            return;
+        }
+
+        $mohuratModel->reply((int) $id, Auth::id(), $data);
+        $this->redirect('/pandit/mohurat-requests', ['success' => 'Muhurat reply sent successfully!']);
     }
 }
