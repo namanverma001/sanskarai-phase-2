@@ -686,6 +686,83 @@
         display: block;
     }
 
+    /* Like/Dislike Feedback Buttons */
+    .like-dislike-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-like, .btn-dislike {
+        border: 2px solid #E5E7EB;
+        background: white;
+        color: #6B7280;
+        padding: 12px 22px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-like:hover {
+        border-color: #10B981;
+        color: #10B981;
+        background: #ECFDF5;
+    }
+
+    .btn-dislike:hover {
+        border-color: #EF4444;
+        color: #EF4444;
+        background: #FEF2F2;
+    }
+
+    .btn-like.active {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-dislike.active {
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+
+    .like-dislike-feedback {
+        display: none;
+        margin-top: 20px;
+        animation: slideDown 0.4s ease;
+    }
+
+    .like-dislike-feedback.active {
+        display: block;
+    }
+
+    .like-dislike-textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 16px 20px;
+        border: 2px solid #E5E7EB;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-family: inherit;
+        resize: vertical;
+        transition: all 0.3s;
+        background: #F9FAFB;
+    }
+
+    .like-dislike-textarea:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+        background: white;
+    }
+
     @keyframes slideIn {
         from {
             transform: translateX(100%);
@@ -891,9 +968,39 @@
             <button class="btn-accept" onclick="acceptGeneratedRitual()" id="btnAccept">
                 <i class="fas fa-check-circle"></i> Accept Response
             </button>
+            <div class="like-dislike-group">
+                <button class="btn-like" onclick="selectFeedback('like')" id="btnLike">
+                    <i class="fas fa-thumbs-up"></i> Liked
+                </button>
+                <button class="btn-dislike" onclick="selectFeedback('dislike')" id="btnDislike">
+                    <i class="fas fa-thumbs-down"></i> Disliked
+                </button>
+            </div>
             <button class="btn-feedback" onclick="toggleFeedbackForm()" id="btnGiveFeedback">
-                <i class="fas fa-edit"></i> Give Feedback
+                <i class="fas fa-sync-alt"></i> Regenerate Response
             </button>
+        </div>
+
+        <!-- Like/Dislike Feedback Panel -->
+        <div class="like-dislike-feedback" id="likeDislikeFeedback">
+            <div style="background: white; border-radius: 14px; padding: 20px; border: 2px solid #E5E7EB;">
+                <p id="feedbackPromptLabel" style="font-weight: 600; color: #1F2937; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-pen" style="color: var(--primary);"></i>
+                    <span id="feedbackPromptText">Tell us more (optional)</span>
+                </p>
+                <textarea
+                    class="like-dislike-textarea"
+                    id="likeDislikeText"
+                    placeholder=""
+                ></textarea>
+                <p class="feedback-hint" style="margin-bottom: 15px;">
+                    <i class="fas fa-lightbulb" style="color: #F59E0B;"></i>
+                    Your feedback helps us improve AI-generated rituals
+                </p>
+                <button class="btn-accept" onclick="acceptGeneratedRitual()" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 16px;">
+                    <i class="fas fa-check-circle"></i> Accept & Save to My Rituals
+                </button>
+            </div>
         </div>
 
         <!-- Feedback History (previous rounds) -->
@@ -1233,6 +1340,11 @@
     let currentRound = 1;
     let feedbackHistoryList = [];
 
+    // === Like/Dislike Feedback State ===
+    let currentFeedbackType = '';
+    let currentFeedbackText = '';
+    let feedbackSubmitted = false;
+
     async function findRitual() {
         const form = document.getElementById('searchForm');
         const formData = new FormData(form);
@@ -1472,6 +1584,16 @@
         document.getElementById('feedbackForm').classList.remove('active');
         document.getElementById('feedbackText').value = '';
 
+        // Reset like/dislike feedback state
+        currentFeedbackType = '';
+        currentFeedbackText = '';
+        feedbackSubmitted = false;
+        document.getElementById('btnLike').classList.remove('active');
+        document.getElementById('btnDislike').classList.remove('active');
+        document.getElementById('likeDislikeFeedback').classList.remove('active');
+        document.getElementById('likeDislikeText').value = '';
+        document.getElementById('btnAccept').style.display = 'inline-flex';
+
         generatedSection.style.display = 'block';
         document.getElementById('searchResults').style.display = 'none';
         generatedSection.scrollIntoView({ behavior: 'smooth' });
@@ -1484,6 +1606,88 @@
             document.getElementById('feedbackText').focus();
         }
     }
+
+    function selectFeedback(type) {
+        const btnLike = document.getElementById('btnLike');
+        const btnDislike = document.getElementById('btnDislike');
+        const feedbackDiv = document.getElementById('likeDislikeFeedback');
+        const textarea = document.getElementById('likeDislikeText');
+        const btnAcceptTop = document.getElementById('btnAccept');
+        const promptText = document.getElementById('feedbackPromptText');
+
+        if (currentFeedbackType === type) {
+            // Toggle off
+            currentFeedbackType = '';
+            btnLike.classList.remove('active');
+            btnDislike.classList.remove('active');
+            feedbackDiv.classList.remove('active');
+            btnAcceptTop.style.display = 'inline-flex';
+            return;
+        }
+
+        currentFeedbackType = type;
+        feedbackSubmitted = false;
+
+        btnLike.classList.toggle('active', type === 'like');
+        btnDislike.classList.toggle('active', type === 'dislike');
+
+        // Hide top Accept button — the panel has its own clear Accept CTA
+        btnAcceptTop.style.display = 'none';
+
+        // Update prompt label and placeholder based on type
+        if (type === 'like') {
+            promptText.textContent = '👍 What did you like about this ritual? (optional)';
+            textarea.placeholder = 'e.g., "Very authentic steps", "The mantras are accurate", "Great item list"';
+        } else {
+            promptText.textContent = '👎 What didn\'t you like? (optional)';
+            textarea.placeholder = 'e.g., "Missing a key mantra", "Steps are in wrong order", "Too long"';
+        }
+
+        feedbackDiv.classList.add('active');
+        textarea.focus();
+    }
+
+    function submitFeedbackToServer(useBeacon = false) {
+        if (!currentFeedbackType || feedbackSubmitted) return;
+
+        const ritualData = window.generatedRitualData;
+        if (!ritualData) return;
+
+        const feedbackText = document.getElementById('likeDislikeText').value.trim();
+
+        const params = new URLSearchParams();
+        params.append('feedback_type', currentFeedbackType);
+        params.append('feedback_text', feedbackText);
+        params.append('ritual_name', ritualData.name || '');
+        params.append('community_name', ritualData.community_name || document.getElementById('community_name').value || '');
+        params.append('religion', ritualData.religion || document.getElementById('religion').value || '');
+
+        if (useBeacon) {
+            navigator.sendBeacon('/user/rituals/feedback', params.toString());
+        } else {
+            const formData = new FormData();
+            formData.append('csrf_token', csrfToken);
+            formData.append('feedback_type', currentFeedbackType);
+            formData.append('feedback_text', feedbackText);
+            formData.append('ritual_name', ritualData.name || '');
+            formData.append('community_name', ritualData.community_name || document.getElementById('community_name').value || '');
+            formData.append('religion', ritualData.religion || document.getElementById('religion').value || '');
+
+            fetch('/user/rituals/feedback', {
+                method: 'POST',
+                body: formData
+            }).catch(err => console.warn('Feedback submission failed:', err));
+        }
+
+        feedbackSubmitted = true;
+    }
+
+    // beforeunload: silently send feedback if user navigates away
+    window.addEventListener('beforeunload', function() {
+        if (currentFeedbackType && !feedbackSubmitted && window.generatedRitualData) {
+            submitFeedbackToServer(true);
+        }
+    });
 
     function updateFeedbackHistory() {
         const historyDiv = document.getElementById('feedbackHistory');
@@ -1574,6 +1778,11 @@
         if (window.generatedRitualAdded) {
             showToast('This ritual is already in your collection!', 'info');
             return;
+        }
+
+        // Submit like/dislike feedback first (if selected)
+        if (currentFeedbackType && !feedbackSubmitted) {
+            submitFeedbackToServer(false);
         }
 
         const formData = new FormData();

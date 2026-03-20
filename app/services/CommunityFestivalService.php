@@ -103,12 +103,14 @@ class CommunityFestivalService
     {
         $cacheDir = self::cacheDir();
         $cacheFile = $cacheDir . "/{$communityKey}_{$year}.json";
+        
+        $accurateDates = self::getAccurateDates($year) ?? [];
 
         // Check cache
         if (file_exists($cacheFile)) {
             $cached = json_decode(file_get_contents($cacheFile), true);
             if ($cached && !empty($cached)) {
-                return $cached;
+                return array_merge($cached, $accurateDates);
             }
         }
 
@@ -123,7 +125,67 @@ class CommunityFestivalService
             file_put_contents($cacheFile, json_encode($dates, JSON_PRETTY_PRINT));
         }
 
-        return $dates;
+        return array_merge($dates, $accurateDates);
+    }
+
+    /**
+     * Get accurate hardcoded dates for festivals to override AI hallucinations
+     */
+    private static function getAccurateDates(int $year): ?array
+    {
+        $dates = [
+            2026 => [
+                'makar_sankranti' => '2026-01-14',
+                'pongal' => '2026-01-14',
+                'thai_pongal' => '2026-01-14',
+                'lohri' => '2026-01-13',
+                'vasant_panchami' => '2026-01-24',
+                'saraswati_puja' => '2026-01-24',
+                'maha_shivaratri' => '2026-02-15',
+                'holi' => '2026-03-03',
+                'gudi_padwa' => '2026-03-19',
+                'ugadi' => '2026-03-19',
+                'chaitra_navratri' => '2026-03-19',
+                'ram_navami' => '2026-03-27',
+                'sri_rama_navami' => '2026-03-27',
+                'hanuman_jayanti' => '2026-04-02',
+                'baisakhi' => '2026-04-14',
+                'puthandu' => '2026-04-14',
+                'vishu' => '2026-04-14',
+                'poila_boishakh' => '2026-04-15',
+                'akshaya_tritiya' => '2026-04-19',
+                'vat_pournima' => '2026-05-31',
+                'raja_parba' => '2026-06-14',
+                'rath_yatra' => '2026-06-16',
+                'ashadhi_ekadashi' => '2026-07-24',
+                'nag_panchami' => '2026-08-12',
+                'raksha_bandhan' => '2026-08-28',
+                'onam' => '2026-08-27',
+                'janmashtami' => '2026-09-04',
+                'ganesh_chaturthi' => '2026-09-14',
+                'vinayaka_chaturthi' => '2026-09-14',
+                'vinayaka_chavithi' => '2026-09-14',
+                'ganesh_puja' => '2026-09-14',
+                'bathukamma' => '2026-10-08',
+                'navratri' => '2026-10-10',
+                'sharad_navratri' => '2026-10-10',
+                'durga_puja' => '2026-10-15',
+                'dussehra' => '2026-10-19',
+                'dasara' => '2026-10-19',
+                'karva_chauth' => '2026-10-29',
+                'diwali' => '2026-11-08',
+                'deepavali' => '2026-11-08',
+                'kali_puja' => '2026-11-08',
+                'lakshmi_puja' => '2026-10-24',
+                'karthigai_deepam' => '2026-11-23',
+                'chhath_puja' => '2026-11-14',
+                'aadi_perukku' => '2026-08-03',
+                'pana_sankranti' => '2026-04-14',
+                'uttarayan' => '2026-01-14',
+            ]
+        ];
+
+        return $dates[$year] ?? null;
     }
 
     /**

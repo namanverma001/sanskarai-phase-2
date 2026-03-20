@@ -576,6 +576,10 @@ Please provide a helpful, concise answer. If the user is asking about alternativ
             $systemPrompt = "You are Sanskar AI, an expert in Hindu and Indian religious rituals and traditions. Generate detailed, accurate ritual guides in the specified JSON format. Always respond with valid JSON only, no additional text.";
         }
 
+        if ($type === 'budget_generation') {
+            $systemPrompt = "You are Sanskar AI, an expert in Hindu ritual planning and budgeting in India. Generate detailed, realistic cost estimates in the specified JSON format. Always respond with valid JSON only, no additional text.";
+        }
+
         $data = [
             'model' => $this->model,
             'messages' => [
@@ -586,7 +590,7 @@ Please provide a helpful, concise answer. If the user is asking about alternativ
             'max_tokens' => 4000,
         ];
 
-        if ($type === 'ritual_generation' || $type === 'shop_finder') {
+        if ($type === 'ritual_generation' || $type === 'shop_finder' || $type === 'budget_generation') {
             $data['response_format'] = ['type' => 'json_object'];
         }
 
@@ -634,13 +638,15 @@ Please provide a helpful, concise answer. If the user is asking about alternativ
         $tokensUsed = $result['usage']['total_tokens'] ?? 0;
 
         $responseData = [];
-        if ($type === 'ritual_generation' || $type === 'shop_finder') {
+        if ($type === 'ritual_generation' || $type === 'shop_finder' || $type === 'budget_generation') {
             $parsedContent = json_decode($content, true);
             if ($parsedContent) {
                 if ($type === 'ritual_generation') {
                     $responseData['ritual'] = $parsedContent;
                 } elseif ($type === 'shop_finder') {
                     $responseData['shops'] = $parsedContent['shops'] ?? [];
+                } elseif ($type === 'budget_generation') {
+                    $responseData['categories'] = $parsedContent['categories'] ?? [];
                 }
             }
         }
@@ -889,8 +895,114 @@ Be lenient with genuine reviews. Only flag clearly problematic content.";
     }
 
     /**
+     * Generate a category-wise budget estimate for a Hindu ritual
+     *
+     * @param int   $userId   Authenticated user ID
+     * @param array $criteria Keys: ritual_type, location, guest_count, tier (basic|standard|premium)
+     * @return array ['success' => bool, 'budget' => array, 'request_id' => int]
+     *               or ['success' => false, 'error' => string]
+     */
+    public function generateBudget(int $userId, array $criteria): array
+    {
+        $prompt = $this->buildBudgetGenerationPrompt($criteria);
+
+        $requestId = $this->aiRequestModel->createRequest($userId, 'budget_generation', $prompt, $criteria);
+
+        try {
+            $startTime = microtime(true);
+
+            $response = $this->getResponse($prompt, 'budget_generation', $criteria);
+
+            $processingTime = (int) ((microtime(true) - $startTime) * 1000);
+
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                'tokens_used' => $response['tokens'] ?? 0,
+                'processing_time_ms' => $processingTime,
+            ]);
+
+            $this->aiRequestModel->log('info', 'budget_generation_complete', 'Budget generated successfully', [], $requestId);
+
+            $categories = $response['data']['categories'] ?? [];
+
+            return [
+                'success' => true,
+                'budget' => $categories,
+                'request_id' => $requestId,
+            ];
+
+        } catch (\Exception $e) {
+            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+            $this->aiRequestModel->log('error', 'budget_generation_failed', $e->getMessage(), [], $requestId);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Build the prompt for budget generation
+     */
+    private function buildBudgetGenerationPrompt(array $criteria): string
+    {
+        $ritualType  = $criteria['ritual_type']  ?? 'Hindu Ritual';
+        $location    = $criteria['location']     ?? 'India';
+        $guestCount  = $criteria['guest_count']  ?? 50;
+        $tier        = ucfirst($criteria['tier'] ?? 'standard');
+
+        return <<<PROMPT
+You are an expert in Hindu ritual planning and budgeting in India. Generate a detailed, realistic cost estimate for the following ritual.
+
+RITUAL DETAILS:
+- Ritual Type: {$ritualType}
+- Location: {$location}
+- Number of Guests: {$guestCount}
+- Budget Tier: {$tier} (Basic = economical, Standard = moderate, Premium = lavish)
+
+INSTRUCTIONS:
+1. Provide cost estimates in Indian Rupees (INR) appropriate for the tier and guest count.
+2. You MUST include ALL six categories: Pandit Fee, Decoration, Puja Items, Venue, Food, Vendor Charges.
+3. Each category must have at least one item.
+4. For each item provide: item_name (string), estimated_amount (number in INR, no currency symbol), and an optional notes field (string) with brief context.
+
+Respond ONLY with valid JSON in exactly this structure:
+{
+  "categories": [
+    {
+      "category": "Pandit Fee",
+      "items": [
+        { "item_name": "Main Pandit", "estimated_amount": 5000, "notes": "Includes samagri guidance" }
+      ]
+    },
+    {
+      "category": "Decoration",
+      "items": [...]
+    },
+    {
+      "category": "Puja Items",
+      "items": [...]
+    },
+    {
+      "category": "Venue",
+      "items": [...]
+    },
+    {
+      "category": "Food",
+      "items": [...]
+    },
+    {
+      "category": "Vendor Charges",
+      "items": [...]
+    }
+  ]
+}
+PROMPT;
+    }
+
+    /**
      * Generate an invitation card HTML using OpenAI
-     * 
+     *
      * @param int $userId The user creating the invitation
      * @param array $details Invitation details (occasion_type, occasion_title, event_date, venue, host_name, message, additional_details)
      * @return array ['success' => bool, 'html' => string, 'request_id' => int]

@@ -30,6 +30,7 @@ Router::get('/', 'HomeController@index', [], 'home');
 
 // Public Invitation View (no auth required)
 Router::get('/invitation/{token}', 'InvitationController@viewPublic');
+Router::post('/invitation/{token}/rsvp', 'InvitationController@submitRsvp');
 
 // ============================================================
 // ADMIN ROUTES
@@ -174,6 +175,7 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::post('/rituals/generate', 'UserController@generateRitual');
     Router::post('/rituals/regenerate', 'UserController@regenerateRitual');
     Router::post('/rituals/accept-ai', 'UserController@acceptAIRitual');
+    Router::post('/rituals/feedback', 'UserController@submitRitualFeedback');
     Router::post('/rituals/load-more', 'UserController@loadMoreRituals');
     Router::get('/rituals/{id}', 'UserController@viewRitual');
 
@@ -271,5 +273,17 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
 
     // Plan Festival Ritual (AI-generated)
     Router::post('/plan-festival-ritual', 'UserController@planFestivalRitual');
+
+    // Budget Planner
+    Router::get('/budgets', 'BudgetController@index');
+    Router::get('/budgets/create', 'BudgetController@create');
+    Router::post('/budgets', 'BudgetController@store');
+    Router::get('/budgets/{id}', 'BudgetController@show');
+    Router::post('/budgets/items/{id}', 'BudgetController@updateItem');
+    Router::post('/budgets/{id}/items', 'BudgetController@addItem');
+    Router::post('/budgets/items/{id}/delete', 'BudgetController@deleteItem');
+    Router::post('/budgets/items/{id}/actual', 'BudgetController@trackActual');
+    Router::get('/budgets/{id}/pdf', 'BudgetController@download');
+    Router::post('/budgets/{id}/delete', 'BudgetController@delete');
 });
 

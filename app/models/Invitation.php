@@ -24,11 +24,23 @@ class Invitation extends Model
         'host_name',
         'message',
         'additional_details',
+        'template_id',
+        'theme_color',
+        'rsvp_enabled',
         'generated_html',
         'ai_request_id',
         'expires_at',
         'is_active',
         'view_count',
+    ];
+
+    /** Available invitation templates */
+    public const TEMPLATES = [
+        'royal_gold' => ['name' => 'Royal Gold', 'accent' => '#B8860B', 'bg' => 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)', 'icon' => '👑'],
+        'floral_pink' => ['name' => 'Floral Pink', 'accent' => '#E91E63', 'bg' => 'linear-gradient(135deg,#2d1b3d,#1a1a2e,#2d1b3d)', 'icon' => '🌸'],
+        'classic_white' => ['name' => 'Classic White', 'accent' => '#6366F1', 'bg' => 'linear-gradient(135deg,#f8fafc,#e2e8f0,#f1f5f9)', 'icon' => '🤍'],
+        'festive_orange' => ['name' => 'Festive Saffron', 'accent' => '#FF6B35', 'bg' => 'linear-gradient(135deg,#1a1a2e,#2d1b0e,#1a1a2e)', 'icon' => '🪔'],
+        'nature_green' => ['name' => 'Nature Green', 'accent' => '#059669', 'bg' => 'linear-gradient(135deg,#0f2922,#1a1a2e,#0f2922)', 'icon' => '🌿'],
     ];
 
     /**
@@ -108,5 +120,32 @@ class Invitation extends Model
     public function countByUser(int $userId): int
     {
         return $this->count(['user_id' => $userId]);
+    }
+
+    /**
+     * Get RSVPs for an invitation
+     */
+    public function getRsvps(int $invitationId): array
+    {
+        $rsvpModel = new InvitationRsvp();
+        return $rsvpModel->getByInvitation($invitationId);
+    }
+
+    /**
+     * Get RSVP summary for an invitation
+     */
+    public function getRsvpSummary(int $invitationId): array
+    {
+        $rsvpModel = new InvitationRsvp();
+        return $rsvpModel->getSummary($invitationId);
+    }
+
+    /**
+     * Get template config for an invitation
+     */
+    public function getTemplateConfig(array $invitation): array
+    {
+        $templateId = $invitation['template_id'] ?? 'royal_gold';
+        return self::TEMPLATES[$templateId] ?? self::TEMPLATES['royal_gold'];
     }
 }

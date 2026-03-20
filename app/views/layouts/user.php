@@ -1148,6 +1148,11 @@ $roleDisplay = match ($userRole) {
                         title="Invitations">
                         <i class="fas fa-envelope-open-text"></i> <span>Invitations</span>
                     </a>
+                    <a href="/user/budgets"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/budgets') !== false ? 'active' : '' ?>"
+                        title="Budget Planner">
+                        <i class="fas fa-wallet"></i> <span>Budget Planner</span>
+                    </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Family & Knowledge</div>

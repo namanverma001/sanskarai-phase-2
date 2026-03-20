@@ -278,7 +278,7 @@ class User extends Model
      */
     public function consumeResetToken(int $userId, string $newPassword, int $resetRowId): bool
     {
-        $hash = \App\Core\Auth::hashPassword($newPassword);
+        $hash = Auth::hashPassword($newPassword);
 
         $update = $this->db->prepare("
             UPDATE SAI_users SET password_hash = :hash, updated_at = NOW() WHERE id = :id

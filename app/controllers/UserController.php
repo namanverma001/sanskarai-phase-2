@@ -21,8 +21,8 @@ use App\Models\UserRitual;
 use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\Review;
-use App\Models\AIRitualFeedback;
 use App\Models\MohuratRequest;
+use App\Models\RitualFeedback;
 use App\Services\AIService;
 use App\Services\CommunityFestivalService;
 use App\Services\MailService;
@@ -42,6 +42,7 @@ class UserController extends Controller
     private Vendor $vendorModel;
     private Review $reviewModel;
     private MailService $mailService;
+    private RitualFeedback $ritualFeedbackModel;
 
     public function __construct()
     {
@@ -59,6 +60,7 @@ class UserController extends Controller
         $this->reviewModel = new Review();
         $this->vendorModel = new Vendor();
         $this->mailService = new MailService();
+        $this->ritualFeedbackModel = new RitualFeedback();
     }
 
     public function dashboard(): void
@@ -463,28 +465,9 @@ class UserController extends Controller
             }
 
             $userId = Auth::id();
-            $feedbackModel = new AIRitualFeedback();
 
-            // Store this feedback round
-            $feedbackModel->storeFeedback([
-                'user_id' => $userId,
-                'ritual_name' => $criteria['ritual_name'],
-                'community_name' => $criteria['community_name'] ?: null,
-                'religion' => $criteria['religion'] ?: null,
-                'generation_session_id' => $sessionId,
-                'round_number' => $roundNumber,
-                'ai_response' => $previousResponse,
-                'user_feedback' => $userFeedback,
-                'feedback_type' => 'refined',
-                'search_criteria' => $criteria,
-            ]);
-
-            // Get past learning feedback for same ritual from other users
-            $pastFeedback = $feedbackModel->getLearningFeedback(
-                $criteria['ritual_name'],
-                $criteria['community_name'] ?: null,
-                10
-            );
+            // Past learning feedback is disabled because the feedback table was removed
+            $pastFeedback = [];
 
             // Regenerate with feedback
             $result = $this->aiService->regenerateRitualWithFeedback(
@@ -554,12 +537,6 @@ class UserController extends Controller
                 return;
             }
 
-            // Mark as accepted in feedback log (if session exists)
-            if (!empty($sessionId)) {
-                $feedbackModel = new AIRitualFeedback();
-                $feedbackModel->markAccepted($sessionId, $userId, $ritualData);
-            }
-
             // Add to user's My Rituals collection
             $userRitualId = $this->userRitualModel->createFromAI($userId, $ritualData, $prompt);
 
@@ -572,6 +549,78 @@ class UserController extends Controller
         } catch (\Exception $e) {
             ob_end_clean();
             error_log("acceptAIRitual error: " . $e->getMessage());
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Submit Like/Dislike feedback for AI-generated rituals
+     * Supports both AJAX (with CSRF) and sendBeacon (without CSRF) requests
+     */
+    public function submitRitualFeedback(): void
+    {
+        ob_start();
+        error_reporting(0);
+        ini_set('display_errors', '0');
+
+        try {
+            // Detect if this is a beacon request (Content-Type: application/x-www-form-urlencoded or text/plain)
+            $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+            $isBeacon = str_contains($contentType, 'application/x-www-form-urlencoded')
+                     || str_contains($contentType, 'text/plain');
+
+            // Only verify CSRF for non-beacon requests
+            if (!$isBeacon && !$this->verifyCsrf()) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Invalid token.'], 400);
+                return;
+            }
+
+            // For beacon requests, parse form data from raw input if needed
+            if ($isBeacon && empty($_POST)) {
+                $rawInput = file_get_contents('php://input');
+                parse_str($rawInput, $_POST);
+            }
+
+            $feedbackType = $this->input('feedback_type', '');
+            $feedbackText = $this->input('feedback_text', '');
+            $ritualName = $this->input('ritual_name', '');
+            $communityName = $this->input('community_name', '');
+            $religion = $this->input('religion', '');
+
+            if (!in_array($feedbackType, ['like', 'dislike'])) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Invalid feedback type.'], 400);
+                return;
+            }
+
+            if (empty($ritualName)) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Ritual name is required.'], 400);
+                return;
+            }
+
+            $userId = null;
+            try {
+                $userId = Auth::id();
+            } catch (\Exception $e) {
+                // User may not be logged in for beacon requests
+            }
+
+            $this->ritualFeedbackModel->storeFeedback([
+                'user_id' => $userId,
+                'community_name' => $communityName ?: null,
+                'religion' => $religion ?: null,
+                'ritual_name' => $ritualName,
+                'feedback_type' => $feedbackType,
+                'feedback_text' => $feedbackText ?: null,
+            ]);
+
+            ob_end_clean();
+            $this->json(['success' => true, 'message' => 'Feedback submitted. Thank you!']);
+        } catch (\Exception $e) {
+            ob_end_clean();
+            error_log('submitRitualFeedback error: ' . $e->getMessage());
             $this->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }

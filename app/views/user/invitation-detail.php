@@ -1,8 +1,10 @@
 <?php
 /**
- * Invitation Detail Page - View & Share
+ * Invitation Detail Page - View, Share & RSVP Guest List
  */
 $appUrl = rtrim(getenv('APP_URL') ?: 'http://localhost:8000', '/');
+$templateName = $templateConfig['name'] ?? 'Royal Gold';
+$templateIcon = $templateConfig['icon'] ?? '👑';
 ?>
 
 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -19,7 +21,10 @@ $appUrl = rtrim(getenv('APP_URL') ?: 'http://localhost:8000', '/');
                 <i class="fas fa-link"></i> Share This Invitation
             </h3>
             <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin: 0;">
-                Copy the link below and share it with your guests. They'll be asked for their name to personalize the card.
+                Copy the link below and share it with your guests.
+                <?php if (!empty($invitation['rsvp_enabled'])): ?>
+                    Guests can RSVP directly from the invitation!
+                <?php endif; ?>
             </p>
         </div>
         <?php if (!$invitation['is_expired'] && $invitation['is_active']): ?>
@@ -45,6 +50,10 @@ $appUrl = rtrim(getenv('APP_URL') ?: 'http://localhost:8000', '/');
             <a href="https://wa.me/?text=<?= urlencode('You are invited! 🎉 ' . $shareUrl) ?>" 
                target="_blank" class="btn btn-success" style="white-space: nowrap;">
                 <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>
+            <a href="<?= htmlspecialchars($shareUrl) ?>" target="_blank" 
+               class="btn btn-sm" style="background: #6366F1; color: white; white-space: nowrap;">
+                <i class="fas fa-external-link-alt"></i> Preview
             </a>
         </div>
     <?php endif; ?>
@@ -87,12 +96,12 @@ $appUrl = rtrim(getenv('APP_URL') ?: 'http://localhost:8000', '/');
             <span class="detail-value"><?= htmlspecialchars($invitation['venue'] ?: 'Not set') ?></span>
         </div>
         <div class="detail-item">
-            <span class="detail-label">Views</span>
-            <span class="detail-value"><i class="fas fa-eye" style="color: var(--primary);"></i> <?= $invitation['view_count'] ?></span>
+            <span class="detail-label">Template</span>
+            <span class="detail-value"><?= $templateIcon ?> <?= htmlspecialchars($templateName) ?></span>
         </div>
         <div class="detail-item">
-            <span class="detail-label">Created</span>
-            <span class="detail-value"><?= date('M j, Y g:i A', strtotime($invitation['created_at'])) ?></span>
+            <span class="detail-label">Views</span>
+            <span class="detail-value"><i class="fas fa-eye" style="color: var(--primary);"></i> <?= $invitation['view_count'] ?></span>
         </div>
         <div class="detail-item">
             <span class="detail-label">Expires</span>
@@ -108,22 +117,84 @@ $appUrl = rtrim(getenv('APP_URL') ?: 'http://localhost:8000', '/');
     <?php endif; ?>
 </div>
 
-<!-- Preview Card -->
+<!-- RSVP Guest List -->
+<?php if (!empty($invitation['rsvp_enabled'])): ?>
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title"><i class="fas fa-eye"></i> Invitation Preview</h2>
-        <?php if (!$invitation['is_expired'] && $invitation['is_active']): ?>
-            <a href="<?= htmlspecialchars($shareUrl) ?>" target="_blank" class="btn btn-primary btn-sm">
-                <i class="fas fa-external-link-alt"></i> Open Full Page
-            </a>
-        <?php endif; ?>
+        <h2 class="card-title"><i class="fas fa-clipboard-check"></i> RSVP Responses</h2>
     </div>
-    <div style="border: 2px solid #E5E7EB; border-radius: 12px; overflow: hidden; background: white;">
-        <iframe id="previewFrame" 
-                style="width: 100%; height: 600px; border: none;"
-                sandbox="allow-scripts allow-same-origin"></iframe>
+
+    <!-- Summary Stats -->
+    <div class="rsvp-stats-grid">
+        <div class="rsvp-stat-card" style="border-left: 4px solid #10B981;">
+            <div class="rsvp-stat-number" style="color: #10B981;"><?= (int)($rsvpSummary['attending'] ?? 0) ?></div>
+            <div class="rsvp-stat-label">🎉 Attending</div>
+        </div>
+        <div class="rsvp-stat-card" style="border-left: 4px solid #F59E0B;">
+            <div class="rsvp-stat-number" style="color: #F59E0B;"><?= (int)($rsvpSummary['maybe'] ?? 0) ?></div>
+            <div class="rsvp-stat-label">🤔 Maybe</div>
+        </div>
+        <div class="rsvp-stat-card" style="border-left: 4px solid #EF4444;">
+            <div class="rsvp-stat-number" style="color: #EF4444;"><?= (int)($rsvpSummary['not_attending'] ?? 0) ?></div>
+            <div class="rsvp-stat-label">😢 Can't Make It</div>
+        </div>
+        <div class="rsvp-stat-card" style="border-left: 4px solid #6366F1;">
+            <div class="rsvp-stat-number" style="color: #6366F1;"><?= (int)($rsvpSummary['total_guests'] ?? 0) ?></div>
+            <div class="rsvp-stat-label">👥 Total Guests</div>
+        </div>
     </div>
+
+    <!-- Guest List Table -->
+    <?php if (!empty($rsvps)): ?>
+        <div style="overflow-x: auto; margin-top: 25px;">
+            <table class="rsvp-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Guest Name</th>
+                        <th style="text-align: left;">Status</th>
+                        <th style="text-align: center;">Guests</th>
+                        <th style="text-align: left;">Message</th>
+                        <th style="text-align: right;">Responded At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($rsvps as $rsvp): ?>
+                        <tr>
+                            <td style="font-weight: 600; text-align: left; color: var(--dark);">
+                                <i class="fas fa-user-circle" style="color: var(--primary); margin-right: 6px;"></i>
+                                <?= htmlspecialchars($rsvp['guest_name']) ?>
+                            </td>
+                            <td style="text-align: left;">
+                                <?php
+                                    $statusBadges = [
+                                        'yes' => '<span class="badge badge-success" style="padding: 6px 12px;">🎉 Attending</span>',
+                                        'maybe' => '<span class="badge" style="background:#FEF3C7;color:#92400E;padding: 6px 12px;">🤔 Maybe</span>',
+                                        'no' => '<span class="badge badge-danger" style="padding: 6px 12px;">😢 Not attending</span>',
+                                    ];
+                                    echo $statusBadges[$rsvp['attending_status']] ?? $rsvp['attending_status'];
+                                ?>
+                            </td>
+                            <td style="text-align: center; font-weight: 600;"><?= (int) $rsvp['guest_count'] ?></td>
+                            <td style="color: #6B7280; max-width: 250px; text-align: left;">
+                                <?= $rsvp['message'] ? htmlspecialchars($rsvp['message']) : '<span style="opacity:0.4;">—</span>' ?>
+                            </td>
+                            <td style="color: #9CA3AF; font-size: 0.85rem; text-align: right;">
+                                <?= date('M j, Y g:i A', strtotime($rsvp['created_at'])) ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php else: ?>
+        <div style="text-align: center; padding: 40px 20px; color: #9CA3AF;">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">📭</div>
+            <p style="font-size: 1rem;">No RSVP responses yet.</p>
+            <p style="font-size: 0.85rem;">Share the invitation link with your guests — they can RSVP directly!</p>
+        </div>
+    <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <style>
     .detail-grid {
@@ -152,25 +223,67 @@ $appUrl = rtrim(getenv('APP_URL') ?: 'http://localhost:8000', '/');
         color: var(--dark);
     }
 
+    .rsvp-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 14px;
+    }
+
+    .rsvp-stat-card {
+        background: #F9FAFB;
+        padding: 16px;
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    .rsvp-stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+
+    .rsvp-stat-label {
+        font-size: 0.8rem;
+        color: #6B7280;
+        font-weight: 500;
+    }
+
+    /* New dedicated RSVP Table Styles */
+    .rsvp-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 600px;
+    }
+
+    .rsvp-table th {
+        padding: 12px 16px;
+        background: #F9FAFB;
+        color: #4B5563;
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #E5E7EB;
+    }
+
+    .rsvp-table td {
+        padding: 16px;
+        border-bottom: 1px solid #E5E7EB;
+        vertical-align: middle;
+    }
+
+    .rsvp-table tr:hover td {
+        background: #F9FAFB;
+    }
+
     @media (max-width: 768px) {
-        .detail-grid {
-            grid-template-columns: 1fr;
-        }
+        .detail-grid { grid-template-columns: 1fr; }
+        .rsvp-stats-grid { grid-template-columns: 1fr 1fr; }
     }
 </style>
 
 <script>
-    // Load preview
-    const previewHtml = <?= json_encode($invitation['generated_html']) ?>;
-    const iframe = document.getElementById('previewFrame');
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    // Replace placeholder with sample name for preview
-    const previewContent = previewHtml.replace(/\{GUEST_NAME\}/g, 'Dear Guest');
-    doc.open();
-    doc.write(previewContent);
-    doc.close();
-
-    // Copy URL
     function copyShareUrl() {
         const urlInput = document.getElementById('shareUrl');
         urlInput.select();
