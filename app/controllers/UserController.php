@@ -21,6 +21,7 @@ use App\Models\UserRitual;
 use App\Models\Order;
 use App\Models\Vendor;
 use App\Models\Review;
+use App\Models\PanditChat;
 use App\Models\MohuratRequest;
 use App\Models\RitualFeedback;
 use App\Services\AIService;
@@ -43,6 +44,7 @@ class UserController extends Controller
     private Review $reviewModel;
     private MailService $mailService;
     private RitualFeedback $ritualFeedbackModel;
+    private PanditChat $panditChatModel;
 
     public function __construct()
     {
@@ -61,6 +63,7 @@ class UserController extends Controller
         $this->vendorModel = new Vendor();
         $this->mailService = new MailService();
         $this->ritualFeedbackModel = new RitualFeedback();
+        $this->panditChatModel = new PanditChat();
     }
 
     public function dashboard(): void
@@ -2401,5 +2404,201 @@ class UserController extends Controller
         $this->redirect("/user/my-rituals/{$userRitualId}", [
             'success' => "'{$festivalName}' ritual has been generated and saved to your collection!"
         ]);
+    }
+
+    // ============================================================
+    // AI PANDIT - Conversational Hindu Pandit Chatbot
+    // ============================================================
+
+    /**
+     * Show AI Pandit chat page
+     */
+    public function aiPandit(): void
+    {
+        $userId = Auth::id();
+        $sessions = $this->panditChatModel->getUserSessions($userId, 20);
+
+        $this->viewWithLayout('user/ai-pandit', 'layouts/user', [
+            'title' => 'AI Pandit 🙏',
+            'sessions' => $sessions,
+        ]);
+    }
+
+    /**
+     * Send message to AI Pandit and get response (AJAX)
+     */
+    public function aiPanditSend(): void
+    {
+        ob_start();
+        error_reporting(0);
+        ini_set('display_errors', '0');
+
+        try {
+            if (!$this->verifyCsrf()) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Invalid token.'], 400);
+                return;
+            }
+
+            $userId = Auth::id();
+            $message = trim($this->input('message', ''));
+            $sessionId = $this->input('session_id') ? (int) $this->input('session_id') : null;
+
+            if (empty($message)) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Message cannot be empty.'], 400);
+                return;
+            }
+
+            // Create new session if needed
+            if (!$sessionId) {
+                $sessionTitle = mb_substr($message, 0, 80);
+                $sessionId = $this->panditChatModel->createSession($userId, $sessionTitle);
+            } else {
+                // Verify ownership
+                $session = $this->panditChatModel->getSession($sessionId, $userId);
+                if (!$session) {
+                    ob_end_clean();
+                    $this->json(['success' => false, 'error' => 'Session not found.'], 404);
+                    return;
+                }
+            }
+
+            // Save user message
+            $this->panditChatModel->addMessage($sessionId, 'user', $message);
+
+            // Get full message history for context
+            $messages = $this->panditChatModel->getMessages($sessionId);
+            $messageHistory = array_map(function ($msg) {
+                return ['role' => $msg['role'], 'content' => $msg['content']];
+            }, $messages);
+
+            // Gather user details for personalization
+            $session = $this->panditChatModel->getSession($sessionId, $userId);
+            $userDetails = !empty($session['user_details']) ? json_decode($session['user_details'], true) : [];
+
+            // Also pull from user profile
+            $userModel = new User();
+            $user = $userModel->find($userId);
+            if ($user) {
+                if (empty($userDetails['name']) && !empty($user['name'])) {
+                    $userDetails['name'] = $user['name'];
+                }
+                if (empty($userDetails['community']) && !empty($user['community_name'])) {
+                    $userDetails['community'] = $user['community_name'];
+                }
+                if (empty($userDetails['religion']) && !empty($user['religion'])) {
+                    $userDetails['religion'] = $user['religion'];
+                }
+            }
+
+            // Call AI Pandit
+            $result = $this->aiService->panditChat($userId, $messageHistory, $userDetails);
+
+            if (!$result['success']) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => $result['error']], 500);
+                return;
+            }
+
+            // Save AI response
+            $this->panditChatModel->addMessage($sessionId, 'assistant', $result['answer'], $result['tokens'] ?? 0);
+
+            // Update session title from first user message if it's a new conversation
+            $messageCount = $this->panditChatModel->getMessageCount($sessionId);
+            if ($messageCount <= 2) {
+                $title = mb_substr($message, 0, 80);
+                $this->panditChatModel->updateSessionTitle($sessionId, $title);
+            }
+
+            ob_end_clean();
+            $this->json([
+                'success' => true,
+                'session_id' => $sessionId,
+                'answer' => $result['answer'],
+                'tokens' => $result['tokens'] ?? 0,
+            ]);
+
+        } catch (\Exception $e) {
+            ob_end_clean();
+            error_log('aiPanditSend error: ' . $e->getMessage());
+            $this->json(['success' => false, 'error' => 'Something went wrong. Please try again.'], 500);
+        }
+    }
+
+    /**
+     * Get chat history (list of sessions) via AJAX
+     */
+    public function aiPanditHistory(): void
+    {
+        ob_start();
+        try {
+            $userId = Auth::id();
+            $sessions = $this->panditChatModel->getUserSessions($userId, 50);
+
+            ob_end_clean();
+            $this->json(['success' => true, 'sessions' => $sessions]);
+        } catch (\Exception $e) {
+            ob_end_clean();
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Load a specific chat session with all messages (AJAX)
+     */
+    public function aiPanditSession(string $id): void
+    {
+        ob_start();
+        try {
+            $userId = Auth::id();
+            $session = $this->panditChatModel->getSession((int) $id, $userId);
+
+            if (!$session) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Session not found.'], 404);
+                return;
+            }
+
+            $messages = $this->panditChatModel->getMessages((int) $id);
+
+            ob_end_clean();
+            $this->json([
+                'success' => true,
+                'session' => $session,
+                'messages' => $messages,
+            ]);
+        } catch (\Exception $e) {
+            ob_end_clean();
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete a chat session (AJAX)
+     */
+    public function aiPanditDeleteSession(string $id): void
+    {
+        ob_start();
+        try {
+            if (!$this->verifyCsrf()) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => 'Invalid token.'], 400);
+                return;
+            }
+
+            $userId = Auth::id();
+            $deleted = $this->panditChatModel->deleteSession((int) $id, $userId);
+
+            ob_end_clean();
+            if ($deleted) {
+                $this->json(['success' => true, 'message' => 'Chat deleted successfully.']);
+            } else {
+                $this->json(['success' => false, 'error' => 'Session not found or already deleted.'], 404);
+            }
+        } catch (\Exception $e) {
+            ob_end_clean();
+            $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 }

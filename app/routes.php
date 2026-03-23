@@ -285,5 +285,12 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::post('/budgets/items/{id}/actual', 'BudgetController@trackActual');
     Router::get('/budgets/{id}/pdf', 'BudgetController@download');
     Router::post('/budgets/{id}/delete', 'BudgetController@delete');
+
+    // AI Pandit
+    Router::get('/ai-pandit', 'UserController@aiPandit', [], 'user.ai-pandit');
+    Router::post('/ai-pandit/send', 'UserController@aiPanditSend');
+    Router::get('/ai-pandit/history', 'UserController@aiPanditHistory');
+    Router::get('/ai-pandit/session/{id}', 'UserController@aiPanditSession');
+    Router::post('/ai-pandit/session/{id}/delete', 'UserController@aiPanditDeleteSession');
 });
 

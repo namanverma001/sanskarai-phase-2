@@ -1105,6 +1105,11 @@ $roleDisplay = match ($userRole) {
                         title="AI Suggestions">
                         <i class="fas fa-robot"></i> <span>AI Suggestions</span>
                     </a>
+                    <a href="/user/ai-pandit"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/ai-pandit') !== false ? 'active' : '' ?>"
+                        title="AI Pandit">
+                        <i class="fas fa-hands-praying"></i> <span>AI Pandit 🙏</span>
+                    </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Services</div>
@@ -1194,10 +1199,13 @@ $roleDisplay = match ($userRole) {
         </aside>
 
         <main class="main-content">
-            <div class="top-bar">
-                <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
-
-            </div>
+            <?php $uri = $_SERVER['REQUEST_URI'] ?? ''; ?>
+            <?php $hideTopBar = strpos($uri, '/user/ai-pandit') !== false; ?>
+            <?php if (!$hideTopBar): ?>
+                <div class="top-bar">
+                    <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
+                </div>
+            <?php endif; ?>
 
             <?php if (isset($_SESSION['flash']['success'])): ?>
                 <div class="alert alert-success"><i class="fas fa-check-circle"></i>

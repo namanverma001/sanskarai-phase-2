@@ -1208,4 +1208,283 @@ OUTPUT: Return ONLY the raw HTML code. Do NOT wrap it in markdown blockquotes li
             ];
         }
     }
+
+    /**
+     * AI Pandit Chat - Multi-turn conversational assistant
+     * Behaves like a real Hindu Pandit giving guidance
+     */
+    public function panditChat(int $userId, array $messageHistory, array $userDetails = []): array
+    {
+        // Match assistant language to the user's latest message.
+        $lastUserMsg = '';
+        for ($i = count($messageHistory) - 1; $i >= 0; $i--) {
+            if (($messageHistory[$i]['role'] ?? '') === 'user') {
+                $lastUserMsg = (string) ($messageHistory[$i]['content'] ?? '');
+                break;
+            }
+        }
+
+        $responseLanguage = $this->detectPanditResponseLanguage($lastUserMsg);
+        $systemPrompt = $this->buildPanditSystemPrompt($userDetails, $responseLanguage);
+
+        try {
+            $startTime = microtime(true);
+
+            $response = $this->callOpenAIChat($systemPrompt, $messageHistory);
+
+            $processingTime = (int) ((microtime(true) - $startTime) * 1000);
+
+            // Log the request
+            $lastUserMsg = '';
+            foreach (array_reverse($messageHistory) as $msg) {
+                if ($msg['role'] === 'user') {
+                    $lastUserMsg = $msg['content'];
+                    break;
+                }
+            }
+            $requestId = $this->aiRequestModel->createRequest($userId, 'pandit_chat', $lastUserMsg, [
+                'message_count' => count($messageHistory),
+            ]);
+            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                'tokens_used' => $response['tokens'] ?? 0,
+                'processing_time_ms' => $processingTime,
+            ]);
+
+            return [
+                'success' => true,
+                'answer' => $response['text'],
+                'tokens' => $response['tokens'] ?? 0,
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Detect what language the user is writing in.
+     *
+     * - Hindi: user typed in Devanagari script
+     * - Hinglish: user typed common romanized Hindi words (heuristic)
+     * - English: default (also covers roman Hinglish if heuristic doesn't trigger)
+     */
+    private function detectPanditResponseLanguage(string $text): string
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return 'English';
+        }
+
+        // Devanagari block: U+0900–U+097F (Hindi script).
+        if (preg_match('/[\x{0900}-\x{097F}]/u', $text) === 1) {
+            return 'Hindi';
+        }
+
+        $lower = mb_strtolower($text, 'UTF-8');
+
+        // If user message looks English-forward, keep assistant in English.
+        // This prevents cases like "how are you pandit ji" from triggering Hinglish.
+        $englishEvidence = preg_match('/\b(how|what|when|where|why|please|help|guide|steps|instructions|should|do|are|is)\b/i', $text) === 1;
+        if ($englishEvidence) {
+            return 'English';
+        }
+
+        // Stronger romanized-Hindi signals (avoid generic "ji/aap" which appear in normal English salutation).
+        $hinglishHints = [
+            ' kripya', ' bataiye', ' bataa', ' kaise', ' kya', ' hain', ' hai',
+            ' puja', ' vrat', ' shubh', ' samagri', ' vidhi',
+            ' muhurat', ' navratri', ' griha', ' satyanarayan', ' bhagwan',
+        ];
+
+        $hits = 0;
+        foreach ($hinglishHints as $hint) {
+            if (mb_strpos($lower, $hint) !== false) {
+                $hits++;
+            }
+        }
+
+        // Prefer Hinglish only when there are multiple strong romanized-Hindi signals.
+        return $hits >= 3 ? 'Hinglish' : 'English';
+    }
+
+    /**
+     * Build the AI Pandit system prompt
+     */
+    private function buildPanditSystemPrompt(array $userDetails = [], string $responseLanguage = 'English'): string
+    {
+        $responseLanguage = in_array($responseLanguage, ['English', 'Hindi', 'Hinglish'], true)
+            ? $responseLanguage
+            : 'English';
+
+        $languageLine = match ($responseLanguage) {
+            'Hindi' => 'OUTPUT LANGUAGE: Hindi (Devanagari script).',
+            'Hinglish' => 'OUTPUT LANGUAGE: Hinglish (Hindi + English mix written in Roman script).',
+            default => 'OUTPUT LANGUAGE: English.',
+        };
+
+        $unsureFallback = match ($responseLanguage) {
+            'Hindi' => 'अगर आप unsure हैं, तो आप अपने कुल पुरोहित से भी सलाह ले सकते हैं।',
+            'Hinglish' => 'Iske baare mein aap apne kul purohit se bhi salah le sakte hain.',
+            default => 'If you are unsure, you can also consult your kul purohit.',
+        };
+
+        $honorificLine = match ($responseLanguage) {
+            'Hindi' => 'Use words like "बेटा", "जी", "भगवान की कृपा से", "शुभ हो" naturally.',
+            'Hinglish' => 'Use words like "Beta", "Ji", "Bhagwan ki kripa se", "Shubh ho" naturally.',
+            default => 'English mode: Keep the full message in English. You may use "Namaste" and "Ji" only as a salutation (not as Hindi replacements inside sentences).',
+        };
+
+        $prompt = "You are an experienced Hindu Pandit named \"Pandit Ji\".
+$languageLine
+
+Always answer in the same language as the LATEST user message (and keep it consistent for the whole response).
+Ignore the language used in previous assistant messages; determine language ONLY from the latest user message.
+
+LANGUAGE CONSTRAINTS:
+- English mode: Write complete sentences in English. Avoid Hindi/romanized Hindi words inside the main explanation (except 'Namaste' / 'Ji' salutation).
+- English mode: Do NOT use any Devanagari script in your response. Do NOT write romanized Hindi (e.g., 'kripya', 'kaise', 'aap') except the allowed salutation words.
+- Hinglish mode: Use a natural Hindi+English mix in Roman script.
+- Hindi mode: Use Devanagari script for Hindi.
+
+CORE PERSONALITY:
+- Always greet with \"Namaste 🙏\" at the very start of a new conversation.
+- Behave like a real human pandit giving guidance — NOT like an AI chatbot or assistant.
+- Be warm, respectful, empathetic, and culturally authentic.
+- $honorificLine
+- Add relevant emojis occasionally (🙏, 🕉️, 🪔, ✨, 📿) but don't overdo it.
+
+CONVERSATION STYLE:
+- Do NOT dump all information at once. Ask follow-up questions first to understand the user's situation.
+- Keep responses concise (2-4 short paragraphs). Only give detailed step-by-step when specifically asked.
+- If someone asks about a ritual (e.g., Griha Pravesh, Satyanarayan Katha), first ask relevant context questions before giving full guidance.
+- Ask 1-3 follow-up questions in OUTPUT LANGUAGE that clarify the user's exact situation.
+
+INFORMATION GATHERING:
+- If the user hasn't shared personal details, naturally ask for them when relevant:
+  * Name
+  * Date of Birth
+  * Time of Birth
+  * Place of Birth
+  * Gotra (if known)
+  * Community
+  * Religion
+- Don't ask all of them at once. Ask naturally as the conversation flows.
+
+KNOWLEDGE:
+- You are expert in Hindu rituals, pujas, sanskars, festivals, muhurat, mantras, and traditions.
+- Give practical, actionable guidance that real families can follow.
+- When mentioning mantras, write them in Devanagari with Roman transliteration.
+- Suggest appropriate items (samagri) for pujas when relevant.
+
+IMPORTANT RULES:
+- Never say \"I am an AI\" or \"As an AI language model\" or anything similar.
+- Never break character. You ARE Pandit Ji.
+- If asked something outside Hindu dharma, politely redirect.
+- If unsure, say in OUTPUT LANGUAGE: \"$unsureFallback\"";
+
+        // Add user details context if available
+        if (!empty($userDetails)) {
+            $prompt .= "\n\nUSER DETAILS (use these to personalize your responses):";
+            if (!empty($userDetails['name'])) {
+                $prompt .= "\n- Name: {$userDetails['name']}";
+            }
+            if (!empty($userDetails['dob'])) {
+                $prompt .= "\n- Date of Birth: {$userDetails['dob']}";
+            }
+            if (!empty($userDetails['birth_time'])) {
+                $prompt .= "\n- Time of Birth: {$userDetails['birth_time']}";
+            }
+            if (!empty($userDetails['birth_place'])) {
+                $prompt .= "\n- Place of Birth: {$userDetails['birth_place']}";
+            }
+            if (!empty($userDetails['gotra'])) {
+                $prompt .= "\n- Gotra: {$userDetails['gotra']}";
+            }
+            if (!empty($userDetails['community'])) {
+                $prompt .= "\n- Community: {$userDetails['community']}";
+            }
+            if (!empty($userDetails['religion'])) {
+                $prompt .= "\n- Religion: {$userDetails['religion']}";
+            }
+        }
+
+        return $prompt;
+    }
+
+    /**
+     * Call OpenAI API with full message history (multi-turn chat)
+     */
+    private function callOpenAIChat(string $systemPrompt, array $messages): array
+    {
+        if (empty($this->apiKey)) {
+            throw new \Exception('OpenAI API key not configured. Please set AI_API_KEY in .env file.');
+        }
+
+        // Build messages array with system prompt + conversation history
+        $apiMessages = [
+            ['role' => 'system', 'content' => $systemPrompt],
+        ];
+
+        foreach ($messages as $msg) {
+            $apiMessages[] = [
+                'role' => $msg['role'],
+                'content' => $msg['content'],
+            ];
+        }
+
+        $data = [
+            'model' => $this->model,
+            'messages' => $apiMessages,
+            'temperature' => 0.8,
+            'max_tokens' => 1500,
+            'presence_penalty' => 0.3,
+            'frequency_penalty' => 0.2,
+        ];
+
+        set_time_limit(120);
+
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->apiKey,
+            ],
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_TIMEOUT => 90,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            throw new \Exception("cURL Error: $error");
+        }
+
+        if ($httpCode !== 200) {
+            $errorData = json_decode($response, true);
+            $errorMessage = $errorData['error']['message'] ?? "HTTP Error: $httpCode";
+            throw new \Exception("OpenAI API Error: $errorMessage");
+        }
+
+        $result = json_decode($response, true);
+
+        if (!isset($result['choices'][0]['message']['content'])) {
+            throw new \Exception('Invalid response from OpenAI API');
+        }
+
+        return [
+            'text' => $result['choices'][0]['message']['content'],
+            'tokens' => $result['usage']['total_tokens'] ?? 0,
+        ];
+    }
 }
