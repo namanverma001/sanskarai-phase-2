@@ -566,11 +566,50 @@ $csrfToken = \App\Core\Auth::csrfToken();
     to { transform: rotate(360deg); }
 }
 
+/* ============ Mobile History Overlay ============ */
+.history-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 9;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.history-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
 /* ============ Responsive ============ */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .pandit-chat-wrapper {
         height: calc(100vh - 110px);
-        border-radius: 16px;
+        min-height: 500px;
+    }
+
+    .chat-history-panel {
+        width: 240px;
+    }
+
+    .welcome-message p {
+        max-width: 350px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .pandit-chat-wrapper {
+        height: calc(100vh - 90px);
+        min-height: 400px;
+        border-radius: 0;
+        box-shadow: none;
+        margin: -20px -15px;
+        width: calc(100% + 30px);
     }
 
     .chat-history-panel {
@@ -579,8 +618,8 @@ $csrfToken = \App\Core\Auth::csrfToken();
         top: 0;
         bottom: 0;
         transform: translateX(-100%);
-        width: 280px;
-        box-shadow: 5px 0 30px rgba(0, 0, 0, 0.2);
+        width: 260px;
+        box-shadow: 5px 0 30px rgba(0, 0, 0, 0.3);
     }
 
     .chat-history-panel.mobile-open {
@@ -591,16 +630,230 @@ $csrfToken = \App\Core\Auth::csrfToken();
         display: flex;
     }
 
+    .chat-header {
+        padding: 12px 16px;
+    }
+
+    .pandit-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .pandit-name {
+        font-size: 1rem;
+    }
+
+    .pandit-status {
+        font-size: 0.75rem;
+    }
+
+    .chat-messages {
+        padding: 14px 12px;
+    }
+
     .message-row {
         max-width: 92%;
     }
 
-    .chat-messages {
-        padding: 16px;
+    .msg-avatar {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+    }
+
+    .msg-bubble {
+        padding: 10px 14px;
+        font-size: 0.88rem;
+        border-radius: 14px;
+    }
+
+    .message-row.assistant .msg-bubble {
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-row.user .msg-bubble {
+        border-bottom-right-radius: 4px;
     }
 
     .chat-input-area {
-        padding: 12px 16px;
+        padding: 10px 12px;
+    }
+
+    .chat-input {
+        padding: 12px 14px;
+        font-size: 0.9rem;
+        border-radius: 14px;
+        min-height: 44px;
+    }
+
+    .send-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        font-size: 1rem;
+    }
+
+    .welcome-message {
+        padding: 30px 20px;
+    }
+
+    .welcome-icon {
+        width: 65px;
+        height: 65px;
+        font-size: 2rem;
+        margin-bottom: 16px;
+    }
+
+    .welcome-message h2 {
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+    }
+
+    .welcome-message p {
+        font-size: 0.88rem;
+        max-width: 320px;
+        margin-bottom: 20px;
+    }
+
+    .quick-questions {
+        gap: 8px;
+        max-width: 100%;
+    }
+
+    .quick-q-btn {
+        font-size: 0.78rem;
+        padding: 7px 14px;
+    }
+
+    .typing-bubble {
+        padding: 10px 14px;
+        border-radius: 14px;
+        border-bottom-left-radius: 4px;
+    }
+
+    .typing-text {
+        font-size: 0.78rem;
+    }
+
+    .history-header {
+        padding: 16px;
+    }
+
+    .history-item {
+        padding: 10px 12px;
+    }
+
+    .history-item-title {
+        font-size: 0.82rem;
+    }
+
+    .history-item-date {
+        font-size: 0.68rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .pandit-chat-wrapper {
+        height: calc(100vh - 85px);
+        min-height: 350px;
+    }
+
+    .chat-history-panel {
+        width: 230px;
+    }
+
+    .chat-header {
+        padding: 10px 12px;
+    }
+
+    .chat-header-info {
+        gap: 10px;
+    }
+
+    .pandit-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+    }
+
+    .pandit-name {
+        font-size: 0.92rem;
+    }
+
+    .pandit-status {
+        font-size: 0.7rem;
+    }
+
+    .chat-messages {
+        padding: 10px 8px;
+        gap: 10px;
+    }
+
+    .message-row {
+        max-width: 95%;
+        gap: 6px;
+    }
+
+    .msg-avatar {
+        width: 26px;
+        height: 26px;
+        font-size: 0.7rem;
+    }
+
+    .msg-bubble {
+        padding: 8px 12px;
+        font-size: 0.84rem;
+        line-height: 1.5;
+    }
+
+    .msg-time {
+        font-size: 0.65rem;
+    }
+
+    .chat-input-area {
+        padding: 8px 10px;
+    }
+
+    .chat-input-container {
+        gap: 8px;
+    }
+
+    .chat-input {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+        border-radius: 12px;
+        min-height: 40px;
+        border-width: 1.5px;
+    }
+
+    .send-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+    }
+
+    .welcome-message {
+        padding: 20px 15px;
+    }
+
+    .welcome-icon {
+        width: 55px;
+        height: 55px;
+        font-size: 1.6rem;
+        margin-bottom: 12px;
+    }
+
+    .welcome-message h2 {
+        font-size: 1.15rem;
+    }
+
+    .welcome-message p {
+        font-size: 0.82rem;
+        max-width: 280px;
+        line-height: 1.5;
+        margin-bottom: 16px;
     }
 
     .quick-questions {
@@ -608,13 +861,36 @@ $csrfToken = \App\Core\Auth::csrfToken();
     }
 
     .quick-q-btn {
-        font-size: 0.75rem;
-        padding: 6px 12px;
+        font-size: 0.72rem;
+        padding: 6px 10px;
+        border-radius: 16px;
+    }
+
+    .toggle-history-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 0.9rem;
+    }
+
+    .typing-bubble {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .typing-dots span {
+        width: 6px;
+        height: 6px;
+    }
+
+    .typing-text {
+        font-size: 0.72rem;
     }
 }
 </style>
 
 <div class="pandit-chat-wrapper" id="panditChatWrapper">
+    <!-- Mobile History Overlay -->
+    <div class="history-overlay" id="historyOverlay" onclick="closeHistoryPanel()"></div>
     <!-- History Sidebar -->
     <div class="chat-history-panel" id="historyPanel">
         <div class="history-header">
@@ -881,7 +1157,7 @@ function startNewChat() {
     chatInput.focus();
 
     // Close mobile history panel
-    historyPanel.classList.remove('mobile-open');
+    closeHistoryPanel();
 
     // Remove active from all history items
     document.querySelectorAll('.history-item').forEach(item => item.classList.remove('active'));
@@ -897,7 +1173,7 @@ function clearMessages() {
 async function loadSession(sessionId) {
     try {
         // Close mobile history panel
-        historyPanel.classList.remove('mobile-open');
+        closeHistoryPanel();
 
         clearMessages();
         welcomeState.style.display = 'none';
@@ -1029,7 +1305,15 @@ function highlightSession(sessionId) {
 
 // ============ Toggle History Panel (Mobile) ============
 function toggleHistoryPanel() {
+    const overlay = document.getElementById('historyOverlay');
     historyPanel.classList.toggle('mobile-open');
+    overlay.classList.toggle('active');
+}
+
+function closeHistoryPanel() {
+    const overlay = document.getElementById('historyOverlay');
+    historyPanel.classList.remove('mobile-open');
+    overlay.classList.remove('active');
 }
 
 // ============ Utility Functions ============

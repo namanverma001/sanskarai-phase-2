@@ -899,9 +899,13 @@ $roleDisplay = match ($userRole) {
             }
 
             .main-footer {
-                margin-left: 0;
+                margin-left: 0 !important;
                 max-width: 100vw;
                 box-sizing: border-box;
+            }
+
+            .sidebar.expanded~.main-footer {
+                margin-left: 0 !important;
             }
 
             .top-bar {
@@ -1309,10 +1313,18 @@ $roleDisplay = match ($userRole) {
         });
 
         // Set correct icon & footer margin on page load
-        if (!isMobile()) {
-            sidebarToggle.querySelector('i').className = sidebar.classList.contains('expanded') ? 'fas fa-times' : 'fas fa-bars';
-            if (mainFooter) mainFooter.style.marginLeft = sidebar.classList.contains('expanded') ? '260px' : '60px';
+        function updateFooterMargin() {
+            if (isMobile()) {
+                if (mainFooter) mainFooter.style.marginLeft = '';
+            } else {
+                sidebarToggle.querySelector('i').className = sidebar.classList.contains('expanded') ? 'fas fa-times' : 'fas fa-bars';
+                if (mainFooter) mainFooter.style.marginLeft = sidebar.classList.contains('expanded') ? '260px' : '60px';
+            }
         }
+        updateFooterMargin();
+
+        // Update footer margin on resize
+        window.addEventListener('resize', updateFooterMargin);
 
         // User Profile Dropdown Toggle
         const userDropdown = document.getElementById('userDropdown');
