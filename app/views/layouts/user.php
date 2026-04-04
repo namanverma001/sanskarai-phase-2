@@ -35,6 +35,8 @@ $roleDisplay = match ($userRole) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         :root {
             --primary: #FF6B35;
@@ -1112,7 +1114,12 @@ $roleDisplay = match ($userRole) {
                     <a href="/user/ai-pandit"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/ai-pandit') !== false ? 'active' : '' ?>"
                         title="AI Pandit">
-                        <i class="fas fa-hands-praying"></i> <span>AI Pandit 🙏</span>
+                        <i class="fas fa-hands-praying"></i> <span>AI Pandit</span>
+                    </a>
+                    <a href="/user/my-subscription"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/subscription') !== false || strpos($_SERVER['REQUEST_URI'], '/user/my-subscription') !== false ? 'active' : '' ?>"
+                        title="My Subscription">
+                        <i class="fas fa-crown"></i> <span>Subscription</span>
                     </a>
                 </div>
                 <div class="menu-section">
@@ -1221,6 +1228,12 @@ $roleDisplay = match ($userRole) {
                 <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i>
                     <?= htmlspecialchars($_SESSION['flash']['error']) ?></div>
                 <?php unset($_SESSION['flash']['error']); ?>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['flash']['warning'])): ?>
+                <div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i>
+                    <?= htmlspecialchars($_SESSION['flash']['warning']) ?></div>
+                <?php unset($_SESSION['flash']['warning']); ?>
             <?php endif; ?>
 
             <?= $content ?>

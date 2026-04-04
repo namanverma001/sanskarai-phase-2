@@ -4,6 +4,17 @@
 $csrfToken = \App\Core\Auth::csrfToken();
 ?>
 
+<!-- Subscription Status Banner -->
+<?php if (isset($subscription) && $subscription): ?>
+<div class="subscription-banner d-flex align-items-center justify-content-between mb-3 p-3 rounded" style="background: linear-gradient(135deg, #10B981, #059669); color: white;">
+    <div class="d-flex align-items-center gap-2">
+        <i class="fas fa-crown"></i>
+        <span><strong><?= htmlspecialchars($subscription['plan_name']) ?></strong> - <?= $daysRemaining ?> days remaining</span>
+    </div>
+    <a href="/user/my-subscription" class="btn btn-sm btn-light">Manage</a>
+</div>
+<?php endif; ?>
+
 <style>
 /* ============ AI Pandit Chat Container ============ */
 .pandit-chat-wrapper {
@@ -1076,6 +1087,14 @@ async function sendMessage() {
             // Highlight active session in history
             highlightSession(currentSessionId);
         } else {
+            // Check if subscription required
+            if (data.subscription_required) {
+                appendMessage('assistant', '🙏 Your subscription has expired. Redirecting you to renew...');
+                setTimeout(() => {
+                    window.location.href = '/user/subscription/plans';
+                }, 2000);
+                return;
+            }
             appendMessage('assistant', '🙏 Sorry—something went wrong. Please try again in a moment. ' + (data.error || ''));
         }
 

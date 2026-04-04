@@ -24,9 +24,11 @@ use App\Models\Review;
 use App\Models\PanditChat;
 use App\Models\MohuratRequest;
 use App\Models\RitualFeedback;
+use App\Models\Subscription;
 use App\Services\AIService;
 use App\Services\CommunityFestivalService;
 use App\Services\MailService;
+use App\Services\RazorpayService;
 use App\Config\Database;
 
 class UserController extends Controller
@@ -45,6 +47,8 @@ class UserController extends Controller
     private MailService $mailService;
     private RitualFeedback $ritualFeedbackModel;
     private PanditChat $panditChatModel;
+    private Subscription $subscriptionModel;
+    private RazorpayService $razorpayService;
 
     public function __construct()
     {
@@ -64,6 +68,8 @@ class UserController extends Controller
         $this->mailService = new MailService();
         $this->ritualFeedbackModel = new RitualFeedback();
         $this->panditChatModel = new PanditChat();
+        $this->subscriptionModel = new Subscription();
+        $this->razorpayService = new RazorpayService();
     }
 
     public function dashboard(): void
@@ -2416,11 +2422,32 @@ class UserController extends Controller
     public function aiPandit(): void
     {
         $userId = Auth::id();
+
+        // Check subscription status
+        $hasSubscription = $this->subscriptionModel->hasActiveSubscription($userId);
+        $activeSubscription = $this->subscriptionModel->getUserActiveSubscription($userId);
+        $daysRemaining = $this->subscriptionModel->getDaysRemaining($userId);
+
+        // If no active subscription, redirect to plans page
+        if (!$hasSubscription) {
+            $this->redirect('/user/subscription/plans', [
+                'warning' => 'Please subscribe to access AI Pandit. Choose a plan that suits you!'
+            ]);
+            return;
+        }
+
         $sessions = $this->panditChatModel->getUserSessions($userId, 20);
 
+        // Get user data for initials
+        $userModel = new User();
+        $user = $userModel->find($userId);
+
         $this->viewWithLayout('user/ai-pandit', 'layouts/user', [
-            'title' => 'AI Pandit 🙏',
+            'title' => 'AI Pandit',
             'sessions' => $sessions,
+            'subscription' => $activeSubscription,
+            'daysRemaining' => $daysRemaining,
+            'user' => $user,
         ]);
     }
 
@@ -2441,6 +2468,18 @@ class UserController extends Controller
             }
 
             $userId = Auth::id();
+
+            // Check subscription status
+            if (!$this->subscriptionModel->hasActiveSubscription($userId)) {
+                ob_end_clean();
+                $this->json([
+                    'success' => false,
+                    'error' => 'Your subscription has expired. Please renew to continue using AI Pandit.',
+                    'subscription_required' => true
+                ], 403);
+                return;
+            }
+
             $message = trim($this->input('message', ''));
             $sessionId = $this->input('session_id') ? (int) $this->input('session_id') : null;
 
@@ -2600,5 +2639,325 @@ class UserController extends Controller
             ob_end_clean();
             $this->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    // ============================================================
+    // SUBSCRIPTION MANAGEMENT - AI Pandit Subscription Plans
+    // ============================================================
+
+    /**
+     * Show subscription plans page
+     */
+    public function subscriptionPlans(): void
+    {
+        $userId = Auth::id();
+        $plans = $this->subscriptionModel->getActivePlans();
+        $activeSubscription = $this->subscriptionModel->getUserActiveSubscription($userId);
+        $daysRemaining = $this->subscriptionModel->getDaysRemaining($userId);
+
+        $this->viewWithLayout('user/subscription-plans', 'layouts/user', [
+            'title' => 'AI Pandit Subscription Plans',
+            'plans' => $plans,
+            'activeSubscription' => $activeSubscription,
+            'daysRemaining' => $daysRemaining,
+        ]);
+    }
+
+    /**
+     * Initiate subscription purchase - Create Razorpay order
+     */
+    public function subscriptionPurchase(): void
+    {
+        try {
+            if (!$this->verifyCsrf()) {
+                $this->json(['success' => false, 'error' => 'Invalid token.'], 400);
+                return;
+            }
+
+            $userId = Auth::id();
+            $planId = (int) $this->input('plan_id');
+
+            if (!$planId) {
+                $this->json(['success' => false, 'error' => 'Invalid plan selected.'], 400);
+                return;
+            }
+
+            $plan = $this->subscriptionModel->getPlanById($planId);
+            if (!$plan) {
+                $this->json(['success' => false, 'error' => 'Plan not found.'], 404);
+                return;
+            }
+
+            // Get user details
+            $userModel = new User();
+            $user = $userModel->find($userId);
+
+            // Create Razorpay order
+            $order = $this->razorpayService->createOrder(
+                $plan['price'],
+                'INR',
+                [
+                    'plan_id' => $plan['id'],
+                    'plan_name' => $plan['name'],
+                    'user_id' => $userId
+                ]
+            );
+
+            if (!$order) {
+                $errorMsg = $this->razorpayService->getLastError() ?: 'Failed to create payment order';
+                error_log('Razorpay order creation failed: ' . $errorMsg);
+                $this->json(['success' => false, 'error' => $errorMsg], 500);
+                return;
+            }
+
+            // Create transaction record
+            $transactionId = $this->subscriptionModel->createTransaction([
+                'user_id' => $userId,
+                'plan_id' => $plan['id'],
+                'razorpay_order_id' => $order['id'],
+                'amount' => $plan['price'],
+                'currency' => 'INR',
+                'status' => 'created',
+                'metadata' => json_encode(['plan' => $plan])
+            ]);
+
+            // Get checkout options
+            $checkoutOptions = $this->razorpayService->getCheckoutOptions($order, $user, $plan);
+
+            $this->json([
+                'success' => true,
+                'order_id' => $order['id'],
+                'transaction_id' => $transactionId,
+                'checkout_options' => $checkoutOptions
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('subscriptionPurchase error: ' . $e->getMessage());
+            $this->json(['success' => false, 'error' => 'Something went wrong. Please try again.'], 500);
+        }
+    }
+
+    /**
+     * Verify payment and activate subscription
+     */
+    public function subscriptionVerify(): void
+    {
+        try {
+            if (!$this->verifyCsrf()) {
+                $this->json(['success' => false, 'error' => 'Invalid token.'], 400);
+                return;
+            }
+
+            $userId = Auth::id();
+            $orderId = $this->input('razorpay_order_id');
+            $paymentId = $this->input('razorpay_payment_id');
+            $signature = $this->input('razorpay_signature');
+
+            if (!$orderId || !$paymentId || !$signature) {
+                $this->json(['success' => false, 'error' => 'Missing payment details.'], 400);
+                return;
+            }
+
+            // Verify signature
+            if (!$this->razorpayService->verifyPaymentSignature($orderId, $paymentId, $signature)) {
+                $this->json(['success' => false, 'error' => 'Payment verification failed.'], 400);
+                return;
+            }
+
+            // Get transaction
+            $transaction = $this->subscriptionModel->getTransactionByOrderId($orderId);
+            if (!$transaction || $transaction['user_id'] != $userId) {
+                $this->json(['success' => false, 'error' => 'Transaction not found.'], 404);
+                return;
+            }
+
+            // Get plan details
+            $plan = $this->subscriptionModel->getPlanById($transaction['plan_id']);
+
+            // Calculate expiry date
+            $expiresAt = date('Y-m-d H:i:s', strtotime("+{$plan['duration_days']} days"));
+
+            // Create subscription
+            $subscriptionId = $this->subscriptionModel->createSubscription([
+                'user_id' => $userId,
+                'plan_id' => $plan['id'],
+                'status' => 'active',
+                'starts_at' => date('Y-m-d H:i:s'),
+                'expires_at' => $expiresAt
+            ]);
+
+            // Update transaction
+            $this->subscriptionModel->updateTransactionByOrderId($orderId, [
+                'razorpay_payment_id' => $paymentId,
+                'razorpay_signature' => $signature,
+                'status' => 'completed',
+                'payment_method' => 'razorpay',
+                'subscription_id' => $subscriptionId
+            ]);
+
+            // Send confirmation email
+            $userModel = new User();
+            $user = $userModel->find($userId);
+            $this->sendSubscriptionEmail($user, $plan, $transaction, $expiresAt);
+
+            $this->json([
+                'success' => true,
+                'message' => 'Payment successful! Your subscription is now active.',
+                'subscription_id' => $subscriptionId,
+                'expires_at' => $expiresAt
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('subscriptionVerify error: ' . $e->getMessage());
+            $this->json(['success' => false, 'error' => 'Something went wrong. Please try again.'], 500);
+        }
+    }
+
+    /**
+     * Show subscription success page
+     */
+    public function subscriptionSuccess(): void
+    {
+        $userId = Auth::id();
+        $activeSubscription = $this->subscriptionModel->getUserActiveSubscription($userId);
+        $daysRemaining = $this->subscriptionModel->getDaysRemaining($userId);
+
+        $this->viewWithLayout('user/subscription-success', 'layouts/user', [
+            'title' => 'Subscription Activated!',
+            'subscription' => $activeSubscription,
+            'daysRemaining' => $daysRemaining,
+        ]);
+    }
+
+    /**
+     * Show my subscription page
+     */
+    public function mySubscription(): void
+    {
+        $userId = Auth::id();
+        $activeSubscription = $this->subscriptionModel->getUserActiveSubscription($userId);
+        $daysRemaining = $this->subscriptionModel->getDaysRemaining($userId);
+        $subscriptionHistory = $this->subscriptionModel->getUserSubscriptionHistory($userId);
+        $paymentHistory = $this->subscriptionModel->getUserPaymentHistory($userId);
+
+        $this->viewWithLayout('user/my-subscription', 'layouts/user', [
+            'title' => 'My Subscription',
+            'activeSubscription' => $activeSubscription,
+            'daysRemaining' => $daysRemaining,
+            'subscriptionHistory' => $subscriptionHistory,
+            'paymentHistory' => $paymentHistory,
+        ]);
+    }
+
+    /**
+     * Send subscription confirmation email
+     */
+    private function sendSubscriptionEmail($user, $plan, $transaction, $expiresAt): bool
+    {
+        $appName = $_ENV['APP_NAME'] ?? 'Sanskar AI';
+        $formattedDate = date('d M Y, h:i A', strtotime($expiresAt));
+        $formattedAmount = number_format($transaction['amount'], 2);
+
+        $subject = "Payment Confirmed - {$plan['name']} Subscription Activated";
+
+        $body = "
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #FF6B35, #FF8C42); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #fff; padding: 30px; border: 1px solid #ddd; border-top: none; }
+                .footer { background: #f9f9f9; padding: 20px; text-align: center; border: 1px solid #ddd; border-top: none; border-radius: 0 0 10px 10px; }
+                .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+                .detail-label { color: #666; }
+                .detail-value { font-weight: bold; }
+                .success-badge { background: #28a745; color: white; padding: 5px 15px; border-radius: 20px; display: inline-block; }
+                .cta-button { background: #FF6B35; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Payment Successful!</h1>
+                    <p>Your AI Pandit subscription is now active</p>
+                </div>
+                <div class='content'>
+                    <p>Namaste <strong>{$user['name']}</strong>,</p>
+                    <p>Thank you for subscribing to AI Pandit! Your payment has been processed successfully.</p>
+
+                    <h3>Payment Details</h3>
+                    <table width='100%' style='border-collapse: collapse;'>
+                        <tr style='border-bottom: 1px solid #eee;'>
+                            <td style='padding: 10px 0; color: #666;'>Transaction ID</td>
+                            <td style='padding: 10px 0; text-align: right; font-weight: bold;'>{$transaction['razorpay_order_id']}</td>
+                        </tr>
+                        <tr style='border-bottom: 1px solid #eee;'>
+                            <td style='padding: 10px 0; color: #666;'>Plan</td>
+                            <td style='padding: 10px 0; text-align: right; font-weight: bold;'>{$plan['name']}</td>
+                        </tr>
+                        <tr style='border-bottom: 1px solid #eee;'>
+                            <td style='padding: 10px 0; color: #666;'>Duration</td>
+                            <td style='padding: 10px 0; text-align: right; font-weight: bold;'>{$plan['duration_days']} Days</td>
+                        </tr>
+                        <tr style='border-bottom: 1px solid #eee;'>
+                            <td style='padding: 10px 0; color: #666;'>Amount Paid</td>
+                            <td style='padding: 10px 0; text-align: right; font-weight: bold; color: #28a745;'>Rs. {$formattedAmount}</td>
+                        </tr>
+                        <tr style='border-bottom: 1px solid #eee;'>
+                            <td style='padding: 10px 0; color: #666;'>Subscription Valid Till</td>
+                            <td style='padding: 10px 0; text-align: right; font-weight: bold;'>{$formattedDate}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 10px 0; color: #666;'>Status</td>
+                            <td style='padding: 10px 0; text-align: right;'><span class='success-badge'>ACTIVE</span></td>
+                        </tr>
+                    </table>
+
+                    <h3>What's Included</h3>
+                    <ul>
+                        <li>Unlimited AI Pandit conversations</li>
+                        <li>Personalized ritual guidance</li>
+                        <li>24/7 availability</li>
+                        <li>Chat history saved</li>
+                    </ul>
+
+                    <p style='text-align: center;'>
+                        <a href='" . ($_ENV['APP_URL'] ?? '') . "/user/ai-pandit' class='cta-button'>Start Chatting with AI Pandit</a>
+                    </p>
+                </div>
+                <div class='footer'>
+                    <p>Thank you for choosing {$appName}!</p>
+                    <p style='font-size: 12px; color: #999;'>This is an automated email. Please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+
+        try {
+            return $this->mailService->sendHtml($user['email'], $subject, $body);
+        } catch (\Exception $e) {
+            error_log('Failed to send subscription email: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if user has active subscription (API)
+     */
+    public function checkSubscription(): void
+    {
+        $userId = Auth::id();
+        $hasSubscription = $this->subscriptionModel->hasActiveSubscription($userId);
+        $activeSubscription = $this->subscriptionModel->getUserActiveSubscription($userId);
+        $daysRemaining = $this->subscriptionModel->getDaysRemaining($userId);
+
+        $this->json([
+            'success' => true,
+            'has_subscription' => $hasSubscription,
+            'subscription' => $activeSubscription,
+            'days_remaining' => $daysRemaining
+        ]);
     }
 }

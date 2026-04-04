@@ -292,5 +292,13 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::get('/ai-pandit/history', 'UserController@aiPanditHistory');
     Router::get('/ai-pandit/session/{id}', 'UserController@aiPanditSession');
     Router::post('/ai-pandit/session/{id}/delete', 'UserController@aiPanditDeleteSession');
+
+    // Subscription Management
+    Router::get('/subscription/plans', 'UserController@subscriptionPlans', [], 'user.subscription.plans');
+    Router::post('/subscription/purchase', 'UserController@subscriptionPurchase');
+    Router::post('/subscription/verify', 'UserController@subscriptionVerify');
+    Router::get('/subscription/success', 'UserController@subscriptionSuccess');
+    Router::get('/my-subscription', 'UserController@mySubscription', [], 'user.my-subscription');
+    Router::get('/subscription/check', 'UserController@checkSubscription');
 });
 
