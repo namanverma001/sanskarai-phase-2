@@ -190,6 +190,19 @@ class AuthController extends Controller
      */
     public function logout(): void
     {
+        $userRole = Auth::role();
+        $userId = Auth::id();
+
+        // Check if role is 'user' and intercept for feedback
+        if ($userRole === 'user' && $userId) {
+            $feedbackModel = new \App\Models\UserFeedback();
+            // If No feedback exists and it's a normal web logout invocation...
+            if (!$feedbackModel->whereFirst(['user_id' => $userId])) {
+                $this->redirect('/user/feedback?logout=1', ['warning' => 'Please fill out the feedback form before logging out.']);
+                return;
+            }
+        }
+
         Auth::logout();
         $this->redirect('/login', ['success' => 'You have been logged out successfully.']);
     }

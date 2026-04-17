@@ -108,6 +108,11 @@ Router::group(['prefix' => 'admin', 'middleware' => ['admin']], function () {
     Router::post('/reviews/{id}/delete', 'AdminController@deleteReview');
     Router::post('/reviews/bulk-approve', 'AdminController@bulkApproveReviews');
     Router::post('/pandits/{id}/verify-documents', 'AdminController@verifyPanditDocuments');
+
+    // User Feedback Management
+    Router::get('/feedbacks', 'AdminController@feedbacks', [], 'admin.feedbacks');
+    Router::get('/feedbacks/export', 'AdminController@exportFeedbacks');
+    Router::post('/feedbacks/{id}/delete', 'AdminController@deleteFeedback');
 });
 
 // ============================================================
@@ -300,5 +305,9 @@ Router::group(['prefix' => 'user', 'middleware' => ['user']], function () {
     Router::get('/subscription/success', 'UserController@subscriptionSuccess');
     Router::get('/my-subscription', 'UserController@mySubscription', [], 'user.my-subscription');
     Router::get('/subscription/check', 'UserController@checkSubscription');
+
+    // Feedback
+    Router::get('/feedback', 'FeedbackController@index', [], 'user.feedback');
+    Router::post('/feedback', 'FeedbackController@submit');
 });
 

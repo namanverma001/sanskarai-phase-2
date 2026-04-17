@@ -162,6 +162,7 @@ class AdminController extends Controller
         $pendingPandits = $this->userModel->getPendingPandits();
         $recentUsers = Database::query("SELECT * FROM SAI_users ORDER BY created_at DESC LIMIT 5");
         $recentAIRequests = $this->aiRequestModel->getRecent(5);
+        $recentFeedbacks = Database::query("SELECT f.*, u.role, u.status as user_status FROM SAI_user_feedbacks f JOIN SAI_users u ON f.user_id = u.id ORDER BY f.created_at DESC LIMIT 3");
         
         $this->viewWithLayout('admin/dashboard', 'layouts/admin', [
             'title' => 'Admin Dashboard - Sanskar AI',
@@ -169,6 +170,7 @@ class AdminController extends Controller
             'pendingPandits' => $pendingPandits,
             'recentUsers' => $recentUsers,
             'recentAIRequests' => $recentAIRequests,
+            'recentFeedbacks' => $recentFeedbacks,
         ]);
     }
     
@@ -1424,5 +1426,78 @@ class AdminController extends Controller
             'success' => true,
             'stats' => $stats,
         ]);
+    }
+
+    /**
+     * User Feedbacks List
+     */
+    public function feedbacks(): void
+    {
+        $feedbackModel = new \App\Models\UserFeedback();
+        $feedbacks = $feedbackModel->getAllFeedbacks();
+
+        $this->viewWithLayout('admin/feedbacks', 'layouts/admin', [
+            'title' => 'User Feedback Logs - Sanskar AI',
+            'feedbacks' => $feedbacks
+        ]);
+    }
+
+    /**
+     * Delete Feedback
+     */
+    public function deleteFeedback(string $id): void
+    {
+        if (!$this->verifyCsrf()) {
+            $this->back(['error' => 'Invalid security token.']);
+            return;
+        }
+
+        $feedbackModel = new \App\Models\UserFeedback();
+        $feedbackModel->delete((int) $id);
+
+        $this->back(['success' => 'Feedback deleted successfully.']);
+    }
+
+    /**
+     * Export Feedbacks as CSV
+     */
+    public function exportFeedbacks(): void
+    {
+        $feedbackModel = new \App\Models\UserFeedback();
+        $feedbacks = $feedbackModel->getAllFeedbacks();
+
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="feedbacks_'.date('Ymd').'.csv"');
+
+        $out = fopen('php://output', 'w');
+        // Add BOM for Excel UTF-8 compatibility
+        fputs($out, $bom =(chr(0xEF) . chr(0xBB) . chr(0xBF)));
+        fputcsv($out, ['ID', 'User ID', 'Name', 'Email', 'Phone', 'Community', 'Features Checked', 'Likes', 'Improvements', 'Date']);
+
+        foreach ($feedbacks as $f) {
+            $featuresStr = '';
+            if (!empty($f['features_feedback'])) {
+                $features = is_string($f['features_feedback']) ? json_decode($f['features_feedback'], true) : $f['features_feedback'];
+                if (is_array($features)) {
+                    $featuresStr = implode(', ', array_keys($features));
+                }
+            }
+            
+            fputcsv($out, [
+                $f['id'],
+                $f['user_id'],
+                $f['name'],
+                $f['email'],
+                $f['phone'],
+                $f['community_name'],
+                $featuresStr,
+                $f['likes_about'],
+                $f['improvements_for'],
+                $f['created_at']
+            ]);
+        }
+
+        fclose($out);
+        exit;
     }
 }

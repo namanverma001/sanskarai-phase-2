@@ -116,3 +116,53 @@
         </div>
     </div>
 </div>
+
+<div style="margin-top: 25px;">
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title" style="margin: 0;"><i class="fas fa-comment-dots text-primary"></i> Recent Feedbacks</h3>
+            <div>
+                <a href="/admin/feedbacks/export" class="btn btn-sm btn-success" style="margin-right: 8px;"><i class="fas fa-file-csv"></i> Download CSV</a>
+                <a href="/admin/feedbacks" class="btn btn-sm btn-primary">View All</a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <?php if (empty($recentFeedbacks)): ?>
+                <p style="color: #6B7280; text-align: center; padding: 20px;">No feedbacks received yet.</p>
+            <?php else: ?>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Community</th>
+                                <th>What they liked</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recentFeedbacks as $fb): ?>
+                            <tr>
+                                <td>
+                                    <strong><?= htmlspecialchars($fb['name']) ?></strong><br>
+                                    <small style="color: #6B7280;"><?= htmlspecialchars($fb['email']) ?></small>
+                                </td>
+                                <td><?= htmlspecialchars($fb['community_name'] ?: 'N/A') ?></td>
+                                <td>
+                                    <div style="max-height: 2.8em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-line-break: auto; -webkit-box-orient: vertical; max-width: 350px;">
+                                        <?= htmlspecialchars($fb['likes_about']) ?>
+                                    </div>
+                                </td>
+                                <td style="white-space: nowrap;">
+                                    <strong><?= date('M j, Y', strtotime($fb['created_at'])) ?></strong><br>
+                                    <small style="color: #6B7280;"><?= date('g:i A', strtotime($fb['created_at'])) ?></small>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>

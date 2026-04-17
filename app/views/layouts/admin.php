@@ -1302,6 +1302,10 @@ $roleDisplay = match ($userRole) {
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/reviews') !== false ? 'active' : '' ?>">
                         <i class="fas fa-star"></i> <span>Reviews</span>
                     </a>
+                    <a href="/admin/feedbacks"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/feedbacks') !== false ? 'active' : '' ?>">
+                        <i class="fas fa-comment-dots"></i> <span>Feedbacks</span>
+                    </a>
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">System</div>

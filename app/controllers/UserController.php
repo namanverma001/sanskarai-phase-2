@@ -2423,18 +2423,10 @@ class UserController extends Controller
     {
         $userId = Auth::id();
 
-        // Check subscription status
+        // Get subscription status (for display purposes, AI Pandit is now free)
         $hasSubscription = $this->subscriptionModel->hasActiveSubscription($userId);
         $activeSubscription = $this->subscriptionModel->getUserActiveSubscription($userId);
         $daysRemaining = $this->subscriptionModel->getDaysRemaining($userId);
-
-        // If no active subscription, redirect to plans page
-        if (!$hasSubscription) {
-            $this->redirect('/user/subscription/plans', [
-                'warning' => 'Please subscribe to access AI Pandit. Choose a plan that suits you!'
-            ]);
-            return;
-        }
 
         $sessions = $this->panditChatModel->getUserSessions($userId, 20);
 
@@ -2468,17 +2460,6 @@ class UserController extends Controller
             }
 
             $userId = Auth::id();
-
-            // Check subscription status
-            if (!$this->subscriptionModel->hasActiveSubscription($userId)) {
-                ob_end_clean();
-                $this->json([
-                    'success' => false,
-                    'error' => 'Your subscription has expired. Please renew to continue using AI Pandit.',
-                    'subscription_required' => true
-                ], 403);
-                return;
-            }
 
             $message = trim($this->input('message', ''));
             $sessionId = $this->input('session_id') ? (int) $this->input('session_id') : null;

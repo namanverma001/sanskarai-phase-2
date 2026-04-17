@@ -1059,6 +1059,10 @@ $roleDisplay = match ($userRole) {
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
                         </a>
+                        <a href="/user/feedback" class="dropdown-item <?= strpos($_SERVER['REQUEST_URI'], '/user/feedback') !== false ? 'active' : '' ?>">
+                            <i class="fas fa-comment-dots"></i>
+                            <span>Feedback</span>
+                        </a>
                         <div class="dropdown-divider"></div>
                         <form action="/logout" method="POST" style="margin: 0;">
                             <?= App\Core\Auth::csrfField() ?>
@@ -1196,6 +1200,11 @@ $roleDisplay = match ($userRole) {
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/profile') !== false ? 'active' : '' ?>"
                         title="My Profile">
                         <i class="fas fa-user-circle"></i> <span>My Profile</span>
+                    </a>
+                    <a href="/user/feedback"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/feedback') !== false ? 'active' : '' ?>"
+                        title="Feedback">
+                        <i class="fas fa-comment-dots"></i> <span>Feedback</span>
                     </a>
                     <form action="/logout" method="POST" style="margin: 0;">
                         <?= \App\Core\Auth::csrfField() ?>

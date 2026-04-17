@@ -1087,14 +1087,6 @@ async function sendMessage() {
             // Highlight active session in history
             highlightSession(currentSessionId);
         } else {
-            // Check if subscription required
-            if (data.subscription_required) {
-                appendMessage('assistant', '🙏 Your subscription has expired. Redirecting you to renew...');
-                setTimeout(() => {
-                    window.location.href = '/user/subscription/plans';
-                }, 2000);
-                return;
-            }
             appendMessage('assistant', '🙏 Sorry—something went wrong. Please try again in a moment. ' + (data.error || ''));
         }
 
