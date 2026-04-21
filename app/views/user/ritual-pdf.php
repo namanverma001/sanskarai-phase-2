@@ -223,10 +223,33 @@
 
             // Generate PDF
             html2pdf().set(opt).from(element).save().then(function() {
-                // Remove loading overlay and close window after short delay
-                document.getElementById('loading').innerHTML = '<h2>Downloaded!</h2><p>You can close this tab now.</p>';
+                // Show completion message with back button
+                document.getElementById('loading').innerHTML = `
+                    <div style="text-align: center;">
+                        <i class="fas fa-check-circle" style="font-size: 3rem; color: #10B981; margin-bottom: 15px;"></i>
+                        <h2 style="color: #065F46;">PDF Downloaded!</h2>
+                        <p style="color: #6B7280; margin-bottom: 25px;">Your ritual PDF has been saved.</p>
+                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                            <button onclick="window.history.back()" style="padding: 14px 30px; background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-arrow-left"></i> Go Back
+                            </button>
+                            <a href="/user/my-rituals" style="padding: 14px 30px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-book-reader"></i> My Rituals
+                            </a>
+                        </div>
+                    </div>
+                `;
+
+                // Try to close tab if it was opened as a popup/new tab
+                setTimeout(function() {
+                    if (window.opener || window.history.length <= 1) {
+                        window.close();
+                    }
+                }, 3000);
             });
         };
     </script>
+    <!-- Font Awesome for icons in the completion message -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </body>
 </html>

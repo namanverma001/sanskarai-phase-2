@@ -5,6 +5,102 @@
             grid-template-columns: 1fr !important;
         }
     }
+
+    /* Save to My Rituals Button */
+    .btn-save-ritual {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px 24px;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-save-ritual:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-save-ritual:active {
+        transform: translateY(0);
+    }
+
+    .btn-save-ritual.saved {
+        background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+        cursor: default;
+        box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+    }
+
+    .btn-save-ritual.saved:hover {
+        transform: none;
+        box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+    }
+
+    .btn-save-ritual .spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin-btn 0.8s linear infinite;
+    }
+
+    .btn-save-ritual.loading .spinner {
+        display: inline-block;
+    }
+
+    .btn-save-ritual.loading .btn-icon,
+    .btn-save-ritual.loading .btn-label {
+        display: none;
+    }
+
+    @keyframes spin-btn {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Toast Notification */
+    .ritual-toast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        padding: 16px 24px;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1001;
+        transform: translateX(120%);
+        transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    .ritual-toast.show {
+        transform: translateX(0);
+    }
+
+    .ritual-toast.success {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    }
+
+    .ritual-toast.error {
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    }
+
+    .ritual-toast.info {
+        background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+    }
 </style>
 
 <a href="/user/rituals" class="btn btn-sm" style="background: #E5E7EB; color: #374151; margin-bottom: 20px;">
@@ -90,6 +186,26 @@
     </div>
     
     <div>
+        <!-- ★ Save to My Rituals Card -->
+        <div class="card" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 2px solid #6EE7B7; margin-bottom: 20px;">
+            <div style="text-align: center; padding: 10px 0 5px;">
+                <i class="fas fa-bookmark" style="font-size: 2rem; color: #059669; margin-bottom: 10px;"></i>
+                <h4 style="color: #065F46; margin-bottom: 8px;">Save to My Rituals</h4>
+                <p style="color: #047857; font-size: 0.85rem; margin-bottom: 18px;">
+                    Add this ritual to your personal collection to start performing it, track progress, and download PDF.
+                </p>
+                <button
+                    id="btnSaveToMyRituals"
+                    class="btn-save-ritual"
+                    onclick="saveToMyRituals(<?= $ritual['id'] ?>)"
+                >
+                    <span class="spinner"></span>
+                    <i class="fas fa-plus-circle btn-icon"></i>
+                    <span class="btn-label">Save to My Rituals</span>
+                </button>
+            </div>
+        </div>
+
         <?php if (!empty($ritual['items'])): ?>
         <div class="card">
             <div class="card-header">
@@ -157,3 +273,85 @@
         </div>
     </div>
 </div>
+
+<!-- Toast Notification -->
+<div id="ritualToast" class="ritual-toast"></div>
+
+<script>
+    const csrfToken = '<?= \App\Core\Auth::csrfToken() ?>';
+
+    function showRitualToast(message, type = 'success') {
+        const toast = document.getElementById('ritualToast');
+        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+        toast.className = `ritual-toast ${type} show`;
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3500);
+    }
+
+    async function saveToMyRituals(globalRitualId) {
+        const btn = document.getElementById('btnSaveToMyRituals');
+
+        // Prevent double clicks
+        if (btn.classList.contains('loading') || btn.classList.contains('saved')) {
+            return;
+        }
+
+        btn.classList.add('loading');
+
+        const formData = new FormData();
+        formData.append('csrf_token', csrfToken);
+        formData.append('global_ritual_id', globalRitualId);
+
+        try {
+            const response = await fetch('/user/my-rituals/add', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            btn.classList.remove('loading');
+
+            if (data.success) {
+                btn.classList.add('saved');
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> <span>Saved to My Rituals!</span>';
+                showRitualToast('Ritual saved to your collection! You can find it in My Rituals.', 'success');
+
+                // After a moment, show a "Go to My Rituals" link
+                setTimeout(() => {
+                    btn.onclick = null;
+                    btn.innerHTML = '<i class="fas fa-folder-open"></i> <span>View in My Rituals</span>';
+                    btn.style.cursor = 'pointer';
+                    btn.classList.remove('saved');
+                    btn.style.background = 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)';
+                    btn.style.boxShadow = '0 4px 15px rgba(99, 102, 241, 0.3)';
+                    btn.addEventListener('click', () => {
+                        window.location.href = '/user/my-rituals/' + data.user_ritual_id;
+                    });
+                }, 2000);
+            } else if (data.already_added) {
+                btn.classList.add('saved');
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> <span>Already in My Rituals</span>';
+                showRitualToast('This ritual is already in your collection!', 'info');
+
+                // Show link to go to it
+                setTimeout(() => {
+                    btn.onclick = null;
+                    btn.innerHTML = '<i class="fas fa-folder-open"></i> <span>View in My Rituals</span>';
+                    btn.style.cursor = 'pointer';
+                    btn.classList.remove('saved');
+                    btn.style.background = 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)';
+                    btn.style.boxShadow = '0 4px 15px rgba(99, 102, 241, 0.3)';
+                    btn.addEventListener('click', () => {
+                        window.location.href = '/user/my-rituals/' + data.user_ritual_id;
+                    });
+                }, 2000);
+            } else {
+                showRitualToast(data.error || 'Failed to save ritual', 'error');
+            }
+        } catch (error) {
+            btn.classList.remove('loading');
+            showRitualToast('Error: ' + error.message, 'error');
+        }
+    }
+</script>

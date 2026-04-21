@@ -78,11 +78,27 @@ class AuthController extends Controller
             // Update last login
             $this->userModel->updateLastLogin(Auth::id());
 
-            // Redirect to intended URL or landing page (where navbar shows user dropdown)
-            $intendedUrl = $_SESSION['intended_url'] ?? '/';
+            // Redirect to intended URL or role-specific dashboard
+            $intendedUrl = $_SESSION['intended_url'] ?? null;
             unset($_SESSION['intended_url']);
 
-            Router::redirect($intendedUrl);
+            if ($intendedUrl && $intendedUrl !== '/') {
+                Router::redirect($intendedUrl);
+            } else {
+                // Redirect to role-specific dashboard
+                $role = Auth::role();
+                switch ($role) {
+                    case 'admin':
+                        Router::redirect('/admin/dashboard');
+                        break;
+                    case 'pandit':
+                        Router::redirect('/pandit/dashboard');
+                        break;
+                    default:
+                        Router::redirect('/user/dashboard');
+                        break;
+                }
+            }
         } else {
             $this->back(['error' => 'Invalid credentials or account is blocked.']);
         }

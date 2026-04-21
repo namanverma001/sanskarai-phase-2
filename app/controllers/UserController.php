@@ -225,11 +225,11 @@ class UserController extends Controller
         
         if (!empty($userCommunity) && !$showAll) {
             // Filter by user's community (fuzzy Levenshtein match)
-            $popularRituals = $this->ritualModel->getActiveForCommunity($userCommunity, 6, 0);
+            $popularRituals = $this->ritualModel->getActiveForCommunity($userCommunity, 3, 0);
             $totalRitualCount = $this->ritualModel->countForCommunity($userCommunity);
         } else {
             // No community set or user wants all — show all rituals
-            $popularRituals = $this->ritualModel->getPopular(6);
+            $popularRituals = $this->ritualModel->getPopular(3);
             $totalRitualCount = $this->ritualModel->count(['is_active' => 1]);
         }
 
@@ -240,6 +240,9 @@ class UserController extends Controller
         // Get top ritual names for dropdown
         $topRitualNames = $this->ritualModel->getTopRitualNames(15);
 
+        // Get user's My Rituals for display below Browse
+        $myRituals = $this->userRitualModel->getByUser($userId);
+
         $this->viewWithLayout('user/explore-rituals', 'layouts/user', [
             'title' => 'Explore Rituals',
             'categories' => $categories,
@@ -248,6 +251,7 @@ class UserController extends Controller
             'userCommunity' => $userCommunity,
             'topCommunities' => $topCommunities,
             'topRitualNames' => $topRitualNames,
+            'myRituals' => $myRituals,
         ]);
     }
 

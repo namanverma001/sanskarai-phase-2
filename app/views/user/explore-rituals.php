@@ -344,17 +344,35 @@
     }
 
     .btn-add {
-        background: #10B981;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
         color: white;
         border: none;
-        padding: 10px 15px;
+        padding: 10px 18px;
         border-radius: 8px;
         cursor: pointer;
         transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
     }
 
     .btn-add:hover {
-        background: #059669;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-add.saved {
+        background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+        cursor: default;
+        box-shadow: none;
+    }
+
+    .btn-add.saved:hover {
+        transform: none;
     }
 
     /* Generated Ritual Preview */
@@ -951,6 +969,20 @@
         <!-- Generated ritual will be shown here -->
     </div>
 
+    <!-- ★ Primary Save to My Rituals Button -->
+    <div id="saveToMyRitualsBar" style="margin-top: 25px; padding: 20px; background: white; border-radius: 16px; border: 2px solid #10B981; display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-bookmark" style="font-size: 1.5rem; color: #059669;"></i>
+            <div>
+                <strong style="color: #065F46; font-size: 1.05rem;">Happy with this ritual?</strong>
+                <p style="margin: 0; font-size: 0.85rem; color: #047857;">Save it to your collection to start performing, track progress & download PDF</p>
+            </div>
+        </div>
+        <button id="btnSaveGenerated" onclick="acceptGeneratedRitual()" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none; padding: 16px 32px; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease; white-space: nowrap;">
+            <i class="fas fa-plus-circle"></i> Save to My Rituals
+        </button>
+    </div>
+
     <!-- Feedback Loop Section -->
     <div class="feedback-section" id="feedbackSection">
         <div class="feedback-header">
@@ -966,7 +998,7 @@
 
         <div class="feedback-actions">
             <button class="btn-accept" onclick="acceptGeneratedRitual()" id="btnAccept">
-                <i class="fas fa-check-circle"></i> Accept Response
+                <i class="fas fa-plus-circle"></i> Save to My Rituals
             </button>
             <div class="like-dislike-group">
                 <button class="btn-like" onclick="selectFeedback('like')" id="btnLike">
@@ -998,7 +1030,7 @@
                     Your feedback helps us improve AI-generated rituals
                 </p>
                 <button class="btn-accept" onclick="acceptGeneratedRitual()" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 16px;">
-                    <i class="fas fa-check-circle"></i> Accept & Save to My Rituals
+                    <i class="fas fa-plus-circle"></i> Save to My Rituals
                 </button>
             </div>
         </div>
@@ -1076,10 +1108,11 @@
                         </a>
                         <button
                             class="btn-add"
-                            onclick="addToMyRituals(<?= $ritual['id'] ?>)"
-                            title="Add to My Rituals"
+                            id="btnAdd_<?= $ritual['id'] ?>"
+                            onclick="addToMyRituals(<?= $ritual['id'] ?>, this)"
+                            title="Save to My Rituals"
                         >
-                            <i class="fas fa-plus"></i>
+                            <i class="fas fa-plus"></i> Save
                         </button>
                     </div>
                 </div>
@@ -1090,9 +1123,93 @@
     <!-- Load More Button -->
     <div id="loadMoreContainer" style="text-align: center; margin-top: 30px; <?= ($totalRitualCount ?? 0) <= count($popularRituals ?? []) ? 'display: none;' : '' ?>">
         <button onclick="loadMoreRituals()" id="loadMoreBtn" class="btn-search" style="padding: 14px 40px; background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);">
-            <i class="fas fa-plus-circle"></i> Load More Rituals
+            <i class="fas fa-plus-circle"></i> Show More Rituals
         </button>
     </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MY RITUALS SECTION -->
+<!-- ============================================================ -->
+<div class="popular-section" style="margin-top: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 class="section-title" style="margin-bottom: 0;"><i class="fas fa-book-reader" style="color: #10B981;"></i> My Rituals</h3>
+        <a href="/user/my-rituals" style="color: var(--primary); font-size: 0.9rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+            View All <i class="fas fa-arrow-right"></i>
+        </a>
+    </div>
+
+    <?php if (empty($myRituals)): ?>
+        <div class="card" style="text-align: center; padding: 40px 20px; color: #6B7280;">
+            <i class="fas fa-folder-open" style="font-size: 3rem; opacity: 0.3; margin-bottom: 15px;"></i>
+            <h4 style="color: var(--dark); margin-bottom: 8px;">No Saved Rituals Yet</h4>
+            <p style="font-size: 0.9rem;">Search or generate a ritual above, then save it to your collection.</p>
+        </div>
+    <?php else: ?>
+        <div class="rituals-grid" id="myRitualsGrid">
+            <?php foreach (array_slice($myRituals, 0, 3) as $ritual): ?>
+                <div class="ritual-card">
+                    <div class="ritual-card-header" style="background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-bottom: 1px solid #6EE7B7; position: relative;">
+                        <?php if ($ritual['is_ai_generated']): ?>
+                            <span style="position: absolute; top: 10px; right: 10px; background: #8B5CF6; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 500;">AI Generated</span>
+                        <?php endif; ?>
+                        <h4 style="padding-right: 80px;">
+                            <?= htmlspecialchars($ritual['name']) ?>
+                        </h4>
+                        <?php if ($ritual['name_sanskrit']): ?>
+                            <span class="sanskrit" style="color: #065F46;">
+                                <?= htmlspecialchars($ritual['name_sanskrit']) ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="ritual-card-body">
+                        <div class="ritual-meta-row">
+                            <?php if ($ritual['category']): ?>
+                                <span class="ritual-meta-tag tag-category">
+                                    <i class="fas fa-tag"></i>
+                                    <?= htmlspecialchars($ritual['category']) ?>
+                                </span>
+                            <?php endif; ?>
+                            <span class="ritual-meta-tag tag-difficulty-<?= $ritual['difficulty'] ?>">
+                                <?= ucfirst($ritual['difficulty']) ?>
+                            </span>
+                            <span class="ritual-meta-tag tag-duration">
+                                <i class="fas fa-clock"></i>
+                                <?= $ritual['duration_minutes'] ?> min
+                            </span>
+                            <?php if (!empty($ritual['community_name'])): ?>
+                                <span class="ritual-meta-tag tag-community">
+                                    <i class="fas fa-users"></i>
+                                    <?= htmlspecialchars($ritual['community_name']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <p class="ritual-description">
+                            <?= htmlspecialchars(substr($ritual['description'] ?? 'Your personalized ritual.', 0, 100)) ?>...
+                        </p>
+                        <div class="ritual-card-actions">
+                            <a href="/user/my-rituals/<?= $ritual['id'] ?>" class="btn-view">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            <a href="/user/my-rituals/<?= $ritual['id'] ?>/start" class="btn-add" style="text-decoration: none;">
+                                <i class="fas fa-play"></i> Start
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Show More My Rituals Button -->
+        <?php if (count($myRituals) > 3): ?>
+        <div id="showMoreMyRitualsContainer" style="text-align: center; margin-top: 25px;">
+            <button onclick="showMoreMyRituals()" id="showMoreMyRitualsBtn" class="btn-search" style="padding: 14px 40px; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+                <i class="fas fa-plus-circle"></i> Show More My Rituals
+            </button>
+            <span style="display: block; margin-top: 8px; color: #6B7280; font-size: 0.85rem;">Showing <span id="myRitualsShownCount">3</span> of <?= count($myRituals) ?></span>
+        </div>
+        <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <!-- Loading Overlay -->
@@ -1463,9 +1580,9 @@
                             <a href="${viewUrl}" class="btn-view">
                                 <i class="fas fa-eye"></i> View Details
                             </a>
-                            ${!isMyRitual ? `<button class="btn-add" onclick="addToMyRituals(${ritual.id})" title="Add to My Rituals">
-                                <i class="fas fa-plus"></i>
-                            </button>` : ''}
+                            ${!isMyRitual ? `<button class="btn-add" id="btnAdd_${ritual.id}" onclick="addToMyRituals(${ritual.id}, this)" title="Save to My Rituals">
+                                <i class="fas fa-plus"></i> Save
+                            </button>` : `<span class="btn-add saved" style="pointer-events:none;"><i class="fas fa-check"></i> Saved</span>`}
                         </div>
                     </div>
                 </div>
@@ -1804,7 +1921,24 @@
 
             if (data.success) {
                 window.generatedRitualAdded = true;
-                showToast('🎉 Ritual accepted and added to your collection!', 'success');
+                showToast('🎉 Ritual saved to your collection!', 'success');
+
+                // Update all save buttons to show saved state
+                const saveBtn = document.getElementById('btnSaveGenerated');
+                if (saveBtn) {
+                    saveBtn.innerHTML = '<i class="fas fa-check-circle"></i> Saved!';
+                    saveBtn.style.background = 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)';
+                    saveBtn.style.cursor = 'default';
+                    saveBtn.onclick = null;
+                }
+                const acceptBtn = document.getElementById('btnAccept');
+                if (acceptBtn) {
+                    acceptBtn.innerHTML = '<i class="fas fa-check-circle"></i> Saved!';
+                    acceptBtn.style.background = 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)';
+                    acceptBtn.style.cursor = 'default';
+                    acceptBtn.disabled = true;
+                }
+
                 setTimeout(() => {
                     window.location.href = '/user/my-rituals/' + data.user_ritual_id;
                 }, 1500);
@@ -1817,7 +1951,17 @@
         }
     }
 
-    async function addToMyRituals(globalRitualId) {
+    async function addToMyRituals(globalRitualId, btnElement) {
+        // Prevent double clicks
+        if (btnElement && (btnElement.classList.contains('saved') || btnElement.disabled)) {
+            return;
+        }
+
+        if (btnElement) {
+            btnElement.disabled = true;
+            btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+
         const formData = new FormData();
         formData.append('csrf_token', csrfToken);
         formData.append('global_ritual_id', globalRitualId);
@@ -1830,14 +1974,40 @@
             const data = await response.json();
 
             if (data.success) {
-                showToast('Ritual added to your collection!', 'success');
+                showToast('✅ Ritual saved to your collection!', 'success');
+                if (btnElement) {
+                    btnElement.classList.add('saved');
+                    btnElement.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                    btnElement.onclick = null;
+                }
+                // Also update any duplicate buttons for the same ritual
+                document.querySelectorAll(`#btnAdd_${globalRitualId}`).forEach(b => {
+                    if (b !== btnElement) {
+                        b.classList.add('saved');
+                        b.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                        b.onclick = null;
+                    }
+                });
             } else if (data.already_added) {
                 showToast('This ritual is already in your collection!', 'info');
+                if (btnElement) {
+                    btnElement.classList.add('saved');
+                    btnElement.innerHTML = '<i class="fas fa-check"></i> Saved!';
+                    btnElement.onclick = null;
+                }
             } else {
                 showToast(data.error || 'Failed to add ritual', 'error');
+                if (btnElement) {
+                    btnElement.disabled = false;
+                    btnElement.innerHTML = '<i class="fas fa-plus"></i> Save';
+                }
             }
         } catch (error) {
             showToast('Error: ' + error.message, 'error');
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.innerHTML = '<i class="fas fa-plus"></i> Save';
+            }
         }
     }
 
@@ -1850,7 +2020,11 @@
 
     // Load More Rituals functionality
     let currentOffset = <?= count($popularRituals ?? []) ?>;
-    const ritualsPerPage = 6;
+    const ritualsPerPage = 3;
+
+    // My Rituals show-more state
+    const allMyRituals = <?= json_encode($myRituals ?? []) ?>;
+    let myRitualsShown = 3;
 
     async function loadMoreRituals() {
         const loadMoreBtn = document.getElementById('loadMoreBtn');
@@ -1936,12 +2110,69 @@
                         <a href="/user/rituals/${ritual.id}" class="btn-view">
                             <i class="fas fa-eye"></i> View Details
                         </a>
-                        <button class="btn-add" onclick="addToMyRituals(${ritual.id})" title="Add to My Rituals">
-                            <i class="fas fa-plus"></i>
+                        <button class="btn-add" id="btnAdd_${ritual.id}" onclick="addToMyRituals(${ritual.id}, this)" title="Save to My Rituals">
+                            <i class="fas fa-plus"></i> Save
                         </button>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    // Show More My Rituals functionality
+    function showMoreMyRituals() {
+        const grid = document.getElementById('myRitualsGrid');
+        const btn = document.getElementById('showMoreMyRitualsBtn');
+        const container = document.getElementById('showMoreMyRitualsContainer');
+        const countEl = document.getElementById('myRitualsShownCount');
+        
+        if (!grid || !allMyRituals) return;
+
+        const nextBatch = allMyRituals.slice(myRitualsShown, myRitualsShown + 3);
+        
+        nextBatch.forEach(ritual => {
+            const isAI = ritual.is_ai_generated ? `<span style="position: absolute; top: 10px; right: 10px; background: #8B5CF6; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 500;">AI Generated</span>` : '';
+            const card = `
+                <div class="ritual-card">
+                    <div class="ritual-card-header" style="background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); border-bottom: 1px solid #6EE7B7; position: relative;">
+                        ${isAI}
+                        <h4 style="padding-right: 80px;">${escapeHtml(ritual.name)}</h4>
+                        ${ritual.name_sanskrit ? `<span class="sanskrit" style="color: #065F46;">${escapeHtml(ritual.name_sanskrit)}</span>` : ''}
+                    </div>
+                    <div class="ritual-card-body">
+                        <div class="ritual-meta-row">
+                            ${ritual.category ? `<span class="ritual-meta-tag tag-category"><i class="fas fa-tag"></i> ${escapeHtml(ritual.category)}</span>` : ''}
+                            <span class="ritual-meta-tag tag-difficulty-${ritual.difficulty}">
+                                ${(ritual.difficulty || 'medium').charAt(0).toUpperCase() + (ritual.difficulty || 'medium').slice(1)}
+                            </span>
+                            <span class="ritual-meta-tag tag-duration">
+                                <i class="fas fa-clock"></i> ${ritual.duration_minutes} min
+                            </span>
+                            ${ritual.community_name ? `<span class="ritual-meta-tag tag-community"><i class="fas fa-users"></i> ${escapeHtml(ritual.community_name)}</span>` : ''}
+                        </div>
+                        <p class="ritual-description">
+                            ${escapeHtml((ritual.description || 'Your personalized ritual.').substring(0, 100))}...
+                        </p>
+                        <div class="ritual-card-actions">
+                            <a href="/user/my-rituals/${ritual.id}" class="btn-view">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            <a href="/user/my-rituals/${ritual.id}/start" class="btn-add" style="text-decoration: none;">
+                                <i class="fas fa-play"></i> Start
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.insertAdjacentHTML('beforeend', card);
+        });
+
+        myRitualsShown += nextBatch.length;
+        if (countEl) countEl.textContent = myRitualsShown;
+
+        // Hide button if all shown
+        if (myRitualsShown >= allMyRituals.length && container) {
+            container.style.display = 'none';
+        }
     }
 </script>
