@@ -2,7 +2,7 @@
 /**
  * Sanskar AI - Database Migration Script
  * ========================================
- * Creates all 24 tables with proper constraints and relationships
+ * Creates all 42 tables with proper constraints and relationships
  * 
  * Usage: php app/database/migrate.php
  */
@@ -1344,6 +1344,464 @@ try {
         echo "      ! Could not create SAI_review_notifications: " . $e->getMessage() . "\n";
     }
 
+    // ============================================================
+    // ADDITIONAL MIGRATION: Add template & RSVP columns to SAI_invitations
+    // and create SAI_invitation_rsvps table
+    // (from add_invitation_rsvp_table.php)
+    // ============================================================
+    echo "\n      Updating SAI_invitations with template/RSVP columns...\n";
+    try {
+        // Add template_id column
+        $stmt = $pdo->query("SHOW COLUMNS FROM SAI_invitations LIKE 'template_id'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("
+                ALTER TABLE SAI_invitations
+                ADD COLUMN template_id VARCHAR(50) DEFAULT 'royal_gold' AFTER additional_details
+            ");
+            echo "      ✓ 'template_id' added to SAI_invitations\n";
+        } else {
+            echo "      - 'template_id' already exists in SAI_invitations\n";
+        }
+
+        // Add theme_color column
+        $stmt = $pdo->query("SHOW COLUMNS FROM SAI_invitations LIKE 'theme_color'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("
+                ALTER TABLE SAI_invitations
+                ADD COLUMN theme_color VARCHAR(20) DEFAULT '#B8860B' AFTER template_id
+            ");
+            echo "      ✓ 'theme_color' added to SAI_invitations\n";
+        } else {
+            echo "      - 'theme_color' already exists in SAI_invitations\n";
+        }
+
+        // Add rsvp_enabled column
+        $stmt = $pdo->query("SHOW COLUMNS FROM SAI_invitations LIKE 'rsvp_enabled'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("
+                ALTER TABLE SAI_invitations
+                ADD COLUMN rsvp_enabled BOOLEAN DEFAULT TRUE AFTER theme_color
+            ");
+            echo "      ✓ 'rsvp_enabled' added to SAI_invitations\n";
+        } else {
+            echo "      - 'rsvp_enabled' already exists in SAI_invitations\n";
+        }
+
+        // Make generated_html nullable
+        $pdo->exec("ALTER TABLE SAI_invitations MODIFY generated_html MEDIUMTEXT NULL");
+        echo "      ✓ 'generated_html' is now nullable\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not update SAI_invitations: " . $e->getMessage() . "\n";
+    }
+
+    // Create SAI_invitation_rsvps table
+    echo "\n      Creating SAI_invitation_rsvps...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_invitation_rsvps (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                invitation_id INT NOT NULL,
+                guest_name VARCHAR(150) NOT NULL,
+                attending_status ENUM('yes', 'no', 'maybe') NOT NULL DEFAULT 'yes',
+                guest_count INT DEFAULT 1,
+                message TEXT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (invitation_id) REFERENCES SAI_invitations(id) ON DELETE CASCADE,
+
+                INDEX idx_invitation_id (invitation_id),
+                INDEX idx_attending_status (attending_status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_invitation_rsvps created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_invitation_rsvps: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_mohurat_requests table
+    // (from add_mohurat_requests_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_mohurat_requests...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_mohurat_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                pandit_id INT NULL,
+                family_id INT NULL,
+                ritual_type VARCHAR(200) NOT NULL,
+                country VARCHAR(100) DEFAULT 'India',
+                city VARCHAR(100) NULL,
+                preferred_month VARCHAR(50) NULL,
+                gotra VARCHAR(50) NULL,
+                nakshatra VARCHAR(50) NULL,
+                time_preference ENUM('morning', 'evening', 'any') DEFAULT 'any',
+                additional_notes TEXT NULL,
+                status ENUM('pending', 'replied', 'accepted', 'declined', 'expired') DEFAULT 'pending',
+                reply_date DATE NULL,
+                reply_time TIME NULL,
+                reply_explanation TEXT NULL,
+                consultation_fee DECIMAL(10,2) NULL,
+                replied_by INT NULL,
+                replied_at DATETIME NULL,
+                accepted_at DATETIME NULL,
+                assignment_id INT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (pandit_id) REFERENCES SAI_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (family_id) REFERENCES SAI_families(id) ON DELETE SET NULL,
+                FOREIGN KEY (replied_by) REFERENCES SAI_users(id) ON DELETE SET NULL,
+                FOREIGN KEY (assignment_id) REFERENCES SAI_pandit_assignments(id) ON DELETE SET NULL,
+
+                INDEX idx_user_id (user_id),
+                INDEX idx_pandit_id (pandit_id),
+                INDEX idx_status (status),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_mohurat_requests created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_mohurat_requests: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create AI Pandit Chat Tables
+    // (from create_pandit_chat_tables.php)
+    // ============================================================
+    echo "\n      Creating SAI_pandit_chat_sessions...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_pandit_chat_sessions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(255) DEFAULT 'New Conversation',
+                user_details JSON DEFAULT NULL COMMENT 'Stores collected DOB, birth time, place, gotra etc.',
+                status ENUM('active', 'archived') DEFAULT 'active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_status (status),
+                INDEX idx_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_pandit_chat_sessions created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_pandit_chat_sessions: " . $e->getMessage() . "\n";
+    }
+
+    echo "\n      Creating SAI_pandit_chat_messages...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_pandit_chat_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                session_id INT NOT NULL,
+                role ENUM('user', 'assistant') NOT NULL,
+                content TEXT NOT NULL,
+                tokens_used INT DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_session_id (session_id),
+                INDEX idx_role (role),
+                CONSTRAINT fk_chat_msg_session FOREIGN KEY (session_id) 
+                    REFERENCES SAI_pandit_chat_sessions(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_pandit_chat_messages created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_pandit_chat_messages: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create Ritual Budget Tables
+    // (from create_ritual_budget_tables.php)
+    // ============================================================
+    echo "\n      Creating SAI_ritual_budgets...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_ritual_budgets (
+                id              INT AUTO_INCREMENT PRIMARY KEY,
+                user_id         INT NOT NULL,
+                ritual_type     VARCHAR(255) NOT NULL,
+                location        VARCHAR(255) NOT NULL,
+                guest_count     SMALLINT UNSIGNED NOT NULL,
+                tier            ENUM('basic','standard','premium') NOT NULL DEFAULT 'standard',
+                total_estimated DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                total_actual    DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+                ai_request_id   INT NULL,
+                created_at      DATETIME NOT NULL,
+                updated_at      DATETIME NOT NULL,
+
+                INDEX idx_user_id (user_id),
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_ritual_budgets created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_ritual_budgets: " . $e->getMessage() . "\n";
+    }
+
+    echo "\n      Creating SAI_ritual_budget_items...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_ritual_budget_items (
+                id               INT AUTO_INCREMENT PRIMARY KEY,
+                budget_id        INT NOT NULL,
+                category         VARCHAR(100) NOT NULL,
+                item_name        VARCHAR(255) NOT NULL,
+                estimated_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                actual_amount    DECIMAL(10,2) NULL,
+                is_custom        TINYINT(1) NOT NULL DEFAULT 0,
+                notes            TEXT NULL,
+                created_at       DATETIME NOT NULL,
+                updated_at       DATETIME NOT NULL,
+
+                INDEX idx_budget_id (budget_id),
+                FOREIGN KEY (budget_id) REFERENCES SAI_ritual_budgets(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_ritual_budget_items created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_ritual_budget_items: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_ritual_feedbacks table
+    // (from create_ritual_feedbacks_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_ritual_feedbacks...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_ritual_feedbacks (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
+                community_name VARCHAR(255) NULL,
+                religion VARCHAR(100) NULL,
+                ritual_name VARCHAR(255) NOT NULL,
+                feedback_type ENUM('like', 'dislike') NOT NULL,
+                feedback_text TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_ritual_name (ritual_name),
+                INDEX idx_feedback_type (feedback_type),
+                CONSTRAINT fk_ritual_feedbacks_user
+                    FOREIGN KEY (user_id) REFERENCES SAI_users(id)
+                    ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_ritual_feedbacks created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_ritual_feedbacks: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create Subscription Tables
+    // (from create_subscription_tables.php)
+    // ============================================================
+    echo "\n      Creating SAI_subscription_plans...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_subscription_plans (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                slug VARCHAR(50) NOT NULL UNIQUE,
+                description TEXT,
+                duration_days INT NOT NULL,
+                price DECIMAL(10,2) NOT NULL,
+                currency VARCHAR(3) DEFAULT 'INR',
+                features JSON,
+                is_active TINYINT(1) DEFAULT 1,
+                display_order INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_slug (slug),
+                INDEX idx_active (is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_subscription_plans created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_subscription_plans: " . $e->getMessage() . "\n";
+    }
+
+    echo "\n      Creating SAI_user_subscriptions...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_user_subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                plan_id INT NOT NULL,
+                razorpay_subscription_id VARCHAR(255),
+                status ENUM('pending', 'active', 'expired', 'cancelled', 'failed') DEFAULT 'pending',
+                starts_at TIMESTAMP NULL,
+                expires_at TIMESTAMP NULL,
+                auto_renew TINYINT(1) DEFAULT 0,
+                cancelled_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (plan_id) REFERENCES SAI_subscription_plans(id) ON DELETE RESTRICT,
+                INDEX idx_user_id (user_id),
+                INDEX idx_status (status),
+                INDEX idx_expires_at (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_user_subscriptions created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_user_subscriptions: " . $e->getMessage() . "\n";
+    }
+
+    echo "\n      Creating SAI_payment_transactions...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_payment_transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                subscription_id INT,
+                plan_id INT NOT NULL,
+                razorpay_order_id VARCHAR(255),
+                razorpay_payment_id VARCHAR(255),
+                razorpay_signature VARCHAR(255),
+                amount DECIMAL(10,2) NOT NULL,
+                currency VARCHAR(3) DEFAULT 'INR',
+                status ENUM('created', 'pending', 'completed', 'failed', 'refunded') DEFAULT 'created',
+                payment_method VARCHAR(50),
+                error_code VARCHAR(100),
+                error_description TEXT,
+                metadata JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (subscription_id) REFERENCES SAI_user_subscriptions(id) ON DELETE SET NULL,
+                FOREIGN KEY (plan_id) REFERENCES SAI_subscription_plans(id) ON DELETE RESTRICT,
+                INDEX idx_user_id (user_id),
+                INDEX idx_razorpay_order_id (razorpay_order_id),
+                INDEX idx_razorpay_payment_id (razorpay_payment_id),
+                INDEX idx_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_payment_transactions created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_payment_transactions: " . $e->getMessage() . "\n";
+    }
+
+    // Seed Default Subscription Plans
+    echo "\n      Seeding default subscription plans...\n";
+    try {
+        $plans = [
+            [
+                'name' => '1 Day Trial',
+                'slug' => 'daily',
+                'description' => 'Try AI Pandit for 24 hours',
+                'duration_days' => 1,
+                'price' => 1.00,
+                'features' => json_encode([
+                    'Unlimited AI Pandit chats',
+                    'Access to all ritual guidance',
+                    'Personalized recommendations',
+                    '24/7 availability'
+                ]),
+                'display_order' => 1
+            ],
+            [
+                'name' => '1 Month',
+                'slug' => 'monthly',
+                'description' => 'Full access for 1 month',
+                'duration_days' => 30,
+                'price' => 28.00,
+                'features' => json_encode([
+                    'Unlimited AI Pandit chats',
+                    'Access to all ritual guidance',
+                    'Personalized recommendations',
+                    '24/7 availability',
+                    'Chat history saved'
+                ]),
+                'display_order' => 2
+            ],
+            [
+                'name' => '6 Months',
+                'slug' => 'half-yearly',
+                'description' => 'Best value - 6 months access',
+                'duration_days' => 180,
+                'price' => 400.00,
+                'features' => json_encode([
+                    'Unlimited AI Pandit chats',
+                    'Access to all ritual guidance',
+                    'Personalized recommendations',
+                    '24/7 availability',
+                    'Chat history saved',
+                    'Priority support',
+                    'Save 28% compared to monthly'
+                ]),
+                'display_order' => 3
+            ],
+            [
+                'name' => '1 Year',
+                'slug' => 'yearly',
+                'description' => 'Maximum savings - Annual plan',
+                'duration_days' => 365,
+                'price' => 750.00,
+                'features' => json_encode([
+                    'Unlimited AI Pandit chats',
+                    'Access to all ritual guidance',
+                    'Personalized recommendations',
+                    '24/7 availability',
+                    'Chat history saved',
+                    'Priority support',
+                    'Exclusive features',
+                    'Save 44% compared to monthly'
+                ]),
+                'display_order' => 4
+            ]
+        ];
+
+        $stmt = $pdo->prepare("
+            INSERT INTO SAI_subscription_plans (name, slug, description, duration_days, price, features, display_order)
+            VALUES (:name, :slug, :description, :duration_days, :price, :features, :display_order)
+            ON DUPLICATE KEY UPDATE
+                name = VALUES(name),
+                description = VALUES(description),
+                duration_days = VALUES(duration_days),
+                price = VALUES(price),
+                features = VALUES(features),
+                display_order = VALUES(display_order)
+        ");
+
+        foreach ($plans as $plan) {
+            $stmt->execute($plan);
+        }
+        echo "      ✓ Default subscription plans seeded\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not seed subscription plans: " . $e->getMessage() . "\n";
+    }
+
+    // ============================================================
+    // ADDITIONAL MIGRATION: Create SAI_user_feedbacks table
+    // (from create_user_feedbacks_table.php)
+    // ============================================================
+    echo "\n      Creating SAI_user_feedbacks...\n";
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS SAI_user_feedbacks (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                phone VARCHAR(20) NOT NULL,
+                community_name VARCHAR(255),
+                features_feedback JSON,
+                likes_about TEXT,
+                improvements_for TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES SAI_users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "      ✓ SAI_user_feedbacks created\n";
+    } catch (\Exception $e) {
+        echo "      ! Could not create SAI_user_feedbacks: " . $e->getMessage() . "\n";
+    }
+
     echo "\n[3/3] Verifying tables...\n";
 
     // Verify all tables exist
@@ -1379,6 +1837,17 @@ try {
         'SAI_invitations',
         'SAI_reviews',
         'SAI_review_notifications',
+        'SAI_invitation_rsvps',
+        'SAI_mohurat_requests',
+        'SAI_pandit_chat_sessions',
+        'SAI_pandit_chat_messages',
+        'SAI_ritual_budgets',
+        'SAI_ritual_budget_items',
+        'SAI_ritual_feedbacks',
+        'SAI_subscription_plans',
+        'SAI_user_subscriptions',
+        'SAI_payment_transactions',
+        'SAI_user_feedbacks',
     ];
 
     $pdo->exec("USE SAI");
@@ -1401,7 +1870,7 @@ try {
     echo "\n==============================================\n";
     if ($allExist) {
         echo "  ✓ Migration completed successfully!\n";
-        echo "  ✓ All 31 tables created with constraints\n";
+        echo "  ✓ All 42 tables created with constraints\n";
     } else {
         echo "  ✗ Migration completed with errors!\n";
     }
