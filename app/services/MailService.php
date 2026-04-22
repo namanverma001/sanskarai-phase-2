@@ -208,6 +208,87 @@ HTML;
         return $this->send($toEmail, $subject, $body);
     }
 
+    /**
+     * Notify an admin that a new pandit has signed up and is waiting for approval.
+     */
+    public function sendAdminPanditSignupNotification(string $adminEmail, array $pandit): bool
+    {
+        $appName = $_ENV['APP_NAME'] ?? 'Sanskar AI';
+        $appUrl  = rtrim($_ENV['APP_URL'] ?? '', '/');
+
+        $panditName = htmlspecialchars((string) ($pandit['name'] ?? 'New Pandit'));
+        $panditEmail = htmlspecialchars((string) ($pandit['email'] ?? ''));
+        $panditMobile = htmlspecialchars((string) ($pandit['mobile'] ?? ''));
+        $communityName = htmlspecialchars((string) ($pandit['community_name'] ?? 'Not provided'));
+        $specialization = htmlspecialchars((string) ($pandit['specialization'] ?? 'General Puja'));
+        $experienceYears = (int) ($pandit['experience_years'] ?? 0);
+        $bio = trim((string) ($pandit['bio'] ?? ''));
+        $bioSafe = $bio !== '' ? nl2br(htmlspecialchars($bio)) : 'Not provided';
+
+        $pendingUrl = $appUrl !== '' ? $appUrl . '/admin/pandits/pending' : '/admin/pandits/pending';
+
+        $subject = "New Pandit Signup Pending Approval - {$appName}";
+
+        $body = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Pandit Signup</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#7c3aed;padding:24px 30px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:20px;">{$appName}</h1>
+              <p style="margin:8px 0 0;color:#ede9fe;font-size:14px;">New Pandit Approval Request</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px;">
+              <p style="margin:0 0 16px;color:#374151;font-size:15px;">A new pandit has signed up and is waiting for admin approval.</p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:6px;">
+                <tr>
+                  <td style="padding:18px;">
+                    <h2 style="margin:0 0 12px;font-size:16px;color:#5b21b6;">Pandit Details</h2>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr><td style="padding:5px 0;color:#6b7280;font-size:14px;width:38%;">Name</td><td style="padding:5px 0;color:#111827;font-size:14px;font-weight:600;">{$panditName}</td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:5px 0;color:#111827;font-size:14px;">{$panditEmail}</td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280;font-size:14px;">Mobile</td><td style="padding:5px 0;color:#111827;font-size:14px;">{$panditMobile}</td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280;font-size:14px;">Community</td><td style="padding:5px 0;color:#111827;font-size:14px;">{$communityName}</td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280;font-size:14px;">Specialization</td><td style="padding:5px 0;color:#111827;font-size:14px;">{$specialization}</td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280;font-size:14px;">Experience</td><td style="padding:5px 0;color:#111827;font-size:14px;">{$experienceYears} years</td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280;font-size:14px;vertical-align:top;">Bio</td><td style="padding:5px 0;color:#111827;font-size:14px;">{$bioSafe}</td></tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;">
+                <tr>
+                  <td align="center">
+                    <a href="{$pendingUrl}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;padding:12px 26px;border-radius:6px;font-size:14px;font-weight:600;">Review Pending Pandits</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+HTML;
+
+        return $this->sendHtml($adminEmail, $subject, $body);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Private: raw SMTP sender (STARTTLS, Gmail compatible)
     // ─────────────────────────────────────────────────────────────────────────

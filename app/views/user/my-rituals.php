@@ -203,6 +203,29 @@
         font-weight: 500;
     }
 
+    .history-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-resume {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-decoration: none;
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: #fff;
+    }
+
+    .btn-resume:hover {
+        filter: brightness(1.05);
+    }
+
     .status-completed {
         background: #D1FAE5;
         color: #065F46;
@@ -385,9 +408,16 @@
                             <?php endif; ?>
                         </p>
                     </div>
-                    <span class="history-status status-<?= $item['status'] ?>">
-                        <?= ucfirst(str_replace('_', ' ', $item['status'])) ?>
-                    </span>
+                    <div class="history-actions">
+                        <?php if ($item['status'] === 'in_progress' && !empty($item['user_ritual_id'])): ?>
+                            <a href="/user/my-rituals/<?= (int) $item['user_ritual_id'] ?>/start" class="btn-resume">
+                                <i class="fas fa-play"></i> Resume
+                            </a>
+                        <?php endif; ?>
+                        <span class="history-status status-<?= $item['status'] ?>">
+                            <?= ucfirst(str_replace('_', ' ', $item['status'])) ?>
+                        </span>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>

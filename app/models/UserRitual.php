@@ -407,6 +407,23 @@ class UserRitual extends Model
      */
     public function startSession(int $userId, int $userRitualId): string
     {
+        // Reuse latest in-progress session so users can resume after pause.
+        $existingSql = "SELECT session_id
+                        FROM SAI_ritual_progress
+                        WHERE user_id = :user_id
+                          AND user_ritual_id = :user_ritual_id
+                          AND status = 'in_progress'
+                        ORDER BY id DESC
+                        LIMIT 1";
+        $existing = $this->rawOne($existingSql, [
+            'user_id' => $userId,
+            'user_ritual_id' => $userRitualId,
+        ]);
+
+        if (!empty($existing['session_id'])) {
+            return (string) $existing['session_id'];
+        }
+
         $sessionId = bin2hex(random_bytes(32));
 
         $sql = "INSERT INTO SAI_ritual_progress 

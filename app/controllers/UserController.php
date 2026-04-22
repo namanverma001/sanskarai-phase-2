@@ -27,6 +27,7 @@ use App\Models\RitualFeedback;
 use App\Models\Subscription;
 use App\Services\AIService;
 use App\Services\CommunityFestivalService;
+use App\Services\EmbeddingService;
 use App\Services\MailService;
 use App\Services\RazorpayService;
 use App\Config\Database;
@@ -346,6 +347,16 @@ class UserController extends Controller
             $myRituals = $this->userRitualModel->searchByUser($userId, $criteria);
             // Already tagged with source_type = 'my_ritual' in the model
 
+            // Fallback matching for misspellings/synonyms before triggering AI generation.
+            // This helps cases like "Vehicle Pujaaaa" or "Ganpati Puja".
+            if (empty($myRituals) && empty($globalRituals) && !empty(trim((string) ($criteria['ritual_name'] ?? '')))) {
+                $myRituals = $this->findFuzzyMyRitualMatches($userId, (string) $criteria['ritual_name']);
+
+                $globalFuzzy = $this->findFuzzyGlobalMatches($criteria, 8);
+                $globalSemantic = $this->findSemanticGlobalMatches($criteria, 8, 0.78);
+                $globalRituals = $this->mergeGlobalMatchesById($globalFuzzy, $globalSemantic, 8);
+            }
+
             // Merge results (My Rituals first, then global)
             $allRituals = array_merge($myRituals, $globalRituals);
 
@@ -362,6 +373,235 @@ class UserController extends Controller
             ob_end_clean();
             $this->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Try typo-tolerant matching against the user's saved rituals.
+     */
+    private function findFuzzyMyRitualMatches(int $userId, string $ritualName, int $limit = 8): array
+    {
+        $query = $this->normalizeRitualText($ritualName);
+        if ($query === '') {
+            return [];
+        }
+
+        $allMyRituals = $this->userRitualModel->getByUser($userId);
+        if (empty($allMyRituals)) {
+            return [];
+        }
+
+        $scored = [];
+        foreach ($allMyRituals as $ritual) {
+            $candidateName = (string) ($ritual['name'] ?? '');
+            $candidate = $this->normalizeRitualText($candidateName);
+            if ($candidate === '') {
+                continue;
+            }
+
+            $score = $this->calculateNameSimilarityScore($query, $candidate);
+
+            if ($score >= 0.72) {
+                $ritual['source_type'] = 'my_ritual';
+                $ritual['similarity_score'] = round(min($score, 1.0), 6);
+                $ritual['match_type'] = 'fuzzy_name';
+                $scored[] = $ritual;
+            }
+        }
+
+        usort($scored, static fn(array $a, array $b): int =>
+            ((float) ($b['similarity_score'] ?? 0.0)) <=> ((float) ($a['similarity_score'] ?? 0.0))
+        );
+
+        return array_slice($scored, 0, $limit);
+    }
+
+    /**
+     * Use ritual embeddings to find semantically similar global rituals.
+     */
+    private function findSemanticGlobalMatches(array $criteria, int $limit = 8, float $minSimilarity = 0.78): array
+    {
+        $ritualName = trim((string) ($criteria['ritual_name'] ?? ''));
+        if ($ritualName === '') {
+            return [];
+        }
+
+        try {
+            $embeddingService = new EmbeddingService();
+            $semanticMatches = $embeddingService->semanticSearch($ritualName, $limit);
+        } catch (\Throwable $e) {
+            error_log('Semantic ritual search failed: ' . $e->getMessage());
+            return [];
+        }
+
+        if (empty($semanticMatches)) {
+            return [];
+        }
+
+        $religionFilter = trim((string) ($criteria['religion'] ?? ''));
+        $communityFilter = trim((string) ($criteria['community_name'] ?? ''));
+        $categoryFilter = trim((string) ($criteria['category'] ?? ''));
+
+        $results = [];
+        foreach ($semanticMatches as $match) {
+            $score = (float) ($match['similarity_score'] ?? 0.0);
+            if ($score < $minSimilarity) {
+                continue;
+            }
+
+            if ($religionFilter !== '' && stripos((string) ($match['religion'] ?? ''), $religionFilter) === false) {
+                continue;
+            }
+            if ($communityFilter !== '' && !empty($match['community_name']) && stripos((string) $match['community_name'], $communityFilter) === false) {
+                continue;
+            }
+            if ($categoryFilter !== '' && stripos((string) ($match['category'] ?? ''), $categoryFilter) === false) {
+                continue;
+            }
+
+            $results[] = [
+                'id' => (int) ($match['ritual_id'] ?? 0),
+                'name' => (string) ($match['ritual_name'] ?? ''),
+                'name_sanskrit' => null,
+                'category' => (string) ($match['category'] ?? 'General'),
+                'description' => (string) ($match['description'] ?? ''),
+                'duration_minutes' => (int) ($match['duration_minutes'] ?? 60),
+                'difficulty' => (string) ($match['difficulty'] ?? 'medium'),
+                'community_name' => $match['community_name'] ?? null,
+                'religion' => $match['religion'] ?? null,
+                'source_type' => 'global',
+                'similarity_score' => round($score, 6),
+                'match_type' => 'semantic_embedding',
+            ];
+        }
+
+        usort($results, static fn(array $a, array $b): int =>
+            ((float) ($b['similarity_score'] ?? 0.0)) <=> ((float) ($a['similarity_score'] ?? 0.0))
+        );
+
+        return array_slice($results, 0, $limit);
+    }
+
+    /**
+     * Fuzzy-match against global ritual names when direct LIKE search misses typos.
+     */
+    private function findFuzzyGlobalMatches(array $criteria, int $limit = 8): array
+    {
+        $ritualName = trim((string) ($criteria['ritual_name'] ?? ''));
+        $query = $this->normalizeRitualText($ritualName);
+        if ($query === '') {
+            return [];
+        }
+
+        // Start with criteria-filtered candidates but without exact ritual_name constraint.
+        $candidateCriteria = $criteria;
+        unset($candidateCriteria['ritual_name']);
+        $candidates = $this->ritualModel->advancedSearch($candidateCriteria);
+
+        // If filters are too narrow, fall back to a broader active list.
+        if (empty($candidates)) {
+            $candidates = $this->ritualModel->getActiveRituals(120, 0);
+        }
+
+        if (empty($candidates)) {
+            return [];
+        }
+
+        $scored = [];
+        foreach ($candidates as $ritual) {
+            $name = $this->normalizeRitualText((string) ($ritual['name'] ?? ''));
+            $nameSanskrit = $this->normalizeRitualText((string) ($ritual['name_sanskrit'] ?? ''));
+
+            if ($name === '' && $nameSanskrit === '') {
+                continue;
+            }
+
+            $scoreName = $name !== '' ? $this->calculateNameSimilarityScore($query, $name) : 0.0;
+            $scoreSanskrit = $nameSanskrit !== '' ? $this->calculateNameSimilarityScore($query, $nameSanskrit) : 0.0;
+            $score = max($scoreName, $scoreSanskrit);
+
+            if ($score < 0.68) {
+                continue;
+            }
+
+            $ritual['source_type'] = 'global';
+            $ritual['similarity_score'] = round(min($score, 1.0), 6);
+            $ritual['match_type'] = 'fuzzy_name';
+            $scored[] = $ritual;
+        }
+
+        usort($scored, static fn(array $a, array $b): int =>
+            ((float) ($b['similarity_score'] ?? 0.0)) <=> ((float) ($a['similarity_score'] ?? 0.0))
+        );
+
+        return array_slice($scored, 0, $limit);
+    }
+
+    /**
+     * Merge global fuzzy and semantic results by ritual id, keeping the best score.
+     */
+    private function mergeGlobalMatchesById(array $fuzzy, array $semantic, int $limit = 8): array
+    {
+        $merged = [];
+
+        foreach ([$fuzzy, $semantic] as $list) {
+            foreach ($list as $item) {
+                $id = (int) ($item['id'] ?? 0);
+                if ($id <= 0) {
+                    continue;
+                }
+
+                $existing = $merged[$id] ?? null;
+                $score = (float) ($item['similarity_score'] ?? 0.0);
+                $existingScore = $existing ? (float) ($existing['similarity_score'] ?? 0.0) : -1.0;
+
+                if ($existing === null || $score > $existingScore) {
+                    $merged[$id] = $item;
+                }
+            }
+        }
+
+        $results = array_values($merged);
+        usort($results, static fn(array $a, array $b): int =>
+            ((float) ($b['similarity_score'] ?? 0.0)) <=> ((float) ($a['similarity_score'] ?? 0.0))
+        );
+
+        return array_slice($results, 0, $limit);
+    }
+
+    /**
+     * Compute typo-tolerant similarity score between two normalized names.
+     */
+    private function calculateNameSimilarityScore(string $query, string $candidate): float
+    {
+        if ($query === '' || $candidate === '') {
+            return 0.0;
+        }
+
+        similar_text($query, $candidate, $percent);
+        $maxLen = max(strlen($query), strlen($candidate));
+        $levenshteinRatio = $maxLen > 0 ? 1.0 - (levenshtein($query, $candidate) / $maxLen) : 0.0;
+
+        $containsBoost = (str_contains($query, $candidate) || str_contains($candidate, $query)) ? 0.12 : 0.0;
+
+        return max(($percent / 100.0), $levenshteinRatio) + $containsBoost;
+    }
+
+    /**
+     * Normalize ritual names for typo-tolerant string comparison.
+     */
+    private function normalizeRitualText(string $text): string
+    {
+        $text = strtolower(trim($text));
+        if ($text === '') {
+            return '';
+        }
+
+        // Reduce repeated characters so "pujaaaa" behaves closer to "pujaa".
+        $text = preg_replace('/(.)\1{2,}/u', '$1$1', $text) ?? $text;
+        $text = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $text) ?? $text;
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        return trim($text);
     }
 
     /**

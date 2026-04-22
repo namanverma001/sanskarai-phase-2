@@ -180,6 +180,36 @@ class AuthController extends Controller
                     'bio' => $bio,
                 ]);
 
+                // Notify all active admins about this new pending pandit request.
+                // Notification failures are logged but should not block signup.
+                try {
+                    $mailService = new MailService();
+                    $admins = $this->userModel->getAdmins();
+
+                    $panditPayload = [
+                        'name' => $data['name'],
+                        'email' => $data['email'],
+                        'mobile' => $data['mobile'],
+                        'community_name' => $data['community_name'] ?? '',
+                        'specialization' => $specialization,
+                        'experience_years' => $experience,
+                        'bio' => $bio,
+                    ];
+
+                    foreach ($admins as $admin) {
+                        $adminEmail = trim((string) ($admin['email'] ?? ''));
+                        $adminStatus = (string) ($admin['status'] ?? App::STATUS_ACTIVE);
+
+                        if ($adminEmail === '' || $adminStatus !== App::STATUS_ACTIVE) {
+                            continue;
+                        }
+
+                        $mailService->sendAdminPanditSignupNotification($adminEmail, $panditPayload);
+                    }
+                } catch (\Throwable $mailError) {
+                    error_log('Pandit signup admin notification failed: ' . $mailError->getMessage());
+                }
+
                 // Login and redirect to landing page with message
                 Auth::attempt($data['email'], $data['password']);
                 $this->redirect('/', [
