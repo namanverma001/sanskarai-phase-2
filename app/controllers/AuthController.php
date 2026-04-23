@@ -240,7 +240,8 @@ class AuthController extends Controller
         $userId = Auth::id();
 
         // Check if role is 'user' and intercept for feedback
-        if ($userRole === 'user' && $userId) {
+        $forceLogout = $this->input('force_logout') == '1';
+        if ($userRole === 'user' && $userId && !$forceLogout) {
             $feedbackModel = new \App\Models\UserFeedback();
             // If No feedback exists and it's a normal web logout invocation...
             if (!$feedbackModel->whereFirst(['user_id' => $userId])) {

@@ -7,6 +7,12 @@ $currentUser = Auth::user();
 $userRole = Auth::role();
 $dashboardUrl = Auth::dashboardUrl();
 
+$hasGivenFeedback = false;
+if ($isLoggedIn && $userRole === 'user') {
+    $feedbackModel = new \App\Models\UserFeedback();
+    $hasGivenFeedback = (bool) $feedbackModel->whereFirst(['user_id' => Auth::id()]);
+}
+
 // Settings URL based on role
 $settingsUrl = match ($userRole) {
     'admin' => '/admin/users',
@@ -1064,7 +1070,7 @@ $roleDisplay = match ($userRole) {
                             <span>Feedback</span>
                         </a>
                         <div class="dropdown-divider"></div>
-                        <form action="/logout" method="POST" style="margin: 0;">
+                        <form action="/logout" method="POST" style="margin: 0;" <?= ($isLoggedIn && $userRole === 'user' && !$hasGivenFeedback) ? 'onsubmit="handleLogoutClick(event)"' : '' ?>>
                             <?= App\Core\Auth::csrfField() ?>
                             <button type="submit" class="dropdown-item logout-btn"
                                 style="width: 100%; border: none; background: none; cursor: pointer; font-family: inherit;">
@@ -1206,7 +1212,7 @@ $roleDisplay = match ($userRole) {
                         title="Feedback">
                         <i class="fas fa-comment-dots"></i> <span>Feedback</span>
                     </a>
-                    <form action="/logout" method="POST" style="margin: 0;">
+                    <form action="/logout" method="POST" style="margin: 0;" <?= ($isLoggedIn && $userRole === 'user' && !$hasGivenFeedback) ? 'onsubmit="handleLogoutClick(event)"' : '' ?>>
                         <?= \App\Core\Auth::csrfField() ?>
                         <button type="submit" class="menu-item"
                             style="width: 100%; border: none; background: transparent; cursor: pointer; font-family: inherit; text-align: left; color: rgba(255, 255, 255, 0.7);"
@@ -1378,6 +1384,42 @@ $roleDisplay = match ($userRole) {
             });
         }
     </script>
+
+    <?php if ($isLoggedIn && $userRole === 'user' && !$hasGivenFeedback): ?>
+        <!-- Logout Feedback Modal -->
+        <div class="modal fade" id="logoutFeedbackModal" tabindex="-1" aria-labelledby="logoutFeedbackModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                    <div class="modal-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white; border-bottom: none;">
+                        <h5 class="modal-title" id="logoutFeedbackModalLabel"><i class="fas fa-comment-dots me-2"></i> We Value Your Feedback</h5>
+                        <form action="/logout" method="POST" id="directLogoutForm" style="display: none;">
+                            <?= \App\Core\Auth::csrfField() ?>
+                            <input type="hidden" name="force_logout" value="1">
+                        </form>
+                        <!-- Close button submits direct logout -->
+                        <button type="button" class="btn-close btn-close-white" aria-label="Close" onclick="document.getElementById('directLogoutForm').submit();" style="opacity: 1;"></button>
+                    </div>
+                    <div class="modal-body text-center p-4">
+                        <div style="font-size: 3.5rem; color: var(--saffron); margin-bottom: 20px;">
+                            <i class="fas fa-star-half-alt"></i>
+                        </div>
+                        <h4 style="margin-bottom: 15px; color: var(--dark); font-weight: 600;">How was your experience?</h4>
+                        <p style="color: #6B7280; margin-bottom: 0; font-size: 0.95rem;">Before you log out, would you like to share your feedback? Your insights help us improve Sanskar AI.</p>
+                    </div>
+                    <div class="modal-footer" style="border-top: none; justify-content: center; padding-bottom: 30px; gap: 15px;">
+                        <a href="/user/feedback?logout=1" class="btn btn-primary" style="padding: 10px 25px;">Give Feedback</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            function handleLogoutClick(e) {
+                e.preventDefault();
+                var modal = new bootstrap.Modal(document.getElementById('logoutFeedbackModal'));
+                modal.show();
+            }
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>
