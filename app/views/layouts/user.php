@@ -1126,11 +1126,13 @@ $roleDisplay = match ($userRole) {
                         title="AI Pandit">
                         <i class="fas fa-hands-praying"></i> <span>AI Pandit</span>
                     </a>
+                    <!-- Hide Subscription for now
                     <a href="/user/my-subscription"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/user/subscription') !== false || strpos($_SERVER['REQUEST_URI'], '/user/my-subscription') !== false ? 'active' : '' ?>"
                         title="My Subscription">
                         <i class="fas fa-crown"></i> <span>Subscription</span>
                     </a>
+                    -->
                 </div>
                 <div class="menu-section">
                     <div class="menu-section-title">Services</div>
