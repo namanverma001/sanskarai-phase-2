@@ -114,7 +114,7 @@
             <tbody>
                 <?php foreach ($assignments as $a): ?>
                 <tr>
-                    <td data-label="Ritual"><?= htmlspecialchars($a['ritual_name'] ?? $a['custom_ritual_name'] ?? 'N/A') ?></td>
+                    <td data-label="Ritual"><?= htmlspecialchars($a['ritual_name'] ?? $a['custom_ritual_name'] ?? 'Custom') ?></td>
                     <td data-label="User">
                         <div class="mobile-card-toggle" onclick="event.stopPropagation(); this.closest('tr').classList.toggle('expanded')">
                             <i class="fas fa-chevron-down"></i>

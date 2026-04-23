@@ -128,7 +128,14 @@ class PanditController extends Controller
             $this->back(['error' => 'Profile not found.']);
             return;
         }
-        $data = $this->only(['specialization', 'experience_years', 'bio', 'languages', 'hourly_rate']);
+        $data = $this->only(['specialization', 'experience_years', 'bio', 'languages', 'hourly_rate', 'latitude', 'longitude', 'city', 'pincode', 'service_area_km']);
+        // Format decimal and integer data
+        if ($data['latitude'] === '') $data['latitude'] = null;
+        if ($data['longitude'] === '') $data['longitude'] = null;
+        if ($data['service_area_km'] === '') $data['service_area_km'] = null;
+        if ($data['hourly_rate'] === '') $data['hourly_rate'] = null;
+        if ($data['experience_years'] === '') $data['experience_years'] = null;
+        
         $this->profileModel->update($profile['id'], $data);
         $this->back(['success' => 'Profile updated.']);
     }

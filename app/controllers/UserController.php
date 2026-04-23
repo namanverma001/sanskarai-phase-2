@@ -1496,10 +1496,53 @@ class UserController extends Controller
     // Pandit Selection
     public function selectPandit(): void
     {
-        $pandits = (new User())->getApprovedPandits();
+        $lat = $this->input('lat') ?? $_COOKIE['user_lat'] ?? null;
+        $lng = $this->input('lng') ?? $_COOKIE['user_lng'] ?? null;
+        $city = $this->input('city');
+        $pincode = $this->input('pincode');
+        
+        $filters = [
+            'city' => $city,
+            'pincode' => $pincode,
+            'specialization' => $this->input('specialization'),
+            'min_rating' => $this->input('min_rating'),
+            'max_charges' => $this->input('max_charges')
+        ];
+        
+        // Handle clear filters action
+        if ($this->input('clear')) {
+            $filters = [];
+            $lat = null;
+            $lng = null;
+            setcookie('user_lat', '', time() - 3600, '/');
+            setcookie('user_lng', '', time() - 3600, '/');
+        }
+        
+        $latFloat = is_numeric($lat) ? (float)$lat : null;
+        $lngFloat = is_numeric($lng) ? (float)$lng : null;
+        
+        $profileModel = new \App\Models\PanditProfile();
+        $pandits = [];
+        $searchRadius = 0;
+        
+        if ($latFloat !== null && $lngFloat !== null) {
+            $searchRadius = 50;
+            $pandits = $profileModel->searchByLocation($latFloat, $lngFloat, $searchRadius, $filters);
+        } else if (!empty($filters['city']) || !empty($filters['pincode']) || !empty($filters['specialization'])) {
+            // Manual search
+            $pandits = $profileModel->searchByLocation(null, null, 0, $filters);
+        } else {
+            // Don't show any pandits if no location or filters are provided
+            $pandits = [];
+        }
+
         $this->viewWithLayout('user/select-pandit', 'layouts/user', [
             'title' => 'Select Pandit',
             'pandits' => $pandits,
+            'searchRadius' => $searchRadius,
+            'filters' => $filters,
+            'lat' => $lat,
+            'lng' => $lng
         ]);
     }
 

@@ -27,6 +27,11 @@ class PanditProfile extends Model
         'approved_by',
         'approved_at',
         'rejection_reason',
+        'latitude',
+        'longitude',
+        'city',
+        'pincode',
+        'service_area_km',
     ];
     
     /**
@@ -201,6 +206,79 @@ class PanditProfile extends Model
             AND JSON_CONTAINS(p.trust_badges, :badge)
         ";
         
-        return $this->rawMany($sql, ['badge' => json_encode($badge)]);
+        return $this->raw($sql, ['badge' => json_encode($badge)]);
+    }
+
+    /**
+     * Search pandits by location with Haversine formula and apply filters
+     */
+    public function searchByLocation(?float $lat, ?float $lng, int $maxDistanceKm, array $filters = []): array
+    {
+        $params = [];
+        
+        $sql = "
+            SELECT p.*, u.name, u.email, u.mobile, u.status as user_status
+        ";
+        
+        if ($lat !== null && $lng !== null) {
+            // Haversine formula
+            $sql .= ", (
+                6371 * acos(
+                    cos(radians(:lat1)) * cos(radians(p.latitude)) *
+                    cos(radians(p.longitude) - radians(:lng1)) +
+                    sin(radians(:lat2)) * sin(radians(p.latitude))
+                )
+            ) AS distance";
+            $params['lat1'] = $lat;
+            $params['lng1'] = $lng;
+            $params['lat2'] = $lat;
+        } else {
+            $sql .= ", NULL as distance";
+        }
+        
+        $sql .= "
+            FROM {$this->table} p
+            INNER JOIN SAI_users u ON p.user_id = u.id
+            WHERE p.approval_status = 'approved' AND u.status = 'active'
+        ";
+        
+        // Location filters (if no lat/lng provided, maybe city/pincode is used)
+        if (!empty($filters['city'])) {
+            $sql .= " AND p.city LIKE :city";
+            $params['city'] = '%' . $filters['city'] . '%';
+        }
+        if (!empty($filters['pincode'])) {
+            $sql .= " AND p.pincode = :pincode";
+            $params['pincode'] = $filters['pincode'];
+        }
+        
+        // Other filters
+        if (!empty($filters['specialization'])) {
+            $sql .= " AND p.specialization LIKE :spec";
+            $params['spec'] = '%' . $filters['specialization'] . '%';
+        }
+        if (!empty($filters['min_rating'])) {
+            $sql .= " AND p.average_rating >= :min_rating";
+            $params['min_rating'] = $filters['min_rating'];
+        }
+        if (!empty($filters['max_charges'])) {
+            $sql .= " AND p.hourly_rate <= :max_charges";
+            $params['max_charges'] = $filters['max_charges'];
+        }
+
+        // Apply distance filter using HAVING
+        if ($lat !== null && $lng !== null) {
+            $sql .= " HAVING distance <= :max_distance AND distance <= COALESCE(p.service_area_km, 50)";
+            $params['max_distance'] = $maxDistanceKm;
+        }
+        
+        // Order
+        if ($lat !== null && $lng !== null) {
+            $sql .= " ORDER BY distance ASC";
+        } else {
+            $sql .= " ORDER BY p.average_rating DESC, p.total_rituals_performed DESC";
+        }
+        
+        return $this->raw($sql, $params);
     }
 }
