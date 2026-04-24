@@ -359,6 +359,20 @@ class AdminController extends Controller
             $this->back(['error' => 'Please correct the errors.', 'errors' => $errors, 'old' => $data]);
             return;
         }
+
+        if ($this->hasRestrictedRitualContent([
+            $data['name'] ?? '',
+            $data['name_sanskrit'] ?? '',
+            $data['description'] ?? '',
+            $data['significance'] ?? '',
+            $data['religion'] ?? '',
+            $data['category'] ?? '',
+            $data['sub_category'] ?? '',
+            $data['deity'] ?? '',
+        ])) {
+            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $data]);
+            return;
+        }
         
         $data['is_active'] = isset($data['is_active']) ? 1 : 0;
         $data['is_featured'] = isset($data['is_featured']) ? 1 : 0;
@@ -421,6 +435,20 @@ class AdminController extends Controller
         
         $data['is_active'] = isset($data['is_active']) ? 1 : 0;
         $data['is_featured'] = isset($data['is_featured']) ? 1 : 0;
+
+        if ($this->hasRestrictedRitualContent([
+            $data['name'] ?? '',
+            $data['name_sanskrit'] ?? '',
+            $data['description'] ?? '',
+            $data['significance'] ?? '',
+            $data['religion'] ?? '',
+            $data['category'] ?? '',
+            $data['sub_category'] ?? '',
+            $data['deity'] ?? '',
+        ])) {
+            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $data]);
+            return;
+        }
         
         $this->ritualModel->update($ritualId, $data);
         
@@ -792,6 +820,11 @@ class AdminController extends Controller
         
         if (empty($criteria['ritual_name'])) {
             $this->back(['error' => 'Ritual name is required.', 'old' => $criteria]);
+            return;
+        }
+
+        if ($this->hasRestrictedRitualContent($criteria)) {
+            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $criteria]);
             return;
         }
         
@@ -1521,5 +1554,50 @@ class AdminController extends Controller
 
         fclose($out);
         exit;
+    }
+
+    /**
+     * Extract latitude/longitude from a Google Maps URL.
+     */
+    private function extractCoordinatesFromMapUrl(string $url): ?array
+    {
+        // Follow redirects to parse the final share URL structure.
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_exec($ch);
+        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
+
+        $urlToParse = $finalUrl ?: $url;
+
+        // Pattern: .../@12.3456,78.9012,...
+        if (preg_match('/@(-?\d+\.\d+),(-?\d+\.\d+)/', $urlToParse, $matches)) {
+            return [
+                'latitude' => $matches[1],
+                'longitude' => $matches[2],
+            ];
+        }
+
+        // Pattern: ...?q=12.3456,78.9012
+        if (preg_match('/q=(-?\d+\.\d+),(-?\d+\.\d+)/', $urlToParse, $matches)) {
+            return [
+                'latitude' => $matches[1],
+                'longitude' => $matches[2],
+            ];
+        }
+
+        // Pattern: ...!3d12.3456!4d78.9012
+        if (preg_match('/3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/', $urlToParse, $matches)) {
+            return [
+                'latitude' => $matches[1],
+                'longitude' => $matches[2],
+            ];
+        }
+
+        return null;
     }
 }

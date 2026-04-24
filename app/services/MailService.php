@@ -15,6 +15,9 @@ class MailService
     private int    $smtpPort;
     private string $smtpUser;
     private string $smtpPass;
+    private int    $smtpTimeout;
+    private bool   $debugLog;
+    private string $logFile;
 
     public function __construct()
     {
@@ -24,6 +27,10 @@ class MailService
         $this->smtpPort  = (int)($_ENV['MAIL_PORT']   ?? 587);
         $this->smtpUser  = $_ENV['MAIL_USERNAME']     ?? '';
         $this->smtpPass  = $_ENV['MAIL_PASSWORD']     ?? '';
+        $this->smtpTimeout = (int)($_ENV['MAIL_TIMEOUT'] ?? 30);
+        $this->debugLog = strtolower((string)($_ENV['MAIL_DEBUG_LOG'] ?? 'false')) === 'true';
+        $defaultLogFile = 'storage/logs/mail.log';
+        $this->logFile = (string)($_ENV['MAIL_LOG_FILE'] ?? $defaultLogFile);
     }
 
     /**
@@ -299,6 +306,7 @@ HTML;
         string $body,
         string $contentType = 'text/html'
     ): bool {
+      $startedAt = microtime(true);
         $host       = $this->smtpHost;
         $port       = $this->smtpPort;
         $user       = $this->smtpUser;
@@ -306,10 +314,22 @@ HTML;
         $from       = $this->fromEmail ?: $user;
         $fromName   = $_ENV['MAIL_FROM_NAME'] ?? $this->fromName;
         $localDomain = $_SERVER['SERVER_NAME'] ?? (gethostname() ?: 'localhost');
-        $timeout    = 30;
+        $timeout    = $this->smtpTimeout > 0 ? $this->smtpTimeout : 30;
+
+      $this->writeLog('SEND_START', [
+        'to' => $toEmail,
+        'subject' => $subject,
+        'host' => $host,
+        'port' => $port,
+        'user' => $this->maskEmail($user),
+        'from' => $from,
+        'timeout' => $timeout,
+        'contentType' => $contentType,
+      ]);
 
         // ── Pre-flight: OpenSSL required for STARTTLS ──
         if (!extension_loaded('openssl')) {
+        $this->writeLog('OPENSSL_MISSING', ['message' => 'PHP openssl extension is not loaded']);
             error_log('MailService SMTP: PHP openssl extension is not loaded – cannot use TLS');
             return false;
         }
@@ -322,9 +342,16 @@ HTML;
             $timeout
         );
         if (!$socket) {
+          $this->writeLog('CONNECT_FAIL', [
+            'host' => $host,
+            'port' => $port,
+            'errno' => $errno,
+            'error' => $errstr,
+          ]);
             error_log("MailService SMTP: cannot connect to {$host}:{$port} – {$errstr} ({$errno})");
             return false;
         }
+        $this->writeLog('CONNECT_OK', ['host' => $host, 'port' => $port]);
         stream_set_timeout($socket, $timeout);
 
         // Helper: read a full SMTP response (handles multi-line "250-…" continuations)
@@ -341,7 +368,7 @@ HTML;
         };
 
         // Helper: write a command
-        $cmd = function (string $line) use ($socket): void {
+          $cmd = function (string $line) use ($socket): void {
             fwrite($socket, $line . "\r\n");
         };
 
@@ -349,18 +376,22 @@ HTML;
 
         // 1. Server greeting
         $resp = $read();
+        $this->writeLog('SERVER_GREETING', ['response' => $this->clipResponse($resp)]);
         if (strpos($resp, '220') === false) {
+          $this->writeLog('SERVER_GREETING_FAIL', ['response' => $this->clipResponse($resp)]);
             fclose($socket);
             return false;
         }
 
         // 2. EHLO
         $cmd("EHLO {$localDomain}");
-        $read();
+        $resp = $read();
+        $this->writeLog('EHLO', ['response' => $this->clipResponse($resp)]);
 
         // 3. STARTTLS
         $cmd("STARTTLS");
         $resp = $read();
+        $this->writeLog('STARTTLS', ['response' => $this->clipResponse($resp)]);
         if (strpos($resp, '220') === false) {
             error_log("MailService SMTP: STARTTLS refused – {$resp}");
             fclose($socket);
@@ -369,22 +400,28 @@ HTML;
 
         // 4. Upgrade stream to TLS
         if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+          $this->writeLog('TLS_NEGOTIATION_FAIL', ['message' => 'stream_socket_enable_crypto returned false']);
             error_log('MailService SMTP: TLS negotiation failed');
             fclose($socket);
             return false;
         }
+        $this->writeLog('TLS_NEGOTIATION_OK', ['message' => 'TLS channel established']);
 
         // 5. EHLO again over TLS
         $cmd("EHLO {$localDomain}");
-        $read();
+        $resp = $read();
+        $this->writeLog('EHLO_TLS', ['response' => $this->clipResponse($resp)]);
 
         // 6. AUTH LOGIN
         $cmd("AUTH LOGIN");
-        $read();                         // 334 VXNlcm5hbWU6 (base64 "Username:")
+        $resp = $read();
+        $this->writeLog('AUTH_LOGIN_CHALLENGE', ['response' => $this->clipResponse($resp)]);
         $cmd(base64_encode($user));
-        $read();                         // 334 UGFzc3dvcmQ6 (base64 "Password:")
+        $resp = $read();
+        $this->writeLog('AUTH_USER_ACCEPTED', ['response' => $this->clipResponse($resp)]);
         $cmd(base64_encode($pass));
-        $resp = $read();                 // 235 2.7.0 Accepted
+        $resp = $read();
+        $this->writeLog('AUTH_PASSWORD_RESULT', ['response' => $this->clipResponse($resp)]);
         if (strpos($resp, '235') === false) {
             error_log("MailService SMTP: AUTH failed – {$resp}");
             fclose($socket);
@@ -393,11 +430,13 @@ HTML;
 
         // 7. MAIL FROM
         $cmd("MAIL FROM:<{$from}>");
-        $read();
+        $resp = $read();
+        $this->writeLog('MAIL_FROM', ['response' => $this->clipResponse($resp)]);
 
         // 8. RCPT TO
         $cmd("RCPT TO:<{$toEmail}>");
         $resp = $read();
+        $this->writeLog('RCPT_TO', ['response' => $this->clipResponse($resp)]);
         if (strpos($resp, '250') === false) {
             error_log("MailService SMTP: RCPT rejected – {$resp}");
             fclose($socket);
@@ -407,7 +446,9 @@ HTML;
         // 9. DATA command
         $cmd("DATA");
         $resp = $read();
+        $this->writeLog('DATA_COMMAND', ['response' => $this->clipResponse($resp)]);
         if (strpos($resp, '354') === false) {
+          $this->writeLog('DATA_COMMAND_FAIL', ['response' => $this->clipResponse($resp)]);
             fclose($socket);
             return false;
         }
@@ -432,15 +473,75 @@ HTML;
 
         fwrite($socket, $message);
         $resp = $read();   // 250 2.0.0 OK – message accepted
+        $this->writeLog('MESSAGE_ACCEPTANCE', ['response' => $this->clipResponse($resp)]);
 
         // 11. QUIT
         $cmd("QUIT");
+        $this->writeLog('QUIT_SENT', ['message' => 'QUIT command sent']);
         fclose($socket);
 
         $ok = strpos($resp, '250') !== false;
         if (!$ok) {
             error_log("MailService SMTP: message not accepted – {$resp}");
         }
+        $this->writeLog('SEND_RESULT', [
+          'success' => $ok,
+          'durationMs' => (int) round((microtime(true) - $startedAt) * 1000),
+        ]);
         return $ok;
     }
+
+      private function writeLog(string $event, array $context = []): void
+      {
+        if (!$this->debugLog) {
+          return;
+        }
+
+        $basePath = dirname(__DIR__, 2);
+        $logPath = $this->logFile;
+        if (!preg_match('#^[A-Za-z]:[\\/]#', $logPath) && strpos($logPath, '/') !== 0) {
+          $logPath = $basePath . '/' . ltrim($logPath, '/\\');
+        }
+
+        $logDir = dirname($logPath);
+        if (!is_dir($logDir)) {
+          @mkdir($logDir, 0775, true);
+        }
+
+        $line = sprintf(
+          "[%s] [%s] %s%s",
+          date('Y-m-d H:i:s'),
+          $event,
+          json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+          PHP_EOL
+        );
+
+        @file_put_contents($logPath, $line, FILE_APPEND | LOCK_EX);
+      }
+
+      private function clipResponse(string $response, int $maxLen = 500): string
+      {
+        $normalized = trim(preg_replace('/\s+/', ' ', $response));
+        if (strlen($normalized) <= $maxLen) {
+          return $normalized;
+        }
+
+        return substr($normalized, 0, $maxLen) . '...';
+      }
+
+      private function maskEmail(string $email): string
+      {
+        $email = trim($email);
+        if ($email === '' || strpos($email, '@') === false) {
+          return 'n/a';
+        }
+
+        [$name, $domain] = explode('@', $email, 2);
+        if ($name === '') {
+          return '***@' . $domain;
+        }
+
+        $visible = strlen($name) > 2 ? substr($name, 0, 2) : substr($name, 0, 1);
+        return $visible . '***@' . $domain;
+      }
 }

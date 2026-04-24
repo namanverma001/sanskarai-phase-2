@@ -1988,12 +1988,12 @@
                         b.onclick = null;
                     }
                 });
-            } else if (data.already_added) {
-                showToast('This ritual is already in your collection!', 'info');
-                if (btnElement) {
-                    btnElement.classList.add('saved');
-                    btnElement.innerHTML = '<i class="fas fa-check"></i> Saved!';
-                    btnElement.onclick = null;
+
+                if (data.already_added && data.user_ritual_id) {
+                    showToast('Ritual already exists. Opening it now...', 'info');
+                    setTimeout(() => {
+                        window.location.href = '/user/my-rituals/' + data.user_ritual_id;
+                    }, 500);
                 }
             } else {
                 showToast(data.error || 'Failed to add ritual', 'error');

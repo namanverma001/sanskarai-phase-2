@@ -403,6 +403,45 @@ class UserRitual extends Model
     }
 
     /**
+     * Delete a ritual and all dependent rows safely (for schemas without cascade constraints).
+     */
+    public function deleteWithRelations(int $ritualId): bool
+    {
+        try {
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare("DELETE FROM SAI_user_ritual_steps WHERE user_ritual_id = :id");
+            $stmt->execute(['id' => $ritualId]);
+
+            $stmt = $this->db->prepare("DELETE FROM SAI_user_ritual_items WHERE user_ritual_id = :id");
+            $stmt->execute(['id' => $ritualId]);
+
+            $stmt = $this->db->prepare("DELETE FROM SAI_step_completion WHERE progress_id IN (SELECT id FROM SAI_ritual_progress WHERE user_ritual_id = :id)");
+            $stmt->execute(['id' => $ritualId]);
+
+            $stmt = $this->db->prepare("DELETE FROM SAI_ritual_progress WHERE user_ritual_id = :id");
+            $stmt->execute(['id' => $ritualId]);
+
+            $stmt = $this->db->prepare("DELETE FROM {$this->table} WHERE {$this->primaryKey} = :id");
+            $stmt->execute(['id' => $ritualId]);
+
+            $deleted = $stmt->rowCount() > 0;
+            if (!$deleted) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Start ritual session
      */
     public function startSession(int $userId, int $userRitualId): string

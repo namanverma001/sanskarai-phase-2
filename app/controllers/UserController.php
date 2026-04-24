@@ -634,6 +634,13 @@ class UserController extends Controller
                 'additional_info' => $this->input('additional_info', ''),
             ];
 
+            if ($this->hasRestrictedRitualContent($criteria)) {
+                ob_end_clean();
+                error_reporting($oldErrorReporting);
+                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
+                return;
+            }
+
             $userId = Auth::id();
 
             // Generate ritual using AI
@@ -698,6 +705,13 @@ class UserController extends Controller
                 'occasion' => $this->input('occasion', ''),
                 'additional_info' => $this->input('additional_info', ''),
             ];
+
+            if ($this->hasRestrictedRitualContent($criteria)) {
+                ob_end_clean();
+                error_reporting($oldErrorReporting);
+                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
+                return;
+            }
 
             $previousResponseRaw = $this->input('previous_response', '');
             $previousResponse = json_decode($previousResponseRaw, true) ?? [];
@@ -787,6 +801,15 @@ class UserController extends Controller
             if (!$ritualData || empty($ritualData['name'])) {
                 ob_end_clean();
                 $this->json(['success' => false, 'error' => 'Invalid ritual data'], 400);
+                return;
+            }
+
+            if ($this->hasRestrictedRitualContent([
+                json_encode($ritualData, JSON_UNESCAPED_UNICODE),
+                $prompt,
+            ])) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
                 return;
             }
 
@@ -937,15 +960,27 @@ class UserController extends Controller
             $globalRitualId = (int) $this->input('global_ritual_id');
             $userId = Auth::id();
 
+            $globalRitual = $this->ritualModel->find($globalRitualId);
+            if ($globalRitual && $this->hasRestrictedRitualContent([
+                $globalRitual['name'] ?? '',
+                $globalRitual['description'] ?? '',
+                $globalRitual['religion'] ?? '',
+                $globalRitual['category'] ?? '',
+            ])) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
+                return;
+            }
+
             // Check if already added
             $existing = $this->userRitualModel->findByUserAndGlobal($userId, $globalRitualId);
             if ($existing) {
                 ob_end_clean();
                 $this->json([
-                    'success' => false,
+                    'success' => true,
                     'already_added' => true,
                     'user_ritual_id' => $existing['id'],
-                    'error' => 'This ritual is already in your collection!',
+                    'message' => 'Ritual already exists in your collection.',
                 ]);
                 return;
             }
@@ -1005,6 +1040,15 @@ class UserController extends Controller
                 return;
             }
 
+            if ($this->hasRestrictedRitualContent([
+                json_encode($ritualData, JSON_UNESCAPED_UNICODE),
+                $prompt,
+            ])) {
+                ob_end_clean();
+                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
+                return;
+            }
+
             $userRitualId = $this->userRitualModel->createFromAI($userId, $ritualData, $prompt);
 
             ob_end_clean();
@@ -1038,8 +1082,14 @@ class UserController extends Controller
         }
 
         try {
-            $this->userRitualModel->delete((int) $id);
-            $this->redirect('/user/my-rituals', ['success' => 'Ritual removed from your collection.']);
+            $deleted = $this->userRitualModel->deleteWithRelations((int) $id);
+
+            if ($deleted) {
+                $this->redirect('/user/my-rituals', ['success' => 'Ritual removed from your collection.']);
+                return;
+            }
+
+            $this->redirect('/user/my-rituals', ['error' => 'Ritual could not be deleted. Please refresh and try again.']);
         } catch (\Exception $e) {
             $this->redirect('/user/my-rituals', ['error' => 'Failed to delete ritual: ' . $e->getMessage()]);
         }
@@ -1424,6 +1474,15 @@ class UserController extends Controller
             return;
         }
         $data = $this->only(['name', 'description', 'purpose', 'scheduled_date', 'venue', 'base_ritual_id', 'assigned_pandit_id']);
+
+        if ($this->hasRestrictedRitualContent([
+            $data['name'] ?? '',
+            $data['description'] ?? '',
+            $data['purpose'] ?? '',
+        ])) {
+            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $data]);
+            return;
+        }
         
         // Convert empty strings to NULL for optional integer fields
         if (empty($data['base_ritual_id'])) {
@@ -2668,6 +2727,11 @@ class UserController extends Controller
         $festivalName = trim($this->input('festival_name', ''));
         if (empty($festivalName)) {
             $this->back(['error' => 'Festival name is required.']);
+            return;
+        }
+
+        if ($this->hasRestrictedRitualContent([$festivalName])) {
+            $this->back(['error' => $this->restrictedRitualMessage()]);
             return;
         }
 

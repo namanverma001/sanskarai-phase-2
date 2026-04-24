@@ -1,0 +1,20 @@
+[2026-04-24 15:07:41] [SEND_START] {"to":"info@ettitudemedia.com","subject":"SMTP log test","host":"smtpout.secureserver.net","port":587,"user":"in***@ettitudemedia.com","from":"info@ettitudemedia.com","timeout":60,"contentType":"text/html"}
+[2026-04-24 15:07:42] [CONNECT_OK] {"host":"smtpout.secureserver.net","port":587}
+[2026-04-24 15:07:43] [SERVER_GREETING] {"response":"220 sxb1plsmtpa01-01.prod.sxb1.secureserver.net :SMTPAUTH: GI85wnqVXX0nK : ESMTP server sxb1plsmtpa01-01.prod.sxb1.secureserver.net ready"}
+[2026-04-24 15:07:43] [EHLO] {"response":"250-sxb1plsmtpa01-01.prod.sxb1.secureserver.net hello [152.59.59.245], secureserver.net 250-HELP 250-AUTH LOGIN PLAIN 250-SIZE 30000000 250-PIPELINING 250-8BITMIME 250-STARTTLS 250 OK"}
+[2026-04-24 15:07:43] [STARTTLS] {"response":"220 Ready to start TLS"}
+[2026-04-24 15:07:44] [TLS_NEGOTIATION_OK] {"message":"TLS channel established"}
+[2026-04-24 15:07:45] [EHLO_TLS] {"response":"250-sxb1plsmtpa01-01.prod.sxb1.secureserver.net hello [152.59.59.245], secureserver.net 250-HELP 250-AUTH LOGIN PLAIN 250-SIZE 30000000 250-PIPELINING 250-8BITMIME 250 OK"}
+[2026-04-24 15:07:45] [AUTH_LOGIN_CHALLENGE] {"response":"334 VXNlcm5hbWU6"}
+[2026-04-24 15:07:45] [AUTH_USER_ACCEPTED] {"response":"334 UGFzc3dvcmQ6"}
+[2026-04-24 15:07:47] [AUTH_PASSWORD_RESULT] {"response":"535 Authentication Failed for info@ettitudemedia.com"}
+[2026-04-24 15:08:31] [SEND_START] {"to":"info@ettitudemedia.com","subject":"SMTP log test","host":"smtpout.secureserver.net","port":587,"user":"in***@ettitudemedia.com","from":"info@ettitudemedia.com","timeout":60,"contentType":"text/html"}
+[2026-04-24 15:08:31] [CONNECT_OK] {"host":"smtpout.secureserver.net","port":587}
+[2026-04-24 15:08:32] [SERVER_GREETING] {"response":"220 sxb1plsmtpa01-05.prod.sxb1.secureserver.net :SMTPAUTH: GI8sw2Wg9ighI : ESMTP server sxb1plsmtpa01-05.prod.sxb1.secureserver.net ready"}
+[2026-04-24 15:08:32] [EHLO] {"response":"250-sxb1plsmtpa01-05.prod.sxb1.secureserver.net hello [152.59.59.245], secureserver.net 250-HELP 250-AUTH LOGIN PLAIN 250-SIZE 30000000 250-PIPELINING 250-8BITMIME 250-STARTTLS 250 OK"}
+[2026-04-24 15:08:33] [STARTTLS] {"response":"220 Ready to start TLS"}
+[2026-04-24 15:08:33] [TLS_NEGOTIATION_OK] {"message":"TLS channel established"}
+[2026-04-24 15:08:34] [EHLO_TLS] {"response":"250-sxb1plsmtpa01-05.prod.sxb1.secureserver.net hello [152.59.59.245], secureserver.net 250-HELP 250-AUTH LOGIN PLAIN 250-SIZE 30000000 250-PIPELINING 250-8BITMIME 250 OK"}
+[2026-04-24 15:08:34] [AUTH_LOGIN_CHALLENGE] {"response":"334 VXNlcm5hbWU6"}
+[2026-04-24 15:08:34] [AUTH_USER_ACCEPTED] {"response":"334 UGFzc3dvcmQ6"}
+[2026-04-24 15:08:37] [AUTH_PASSWORD_RESULT] {"response":"535 Authentication Failed for info@ettitudemedia.com"}

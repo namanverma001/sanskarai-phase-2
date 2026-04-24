@@ -394,7 +394,8 @@ private function buildRitualGenerationPrompt(array $criteria): string
     $occasion = $criteria['occasion'] ?? '';
     $additionalInfo = $criteria['additional_info'] ?? '';
 
-    $prompt = "Generate a comprehensive and authentic ritual guide for the following:
+    $prompt = "You are a deeply knowledgeable religious scholar and practitioner specializing in {$religion}. 
+Your task is to generate a ritually accurate, step-by-step guide for the following ritual — based strictly on how it is ACTUALLY performed in authentic {$religion} tradition, not on a generic puja template.
 
 Community/Tradition: {$communityName}
 Religion: {$religion}
@@ -402,71 +403,82 @@ Ritual Name: {$ritualName}
 Occasion: {$occasion}
 Additional Information: {$additionalInfo}
 
-STRICT RELIGIOUS ACCURACY RULES:
-- This ritual belongs to the religion: {$religion}
-- Every single ritual step, mantra, deity, scripture reference, and practice MUST be exclusively from {$religion} traditions only.
-- Do NOT mix in practices, terminology, deities, or concepts from any other religion (e.g., no Islamic, Christian, or unrelated content).
-- Do NOT include any offensive, disrespectful, or culturally insensitive content.
-- For Hinduism: Draw only from Vedic, Puranic, Agamic, or regional Hindu traditions.
-- For Buddhism: Draw only from Theravada, Mahayana, or Vajrayana Buddhist canon as appropriate.
-- For Jainism: Draw only from Jain Agamas, Digambara or Shvetambara traditions as appropriate.
-- All mantras must be authentic and verifiable within the specified religion's scriptures.
+═══════════════════════════════════════════
+STEP 1 — INTERNAL RESEARCH (do this mentally before writing):
+═══════════════════════════════════════════
+Before generating any output, reason through the following:
 
-Please rigorously follow this structure and format:
+A) What is the true nature of this ritual?
+   - Is it a Puja (worship of a deity)?
+   - Is it a Sanskar (life-cycle rite)?
+   - Is it a Festival/social observance (e.g., Raksha Bandhan, Bhai Dooj)?
+   - Is it a Vrat (fast/vow)?
+   - Is it a Buddhist/Jain observance (e.g., Paryushana, Vesak)?
 
-**CRITICAL FORMATTING RULE**: 
-Every Hindi/Sanskrit word written in Devanagari script MUST be immediately followed by its English transliteration in brackets.
-Example formats:
-- गृहप्रवेश (Gruhapravesh)
-- दक्षिणा (Dakshina)
-- ॐ नमो भगवते वासुदेवाय (Om Namo Bhagavate Vasudevaya)
+B) What steps does THIS specific ritual actually contain?
+   - Do NOT assume Aarti unless this ritual genuinely includes Aarti.
+   - Do NOT assume Visarjan unless this ritual genuinely involves idol immersion.
+   - Do NOT assume Prasad distribution unless this ritual genuinely includes it.
+   - Do NOT assume Dakshina unless this ritual genuinely involves a priest or offering fee.
+   - Do NOT assume any step that is not an authentic part of THIS ritual.
 
-1. **Ritual Name**: English translated Name
-2. **Sanskrit Name**: MUST be in format \"देवनागरी (Transliteration)\"
-   Example: \"गृहप्रवेश (Gruhapravesh)\"
-3. **Community**: As specified
-4. **Purpose**: Clear English 1 or 2 lines
-5. **Scriptural Basis**: Mention referenced texts (Vedas, Puranas, Agamas, Tripitaka, etc. — only from {$religion}) in the 'significance' field.
-6. **Items Required**: Each Sanskrit/Local name MUST include transliteration in brackets
-7. **Ritual Steps**: MUST include:
-   - Sanskrit Title in format \"देवनागरी (Transliteration)\"
-   - English Title
-   - Who Performs (e.g., Kartan, Pandit, Monk, Shravak)
-   - Purpose of the step
-   - Method (How to Perform) in numbered points
-   - Mantra in format \"देवनागरी (Transliteration)\" + Meaning (only if this specific ritual step traditionally includes a mantra; otherwise set mantra to null)
-8. **Post-Ritual Guidelines**: Clean up and observances (Include as the very last step)
+C) What are the authentic mantras SPECIFIC to this ritual?
+   - Only use mantras that are genuinely recited during THIS ritual.
+   - Do NOT use generic mantras (like Om Namah Shivaya or Om Namo Bhagavate Vasudevaya) as substitutes unless they are truly recited in this specific ritual.
+   - If no mantra is traditionally recited in a step, set mantra to null.
 
-CONCLUDING RITES GUIDANCE:
-- Only include Visarjan (immersion/farewell) steps if the specific ritual being requested traditionally and necessarily involves idol immersion or element dispersal (e.g., Ganesh Puja, Navratri, etc.).
-- For rituals like Raksha Bandhan, Vivah, Namkaran, Upanayana, or other Sanskars and personal ceremonies — do NOT add Visarjan. Instead, end with appropriate Prasad distribution, blessings, and relevant closing rites specific to that ritual.
-- Always let the nature of the ritual determine its concluding steps.
+D) Ritual-type logic — follow these rules strictly:
+   - SOCIAL/FAMILY FESTIVALS (e.g., Raksha Bandhan, Bhai Dooj, Karva Chauth): Steps revolve around family members, not priests. Focus on the social ceremony, protective thread tying, tilak, gifts, vows. No Visarjan. Aarti only if genuinely part of that specific festival.
+   - DEITY PUJAS (e.g., Ganesh Puja, Lakshmi Puja, Satyanarayan Katha): Include Avahana, Shodashopachara, Aarti, Visarjan only where applicable to that deity's worship style.
+   - LIFE SANSKARS (e.g., Vivah, Upanayana, Namkaran, Annaprashan): Follow the Grihyasutra sequence for that Sanskar. Steps are highly specific.
+   - BUDDHIST RITUALS: No deity worship. Focus on offerings to the Triple Gem, recitation of Pali/Sanskrit sutras, meditation, Dana. No Aarti, no Hindu mantras.
+   - JAIN RITUALS: Focus on Paryushana, Pratikraman, Navkar Mantra, non-violence observances. No Hindu deity references.
+   - VRATS (e.g., Ekadashi, Mondays for Shiva): Include Sankalpa, fasting rules, specific deity worship, Parana (breaking of fast).
 
-OUTPUT JSON FORMAT:
+═══════════════════════════════════════════
+STEP 2 — FORMATTING RULES (apply to all output):
+═══════════════════════════════════════════
+
+CRITICAL: Every Devanagari word MUST be immediately followed by its transliteration in brackets.
+   - गृहप्रवेश (Gruhapravesh)
+   - रक्षाबंधन (Rakshabandhan)
+   - ॐ येन बद्धो बली राजा (Om Yena Baddho Bali Raja)
+
+STRICT RELIGIOUS ACCURACY:
+- Every step, mantra, deity, and scripture reference must be exclusively from {$religion}.
+- No content from other religions. No offensive or culturally insensitive content.
+- For Hinduism: Vedic, Puranic, Agamic, Grihyasutra, or regional tradition as appropriate to the ritual.
+- For Buddhism: Theravada, Mahayana, or Vajrayana canon as appropriate.
+- For Jainism: Jain Agamas, Digambara or Shvetambara traditions as appropriate.
+
+═══════════════════════════════════════════
+STEP 3 — OUTPUT (strict JSON, no extra text):
+═══════════════════════════════════════════
+
 {
     \"name\": \"Ritual Name in English\",
     \"name_sanskrit\": \"देवनागरी (Transliteration)\",
     \"community_name\": \"{$communityName}\",
     \"religion\": \"{$religion}\",
-    \"category\": \"Category (Puja/Sanskar/Festival)\",
+    \"category\": \"Category (Puja/Sanskar/Festival/Vrat/Buddhist Observance/Jain Observance)\",
     \"description\": \"Brief overview of the ritual including Purpose.\",
-    \"significance\": \"Scriptural Basis and Spiritual Significance.\",
+    \"significance\": \"Scriptural Basis and Spiritual Significance — cite only scriptures from {$religion}.\",
     \"duration_minutes\": 60,
     \"difficulty\": \"medium\",
-    \"deity\": \"Main Deity\",
-    \"best_time\": \"Best time/tithi\",
+    \"deity\": \"Main Deity or null if no deity involved\",
+    \"best_time\": \"Best time/tithi for this specific ritual\",
     \"steps\": [
         {
             \"step_number\": 1,
             \"title\": \"English Title\",
             \"title_sanskrit\": \"देवनागरी (Transliteration)\",
-            \"description\": \"Who Performs: [Role]\\nPurpose: [Why]\\n\\nHow to Perform:\\n1. [Instruction]\\n2. [Instruction]...\",
-            \"mantra\": \"देवनागरी (Transliteration)\\n\\nNote: If no mantra for this step, use null\",
-            \"mantra_meaning\": \"English meaning of the mantra (or null if no mantra)\",
+            \"description\": \"Who Performs: [Role]\\nPurpose: [Why this step exists in THIS ritual]\\n\\nHow to Perform:\\n1. [Specific instruction]\\n2. [Specific instruction]\",
+            \"mantra\": \"देवनागरी (Transliteration) — only if genuinely recited in this step, else null\",
+            \"mantra_meaning\": \"English meaning of the mantra, or null if no mantra\",
             \"duration_minutes\": 5,
             \"is_optional\": false,
-            \"special_instructions\": \"Practical Notes and Tips (use transliteration for any Devanagari words)\",
-            \"items_needed\": \"List of items for this step (use transliteration for any Devanagari words)\"
+            \"special_instructions\": \"Practical notes specific to this step (transliterate any Devanagari)\",
+            \"items_needed\": \"Only items actually used in this step (transliterate any Devanagari)\"
         }
     ],
     \"items\": [
@@ -476,13 +488,20 @@ OUTPUT JSON FORMAT:
             \"quantity\": 1,
             \"unit\": \"unit\",
             \"is_mandatory\": true,
-            \"description\": \"Category (e.g., Panchamrit, Aushadhi, Vastram) - [Description]\"
+            \"description\": \"Category (e.g., Panchamrit, Aushadhi, Vastram) - [Description of why this item is used in THIS ritual]\"
         }
     ]
 }
 
-REMEMBER: Every single Devanagari word MUST have (Transliteration) in brackets immediately after it.
-Provide 10-20 detailed steps covering the entire ritual from preparation to conclusion. Be religiously accurate and exclusive to {$religion} only.";
+FINAL CHECKLIST before outputting:
+✔ Are all steps genuinely part of THIS ritual (not copy-pasted from a generic puja)?
+✔ Are all mantras authentic and specific to THIS ritual?
+✔ Is Aarti present ONLY if this ritual actually includes Aarti?
+✔ Is Visarjan present ONLY if this ritual actually involves immersion?
+✔ Is Prasad present ONLY if this ritual actually includes Prasad distribution?
+✔ Does every Devanagari word have (Transliteration) immediately after it?
+✔ Are there 10–20 detailed steps covering the full ritual from preparation to conclusion?
+✔ Is all content exclusively from {$religion} with no cross-religion contamination?";
 
     return $prompt;
 }
