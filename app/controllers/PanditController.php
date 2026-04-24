@@ -128,16 +128,70 @@ class PanditController extends Controller
             $this->back(['error' => 'Profile not found.']);
             return;
         }
-        $data = $this->only(['specialization', 'experience_years', 'bio', 'languages', 'hourly_rate', 'latitude', 'longitude', 'city', 'pincode', 'service_area_km']);
+        $data = $this->only(['specialization', 'experience_years', 'bio', 'languages', 'hourly_rate', 'latitude', 'longitude', 'city', 'pincode', 'service_area_km', 'map_url']);
         // Format decimal and integer data
         if ($data['latitude'] === '') $data['latitude'] = null;
         if ($data['longitude'] === '') $data['longitude'] = null;
         if ($data['service_area_km'] === '') $data['service_area_km'] = null;
         if ($data['hourly_rate'] === '') $data['hourly_rate'] = null;
         if ($data['experience_years'] === '') $data['experience_years'] = null;
+        // Extract lat/lng from map_url if they are not provided, or if map_url has changed
+        if (!empty($data['map_url']) && (
+            empty($data['latitude']) || 
+            empty($data['longitude']) || 
+            $data['map_url'] !== ($profile['map_url'] ?? '')
+        )) {
+            $coords = $this->extractCoordinatesFromMapUrl($data['map_url']);
+            if ($coords) {
+                $data['latitude'] = $coords['latitude'];
+                $data['longitude'] = $coords['longitude'];
+            }
+        }
         
         $this->profileModel->update($profile['id'], $data);
         $this->back(['success' => 'Profile updated.']);
+    }
+    
+    private function extractCoordinatesFromMapUrl(string $url): ?array
+    {
+        // Follow redirects to get the final URL
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_NOBODY, true); // We only need headers
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_exec($ch);
+        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
+        
+        $urlToParse = $finalUrl ?: $url;
+
+        // Try to match @lat,lng
+        if (preg_match('/@(-?\d+\.\d+),(-?\d+\.\d+)/', $urlToParse, $matches)) {
+            return [
+                'latitude' => $matches[1],
+                'longitude' => $matches[2]
+            ];
+        }
+
+        // Try to match query parameter q=lat,lng
+        if (preg_match('/q=(-?\d+\.\d+),(-?\d+\.\d+)/', $urlToParse, $matches)) {
+            return [
+                'latitude' => $matches[1],
+                'longitude' => $matches[2]
+            ];
+        }
+
+        // Match 3dLAT!4dLNG format
+        if (preg_match('/3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/', $urlToParse, $matches)) {
+            return [
+                'latitude' => $matches[1],
+                'longitude' => $matches[2]
+            ];
+        }
+
+        return null;
     }
 
     public function updatePassword(): void

@@ -78,6 +78,20 @@
                     </button>
                 </div>
             </div>
+            
+            <!-- Map URL for Directions -->
+            <div style="margin-top: 20px;">
+                <div class="form-group">
+                    <label for="map_url"><i class="fas fa-directions" style="color: var(--primary);"></i> Google Maps URL (for Directions)</label>
+                    <input type="url" id="map_url" name="map_url" class="form-control"
+                           placeholder="https://maps.google.com/... or https://goo.gl/maps/..."
+                           value="<?= htmlspecialchars($profile['map_url'] ?? '') ?>">
+                    <small style="color: #6B7280; margin-top: 5px; display: block;">
+                        <i class="fas fa-info-circle"></i> Paste the Google Maps share link for accurate directions. 
+                        <a href="https://www.google.com/maps" target="_blank" style="color: var(--primary);">Open Google Maps</a> → Search location → Click Share → Copy link
+                    </small>
+                </div>
+            </div>
         </div>
 
         <script>

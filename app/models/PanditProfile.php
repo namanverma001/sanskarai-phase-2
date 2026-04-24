@@ -32,6 +32,7 @@ class PanditProfile extends Model
         'city',
         'pincode',
         'service_area_km',
+        'map_url',
     ];
     
     /**

@@ -970,6 +970,15 @@ class AdminController extends Controller
             'min_price', 'max_price', 'services_offered',
         ]);
         
+        // Extract lat/lng from map_url if they are not provided
+        if (!empty($data['map_url']) && (empty($data['latitude']) || empty($data['longitude']))) {
+            $coords = $this->extractCoordinatesFromMapUrl($data['map_url']);
+            if ($coords) {
+                $data['latitude'] = $coords['latitude'];
+                $data['longitude'] = $coords['longitude'];
+            }
+        }
+        
         // Validate required fields
         $errors = $this->validate($data, [
             'name' => 'required|min:2|max:150',
@@ -1066,6 +1075,19 @@ class AdminController extends Controller
             'latitude', 'longitude', 'map_url', 'service_area_km',
             'min_price', 'max_price', 'services_offered',
         ]);
+        
+        // Extract lat/lng from map_url if they are not provided, or if map_url has changed
+        if (!empty($data['map_url']) && (
+            empty($data['latitude']) || 
+            empty($data['longitude']) || 
+            $data['map_url'] !== ($vendor['map_url'] ?? '')
+        )) {
+            $coords = $this->extractCoordinatesFromMapUrl($data['map_url']);
+            if ($coords) {
+                $data['latitude'] = $coords['latitude'];
+                $data['longitude'] = $coords['longitude'];
+            }
+        }
         
         // Validate required fields
         $errors = $this->validate($data, [
