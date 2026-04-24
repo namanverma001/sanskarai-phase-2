@@ -1409,6 +1409,7 @@ $roleDisplay = match ($userRole) {
                         <p style="color: #6B7280; margin-bottom: 0; font-size: 0.95rem;">Before you log out, would you like to share your feedback? Your insights help us improve Sanskar AI.</p>
                     </div>
                     <div class="modal-footer" style="border-top: none; justify-content: center; padding-bottom: 30px; gap: 15px;">
+                        <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('directLogoutForm').submit();" style="padding: 10px 25px;">Maybe later</button>
                         <a href="/user/feedback?logout=1" class="btn btn-primary" style="padding: 10px 25px;">Give Feedback</a>
                     </div>
                 </div>

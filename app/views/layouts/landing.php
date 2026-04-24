@@ -7,6 +7,12 @@ $currentUser = Auth::user();
 $userRole = Auth::role();
 $dashboardUrl = Auth::dashboardUrl();
 
+$hasGivenFeedback = false;
+if ($isLoggedIn && $userRole === 'user') {
+    $feedbackModel = new \App\Models\UserFeedback();
+    $hasGivenFeedback = (bool) $feedbackModel->whereFirst(['user_id' => Auth::id()]);
+}
+
 // Settings URL based on role
 $settingsUrl = match ($userRole) {
     'admin' => '/admin/profile', // Fixed: Point to actual profile
@@ -2804,7 +2810,7 @@ $roleDisplay = match ($userRole) {
                                 <span>Settings</span>
                             </a>
                             <div class="dropdown-divider"></div>
-                            <form action="/logout" method="POST" style="margin: 0;">
+                            <form action="/logout" method="POST" style="margin: 0;" <?= ($isLoggedIn && $userRole === 'user' && !$hasGivenFeedback) ? 'onsubmit="handleLogoutClick(event)"' : '' ?>>
                                 <?= App\Core\Auth::csrfField() ?>
                                 <button type="submit" class="dropdown-item logout-btn"
                                     style="width: 100%; border: none; background: none; cursor: pointer; font-family: inherit;">
@@ -2873,7 +2879,7 @@ $roleDisplay = match ($userRole) {
             <div class="mobile-auth">
                 <a href="<?= $dashboardUrl ?>" class="mobile-cta">Dashboard</a>
                 <a href="<?= $settingsUrl ?>" class="mobile-cta">My Profile</a>
-                <form action="/logout" method="POST" style="margin: 0; width: 100%;">
+                <form action="/logout" method="POST" style="margin: 0; width: 100%;" <?= ($isLoggedIn && $userRole === 'user' && !$hasGivenFeedback) ? 'onsubmit="handleLogoutClick(event)"' : '' ?>>
                     <?= App\Core\Auth::csrfField() ?>
                     <button type="submit" class="mobile-cta mobile-logout"
                         style="width: 100%; cursor: pointer; font-family: inherit;">Logout</button>
@@ -3052,6 +3058,101 @@ $roleDisplay = match ($userRole) {
             });
         }
     </script>
+    <?php if ($isLoggedIn && $userRole === 'user' && !$hasGivenFeedback): ?>
+        <!-- Logout Feedback Modal (Vanilla JS/CSS for Landing Page) -->
+        <style>
+            .custom-modal-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .custom-modal-overlay.show {
+                display: flex;
+                opacity: 1;
+            }
+            .custom-modal {
+                background: var(--bg-secondary);
+                width: 90%;
+                max-width: 500px;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                transform: translateY(20px);
+                transition: transform 0.3s ease;
+            }
+            .custom-modal-overlay.show .custom-modal {
+                transform: translateY(0);
+            }
+            .custom-modal-header {
+                background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+                color: white;
+                padding: 15px 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .custom-modal-title {
+                margin: 0;
+                font-size: 1.25rem;
+            }
+            .custom-modal-close {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.5rem;
+                cursor: pointer;
+            }
+            .custom-modal-body {
+                padding: 30px 20px;
+                text-align: center;
+                color: var(--text-primary);
+            }
+            .custom-modal-footer {
+                padding: 0 20px 30px;
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+            }
+        </style>
+
+        <div class="custom-modal-overlay" id="logoutFeedbackModal">
+            <div class="custom-modal">
+                <div class="custom-modal-header">
+                    <h5 class="custom-modal-title"><i class="fas fa-comment-dots me-2"></i> We Value Your Feedback</h5>
+                    <form action="/logout" method="POST" id="directLogoutForm" style="display: none;">
+                        <?= \App\Core\Auth::csrfField() ?>
+                        <input type="hidden" name="force_logout" value="1">
+                    </form>
+                    <button type="button" class="custom-modal-close" aria-label="Close" onclick="document.getElementById('directLogoutForm').submit();">&times;</button>
+                </div>
+                <div class="custom-modal-body">
+                    <div style="font-size: 3.5rem; color: var(--saffron); margin-bottom: 20px;">
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <h4 style="margin-bottom: 15px; font-weight: 600;">How was your experience?</h4>
+                    <p style="color: var(--text-secondary); margin-bottom: 0; font-size: 0.95rem;">Before you log out, would you like to share your feedback? Your insights help us improve Sanskar AI.</p>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('directLogoutForm').submit();" style="padding: 10px 25px;">Maybe later</button>
+                    <a href="/user/feedback?logout=1" class="btn btn-primary" style="padding: 10px 25px;">Give Feedback</a>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function handleLogoutClick(e) {
+                e.preventDefault();
+                var modal = document.getElementById('logoutFeedbackModal');
+                modal.classList.add('show');
+            }
+        </script>
+    <?php endif; ?>
 </body>
 
 </html>
