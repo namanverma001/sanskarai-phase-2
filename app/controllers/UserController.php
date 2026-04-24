@@ -1280,11 +1280,13 @@ class UserController extends Controller
 
         // Create or get existing session
         $sessionId = $this->userRitualModel->startSession($userId, (int) $id);
+        $sessionProgress = $this->userRitualModel->getSessionProgress($sessionId);
 
         $this->viewWithLayout('user/start-ritual', 'layouts/user', [
             'title' => 'Performing: ' . $ritual['name'],
             'ritual' => $ritual,
             'sessionId' => $sessionId,
+            'sessionProgress' => $sessionProgress,
         ]);
     }
 

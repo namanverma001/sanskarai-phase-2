@@ -754,9 +754,17 @@
     const ritualId = <?= $ritual['id'] ?>;
     const totalSteps = <?= count($ritual['steps']) ?>;
     const steps = <?= json_encode($ritual['steps']) ?>;
+    const savedCurrentStep = <?= isset($sessionProgress['current_step']) ? (int) $sessionProgress['current_step'] : 1 ?>;
+    const savedCompletedStepNumbers = <?= json_encode(array_values(array_map(
+        static fn($completion) => (int) $completion['step_number'],
+        array_filter($sessionProgress['step_completions'] ?? [], static fn($completion) => (int) $completion['is_completed'] === 1)
+    ))) ?>;
 
-    let currentStep = 0;
-    let completedSteps = new Set();
+    let currentStep = Math.min(Math.max(savedCurrentStep - 1, 0), Math.max(totalSteps - 1, 0));
+    const completedStepIndexes = savedCompletedStepNumbers
+        .map((stepNumber) => steps.findIndex((step) => Number(step.step_number) === Number(stepNumber)))
+        .filter((index) => index >= 0);
+    let completedSteps = new Set(completedStepIndexes);
 
     function updateUI() {
         // Update progress

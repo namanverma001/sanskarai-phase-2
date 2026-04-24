@@ -386,21 +386,31 @@ REMEMBER: Output must be valid JSON in the exact same format as specified above.
     /**
      * Build ritual generation prompt
      */
-    private function buildRitualGenerationPrompt(array $criteria): string
-    {
-        $communityName = $criteria['community_name'] ?? 'Hindu';
-        $ritualName = $criteria['ritual_name'] ?? '';
-        $religion = $criteria['religion'] ?? 'Hinduism';
-        $occasion = $criteria['occasion'] ?? '';
-        $additionalInfo = $criteria['additional_info'] ?? '';
+private function buildRitualGenerationPrompt(array $criteria): string
+{
+    $communityName = $criteria['community_name'] ?? 'Hindu';
+    $ritualName = $criteria['ritual_name'] ?? '';
+    $religion = $criteria['religion'] ?? 'Hinduism';
+    $occasion = $criteria['occasion'] ?? '';
+    $additionalInfo = $criteria['additional_info'] ?? '';
 
-        $prompt = "Generate a comprehensive and authentic ritual guide for the following:
+    $prompt = "Generate a comprehensive and authentic ritual guide for the following:
 
 Community/Tradition: {$communityName}
 Religion: {$religion}
 Ritual Name: {$ritualName}
 Occasion: {$occasion}
 Additional Information: {$additionalInfo}
+
+STRICT RELIGIOUS ACCURACY RULES:
+- This ritual belongs to the religion: {$religion}
+- Every single ritual step, mantra, deity, scripture reference, and practice MUST be exclusively from {$religion} traditions only.
+- Do NOT mix in practices, terminology, deities, or concepts from any other religion (e.g., no Islamic, Christian, or unrelated content).
+- Do NOT include any offensive, disrespectful, or culturally insensitive content.
+- For Hinduism: Draw only from Vedic, Puranic, Agamic, or regional Hindu traditions.
+- For Buddhism: Draw only from Theravada, Mahayana, or Vajrayana Buddhist canon as appropriate.
+- For Jainism: Draw only from Jain Agamas, Digambara or Shvetambara traditions as appropriate.
+- All mantras must be authentic and verifiable within the specified religion's scriptures.
 
 Please rigorously follow this structure and format:
 
@@ -416,17 +426,21 @@ Example formats:
    Example: \"गृहप्रवेश (Gruhapravesh)\"
 3. **Community**: As specified
 4. **Purpose**: Clear English 1 or 2 lines
-5. **Scriptural Basis**: Mention referenced texts (Vedas, Puranas, etc.) in the 'significance' field.
+5. **Scriptural Basis**: Mention referenced texts (Vedas, Puranas, Agamas, Tripitaka, etc. — only from {$religion}) in the 'significance' field.
 6. **Items Required**: Each Sanskrit/Local name MUST include transliteration in brackets
 7. **Ritual Steps**: MUST include:
    - Sanskrit Title in format \"देवनागरी (Transliteration)\"
    - English Title
-   - Who Performs (e.g., Kartan, Pandit)
+   - Who Performs (e.g., Kartan, Pandit, Monk, Shravak)
    - Purpose of the step
    - Method (How to Perform) in numbered points
-   - Mantra in format \"देवनागरी (Transliteration)\" + Meaning
-8. **Concluding Rites**: Visarjan, Prasad, Dakshina instructions (Include these as the final steps)
-9. **Post-Ritual Guidelines**: Clean up and observances (Include as the very last step)
+   - Mantra in format \"देवनागरी (Transliteration)\" + Meaning (only if this specific ritual step traditionally includes a mantra; otherwise set mantra to null)
+8. **Post-Ritual Guidelines**: Clean up and observances (Include as the very last step)
+
+CONCLUDING RITES GUIDANCE:
+- Only include Visarjan (immersion/farewell) steps if the specific ritual being requested traditionally and necessarily involves idol immersion or element dispersal (e.g., Ganesh Puja, Navratri, etc.).
+- For rituals like Raksha Bandhan, Vivah, Namkaran, Upanayana, or other Sanskars and personal ceremonies — do NOT add Visarjan. Instead, end with appropriate Prasad distribution, blessings, and relevant closing rites specific to that ritual.
+- Always let the nature of the ritual determine its concluding steps.
 
 OUTPUT JSON FORMAT:
 {
@@ -468,10 +482,10 @@ OUTPUT JSON FORMAT:
 }
 
 REMEMBER: Every single Devanagari word MUST have (Transliteration) in brackets immediately after it.
-Provide 10-20 detailed steps covering the entire ritual from preparation to conclusion. Be religiously accurate.";
+Provide 10-20 detailed steps covering the entire ritual from preparation to conclusion. Be religiously accurate and exclusive to {$religion} only.";
 
-        return $prompt;
-    }
+    return $prompt;
+}
 
     /**
      * Build chat assistant prompt
