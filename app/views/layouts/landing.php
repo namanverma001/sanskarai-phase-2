@@ -2761,9 +2761,9 @@ $roleDisplay = match ($userRole) {
                             Services <i class="fas fa-chevron-down"></i>
                         </button>
                         <div class="nav-dropdown-menu">
-                            <a href="<?= $isLoggedIn ? '/user/rituals' : '/login' ?>">Explore Rituals</a>
+                            <a href="<?= $isLoggedIn ? '/user/rituals' : '/explore' ?>">Explore Rituals</a>
                             <a href="<?= $isLoggedIn ? '/user/select-pandit' : '/login' ?>">Find Pandit</a>
-                            <a href="<?= $isLoggedIn ? '/user/ai-suggestions' : '/login' ?>">AI Assistant</a>
+                            <a href="<?= $isLoggedIn ? '/user/ai-suggestions' : '/try-ai' ?>">AI Assistant</a>
                         </div>
                     </div>
 
@@ -2821,7 +2821,10 @@ $roleDisplay = match ($userRole) {
                         </div>
                     </div>
                 <?php else: ?>
-                    <!-- Guest: Login + CTA Button -->
+                    <!-- Guest: Login + Guest Mode + CTA Button -->
+                    <a href="/explore" class="nav-login" style="background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 153, 51, 0.5) !important; color: white !important;">
+                        <i class="fas fa-eye" style="color: var(--saffron);"></i> Guest Mode
+                    </a>
                     <a href="/login" class="nav-login">Login</a>
                     <a href="/signup" class="nav-cta">Get Started</a>
                 <?php endif; ?>
@@ -2868,7 +2871,7 @@ $roleDisplay = match ($userRole) {
 
         <a href="#how-it-works">How It Works</a>
         <a href="#features">Features</a>
-        <a href="<?= $isLoggedIn ? '/user/rituals' : '/login' ?>">Explore Rituals</a>
+        <a href="<?= $isLoggedIn ? '/user/rituals' : '/explore' ?>">Explore Rituals</a>
         <a href="<?= $isLoggedIn ? '/user/select-pandit' : '/login' ?>">Find Pandit</a>
         <a href="#testimonials">Reviews</a>
         <a href="#faq">FAQ</a>
@@ -2887,6 +2890,7 @@ $roleDisplay = match ($userRole) {
             </div>
         <?php else: ?>
             <div class="mobile-auth">
+                <a href="/explore" class="mobile-cta" style="background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 153, 51, 0.5) !important; color: white !important;"><i class="fas fa-eye" style="color: var(--saffron);"></i> Guest Mode</a>
                 <a href="/login" class="mobile-cta">Login</a>
                 <a href="/signup" class="mobile-cta mobile-cta-primary">Get Started</a>
             </div>

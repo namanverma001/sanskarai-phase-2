@@ -33,6 +33,18 @@ Router::get('/invitation/{token}', 'InvitationController@viewPublic');
 Router::post('/invitation/{token}/rsvp', 'InvitationController@submitRsvp');
 
 // ============================================================
+// GUEST EXPLORATION ROUTES (No auth required)
+// ============================================================
+Router::get('/explore', 'GuestController@exploreRituals', [], 'guest.explore');
+Router::get('/explore/search', 'GuestController@searchRituals');
+Router::post('/explore/generate', 'GuestController@generateRitual');
+Router::post('/explore/regenerate', 'GuestController@regenerateRitual');
+Router::post('/explore/load-more', 'GuestController@loadMoreRituals');
+Router::get('/explore/rituals/{id}', 'GuestController@viewRitual');
+Router::get('/try-ai', 'GuestController@aiPandit', [], 'guest.ai-pandit');
+Router::post('/try-ai/send', 'GuestController@aiPanditSend');
+
+// ============================================================
 // ADMIN ROUTES
 // ============================================================
 Router::group(['prefix' => 'admin', 'middleware' => ['admin']], function () {

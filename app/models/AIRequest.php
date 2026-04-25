@@ -37,7 +37,7 @@ class AIRequest extends Model
     /**
      * Create new AI request
      */
-    public function createRequest(int $userId, string $type, string $prompt, array $context = []): int
+    public function createRequest(?int $userId, string $type, string $prompt, array $context = []): int
     {
         return $this->create([
             'user_id' => $userId,

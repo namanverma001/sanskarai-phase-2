@@ -1,3 +1,4 @@
+<?php $isGuest = $isGuest ?? false; $guestPrefix = $isGuest ? '/explore/rituals' : '/user/rituals'; ?>
 <style>
     .explore-header {
         background: linear-gradient(135deg, var(--primary) 0%, #FF8C42 100%);
@@ -792,11 +793,42 @@
             opacity: 1;
         }
     }
+
+    /* Responsive generated ritual layout */
+    .generated-ritual-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 25px;
+    }
+    .generated-ritual-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+        padding: 20px;
+        background: #F9FAFB;
+        border-radius: 12px;
+    }
+    
+    @media (max-width: 768px) {
+        .generated-ritual-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        .generated-ritual-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
 </style>
 
 <div class="explore-header">
     <h1><i class="fas fa-search"></i> Explore Rituals</h1>
     <p>Search our database or let AI generate authentic rituals for your tradition</p>
+    <?php if ($isGuest): ?>
+    <div style="margin-top: 12px; background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px;">
+        <i class="fas fa-info-circle"></i> You have <strong><?= $aiGenRemaining ?? 3 ?></strong> free AI generations remaining
+    </div>
+    <?php endif; ?>
 </div>
 
 <?php $showAll = isset($_GET['all']) && $_GET['all'] == '1'; ?>
@@ -974,13 +1006,24 @@
         <div style="display: flex; align-items: center; gap: 12px;">
             <i class="fas fa-bookmark" style="font-size: 1.5rem; color: #059669;"></i>
             <div>
+                <?php if ($isGuest): ?>
+                <strong style="color: #065F46; font-size: 1.05rem;">🙏 Love this ritual?</strong>
+                <p style="margin: 0; font-size: 0.85rem; color: #047857;">Create a free account to save it, get personalized recommendations & more!</p>
+                <?php else: ?>
                 <strong style="color: #065F46; font-size: 1.05rem;">Happy with this ritual?</strong>
                 <p style="margin: 0; font-size: 0.85rem; color: #047857;">Save it to your collection to start performing, track progress & download PDF</p>
+                <?php endif; ?>
             </div>
         </div>
+        <?php if ($isGuest): ?>
+        <a href="/signup" id="btnSaveGenerated" style="background: linear-gradient(135deg, #FF6B35 0%, #F59E0B 100%); color: white; border: none; padding: 16px 32px; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3); transition: all 0.3s ease; white-space: nowrap; text-decoration: none;">
+            <i class="fas fa-user-plus"></i> Sign Up to Save
+        </a>
+        <?php else: ?>
         <button id="btnSaveGenerated" onclick="acceptGeneratedRitual()" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none; padding: 16px 32px; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease; white-space: nowrap;">
             <i class="fas fa-plus-circle"></i> Save to My Rituals
         </button>
+        <?php endif; ?>
     </div>
 
     <!-- Feedback Loop Section -->
@@ -997,9 +1040,15 @@
         </div>
 
         <div class="feedback-actions">
+            <?php if ($isGuest): ?>
+            <a href="/signup" class="btn-accept" style="text-decoration:none;">
+                <i class="fas fa-user-plus"></i> Sign Up to Save
+            </a>
+            <?php else: ?>
             <button class="btn-accept" onclick="acceptGeneratedRitual()" id="btnAccept">
                 <i class="fas fa-plus-circle"></i> Save to My Rituals
             </button>
+            <?php endif; ?>
             <div class="like-dislike-group">
                 <button class="btn-like" onclick="selectFeedback('like')" id="btnLike">
                     <i class="fas fa-thumbs-up"></i> Liked
@@ -1029,9 +1078,15 @@
                     <i class="fas fa-lightbulb" style="color: #F59E0B;"></i>
                     Your feedback helps us improve AI-generated rituals
                 </p>
+                <?php if ($isGuest): ?>
+                <a href="/signup" class="btn-accept" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 16px; text-decoration: none;">
+                    <i class="fas fa-user-plus"></i> Sign Up to Save This Ritual
+                </a>
+                <?php else: ?>
                 <button class="btn-accept" onclick="acceptGeneratedRitual()" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 16px;">
                     <i class="fas fa-plus-circle"></i> Save to My Rituals
                 </button>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -1100,20 +1155,18 @@
                         <?= htmlspecialchars(substr($ritual['description'] ?? 'Traditional ritual with detailed steps and guidance.', 0, 100)) ?>...
                     </p>
                     <div class="ritual-card-actions">
-                        <a
-                            href="/user/rituals/<?= $ritual['id'] ?>"
-                            class="btn-view"
-                        >
+                        <a href="<?= $guestPrefix ?>/<?= $ritual['id'] ?>" class="btn-view">
                             <i class="fas fa-eye"></i> View Details
                         </a>
-                        <button
-                            class="btn-add"
-                            id="btnAdd_<?= $ritual['id'] ?>"
-                            onclick="addToMyRituals(<?= $ritual['id'] ?>, this)"
-                            title="Save to My Rituals"
-                        >
+                        <?php if ($isGuest): ?>
+                        <a href="/signup" class="btn-add" style="text-decoration:none;" title="Sign up to save">
+                            <i class="fas fa-user-plus"></i> Sign Up
+                        </a>
+                        <?php else: ?>
+                        <button class="btn-add" id="btnAdd_<?= $ritual['id'] ?>" onclick="addToMyRituals(<?= $ritual['id'] ?>, this)" title="Save to My Rituals">
                             <i class="fas fa-plus"></i> Save
                         </button>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -1129,8 +1182,9 @@
 </div>
 
 <!-- ============================================================ -->
-<!-- MY RITUALS SECTION -->
+<!-- MY RITUALS SECTION (hidden for guests) -->
 <!-- ============================================================ -->
+<?php if (!$isGuest): ?>
 <div class="popular-section" style="margin-top: 40px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h3 class="section-title" style="margin-bottom: 0;"><i class="fas fa-book-reader" style="color: #10B981;"></i> My Rituals</h3>
@@ -1211,6 +1265,7 @@
         <?php endif; ?>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <!-- Loading Overlay -->
 <div
@@ -1232,6 +1287,8 @@
 
 <script>
     const csrfToken = '<?= \App\Core\Auth::csrfToken() ?>';
+    const isGuest = <?= ($isGuest ?? false) ? 'true' : 'false' ?>;
+    const guestPrefix = isGuest ? '/explore/rituals' : '/user/rituals';
 
     // Community combobox functionality
     (function() {
@@ -1482,7 +1539,7 @@
 
         try {
             // Step 1: Search in database (global + My Rituals)
-            const searchResponse = await fetch('/user/rituals/search?' + params.toString());
+            const searchResponse = await fetch((isGuest ? '/explore/search?' : '/user/rituals/search?') + params.toString());
             const searchData = await searchResponse.json();
 
             if (searchData.success && searchData.rituals && searchData.rituals.length > 0) {
@@ -1497,7 +1554,7 @@
             
             formData.append('csrf_token', csrfToken);
 
-            const generateResponse = await fetch('/user/rituals/generate', {
+            const generateResponse = await fetch(isGuest ? '/explore/generate' : '/user/rituals/generate', {
                 method: 'POST',
                 body: formData
             });
@@ -1512,6 +1569,10 @@
                 feedbackHistoryList = [];
                 displayGeneratedRitual(generateData.ritual);
                 showToast('Ritual generated with AI! Review and accept or refine.', 'success');
+                // Trigger signup popup for guests after AI generation
+                if (isGuest && window.SanskarGuestPopup) {
+                    window.SanskarGuestPopup.showAfterDelay(3000);
+                }
             } else {
                 showToast(generateData.error || 'Generation failed', 'error');
             }
@@ -1542,7 +1603,7 @@
         } else {
             resultsGrid.innerHTML = rituals.map(ritual => {
                 const isMyRitual = ritual.source_type === 'my_ritual';
-                const viewUrl = isMyRitual ? `/user/my-rituals/${ritual.id}` : `/user/rituals/${ritual.id}`;
+                const viewUrl = isMyRitual ? `/user/my-rituals/${ritual.id}` : `${guestPrefix}/${ritual.id}`;
                 const sourceBadge = isMyRitual 
                     ? `<span class="source-badge my-ritual"><i class="fas fa-folder-open"></i> My Ritual</span>` 
                     : `<span class="source-badge global"><i class="fas fa-globe"></i> Global</span>`;
@@ -1580,9 +1641,9 @@
                             <a href="${viewUrl}" class="btn-view">
                                 <i class="fas fa-eye"></i> View Details
                             </a>
-                            ${!isMyRitual ? `<button class="btn-add" id="btnAdd_${ritual.id}" onclick="addToMyRituals(${ritual.id}, this)" title="Save to My Rituals">
-                                <i class="fas fa-plus"></i> Save
-                            </button>` : `<span class="btn-add saved" style="pointer-events:none;"><i class="fas fa-check"></i> Saved</span>`}
+                            ${isGuest 
+                                ? `<a href="/signup" class="btn-add" style="text-decoration:none;" title="Sign up to save"><i class="fas fa-user-plus"></i> Sign Up</a>`
+                                : (!isMyRitual ? `<button class="btn-add" id="btnAdd_${ritual.id}" onclick="addToMyRituals(${ritual.id}, this)" title="Save to My Rituals"><i class="fas fa-plus"></i> Save</button>` : `<span class="btn-add saved" style="pointer-events:none;"><i class="fas fa-check"></i> Saved</span>`)}
                         </div>
                     </div>
                 </div>
@@ -1629,7 +1690,7 @@
             ${ritual.name_sanskrit ? `<p style="color: #92400E; font-style: italic;">${escapeHtml(ritual.name_sanskrit)}</p>` : ''}
         </div>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 25px; padding: 20px; background: #F9FAFB; border-radius: 12px;">
+        <div class="generated-ritual-stats">
             <div style="text-align: center;">
                 <i class="fas fa-clock" style="font-size: 1.5rem; color: var(--primary);"></i>
                 <p style="font-weight: 600; margin-top: 5px;">${ritual.duration_minutes || 60} min</p>
@@ -1670,7 +1731,7 @@
         </div>
         ` : ''}
         
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
+        <div class="generated-ritual-grid">
             <div>
                 <h4 style="margin-bottom: 15px;"><i class="fas fa-list-ol"></i> Steps (${(ritual.steps || []).length})</h4>
                 ${stepsHtml || '<p style="color: #6B7280;">No steps defined</p>'}
@@ -1709,7 +1770,8 @@
         document.getElementById('btnDislike').classList.remove('active');
         document.getElementById('likeDislikeFeedback').classList.remove('active');
         document.getElementById('likeDislikeText').value = '';
-        document.getElementById('btnAccept').style.display = 'inline-flex';
+        const btnAcceptElement = document.getElementById('btnAccept');
+        if (btnAcceptElement) btnAcceptElement.style.display = 'inline-flex';
 
         generatedSection.style.display = 'block';
         document.getElementById('searchResults').style.display = 'none';
@@ -1738,7 +1800,7 @@
             btnLike.classList.remove('active');
             btnDislike.classList.remove('active');
             feedbackDiv.classList.remove('active');
-            btnAcceptTop.style.display = 'inline-flex';
+            if (btnAcceptTop) btnAcceptTop.style.display = 'inline-flex';
             return;
         }
 
@@ -1748,8 +1810,8 @@
         btnLike.classList.toggle('active', type === 'like');
         btnDislike.classList.toggle('active', type === 'dislike');
 
-        // Hide top Accept button — the panel has its own clear Accept CTA
-        btnAcceptTop.style.display = 'none';
+        // Hide top Accept button - the panel has its own clear Accept CTA
+        if (btnAcceptTop) btnAcceptTop.style.display = 'none';
 
         // Update prompt label and placeholder based on type
         if (type === 'like') {
@@ -1855,7 +1917,7 @@
             formData.append('session_id', generationSessionId);
             formData.append('round_number', currentRound);
 
-            const response = await fetch('/user/rituals/regenerate', {
+            const response = await fetch(isGuest ? '/explore/regenerate' : '/user/rituals/regenerate', {
                 method: 'POST',
                 body: formData
             });
@@ -2043,7 +2105,7 @@
                 formData.append('show_all', '1');
             }
 
-            const response = await fetch('/user/rituals/load-more', {
+            const response = await fetch(isGuest ? '/explore/load-more' : '/user/rituals/load-more', {
                 method: 'POST',
                 body: formData
             });
@@ -2107,12 +2169,12 @@
                     </div>
                     <p class="ritual-description">${escapeHtml(truncatedDesc)}</p>
                     <div class="ritual-card-actions">
-                        <a href="/user/rituals/${ritual.id}" class="btn-view">
+                        <a href="${guestPrefix}/${ritual.id}" class="btn-view">
                             <i class="fas fa-eye"></i> View Details
                         </a>
-                        <button class="btn-add" id="btnAdd_${ritual.id}" onclick="addToMyRituals(${ritual.id}, this)" title="Save to My Rituals">
-                            <i class="fas fa-plus"></i> Save
-                        </button>
+                        ${isGuest 
+                            ? `<a href="/signup" class="btn-add" style="text-decoration:none;"><i class="fas fa-user-plus"></i> Sign Up</a>`
+                            : `<button class="btn-add" id="btnAdd_${ritual.id}" onclick="addToMyRituals(${ritual.id}, this)" title="Save to My Rituals"><i class="fas fa-plus"></i> Save</button>`}
                     </div>
                 </div>
             </div>

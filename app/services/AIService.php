@@ -27,11 +27,14 @@ class AIService
     /**
      * Generate ritual based on search criteria
      */
-    public function generateRitual(int $userId, array $criteria): array
+    public function generateRitual(?int $userId, array $criteria): array
     {
         $prompt = $this->buildRitualGenerationPrompt($criteria);
 
-        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_generation', $prompt, $criteria);
+        $requestId = 0;
+        if ($userId) {
+            $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_generation', $prompt, $criteria);
+        }
 
         try {
             $startTime = microtime(true);
@@ -40,12 +43,14 @@ class AIService
 
             $processingTime = (int) ((microtime(true) - $startTime) * 1000);
 
-            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
-                'tokens_used' => $response['tokens'] ?? 0,
-                'processing_time_ms' => $processingTime,
-            ]);
+            if ($userId && $requestId) {
+                $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                    'tokens_used' => $response['tokens'] ?? 0,
+                    'processing_time_ms' => $processingTime,
+                ]);
 
-            $this->aiRequestModel->log('info', 'ritual_generation_complete', 'Ritual generated successfully', [], $requestId);
+                $this->aiRequestModel->log('info', 'ritual_generation_complete', 'Ritual generated successfully', [], $requestId);
+            }
 
             // Parse the ritual data from the response
             $ritualData = $response['data']['ritual'] ?? $this->parseRitualFromText($response['text'], $criteria);
@@ -58,8 +63,10 @@ class AIService
             ];
 
         } catch (\Exception $e) {
-            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
-            $this->aiRequestModel->log('error', 'ritual_generation_failed', $e->getMessage(), [], $requestId);
+            if ($userId && $requestId) {
+                $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+                $this->aiRequestModel->log('error', 'ritual_generation_failed', $e->getMessage(), [], $requestId);
+            }
 
             return [
                 'success' => false,
@@ -71,14 +78,17 @@ class AIService
     /**
      * Regenerate ritual incorporating user feedback and historical learning
      */
-    public function regenerateRitualWithFeedback(int $userId, array $criteria, array $previousResponse, string $userFeedback, array $pastFeedback = []): array
+    public function regenerateRitualWithFeedback(?int $userId, array $criteria, array $previousResponse, string $userFeedback, array $pastFeedback = []): array
     {
         $prompt = $this->buildRefinementPrompt($criteria, $previousResponse, $userFeedback, $pastFeedback);
 
-        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_regeneration', $prompt, array_merge($criteria, [
-            'feedback' => $userFeedback,
-            'round' => count($pastFeedback) + 1,
-        ]));
+        $requestId = 0;
+        if ($userId) {
+            $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_regeneration', $prompt, array_merge($criteria, [
+                'feedback' => $userFeedback,
+                'round' => count($pastFeedback) + 1,
+            ]));
+        }
 
         try {
             $startTime = microtime(true);
@@ -87,14 +97,16 @@ class AIService
 
             $processingTime = (int) ((microtime(true) - $startTime) * 1000);
 
-            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
-                'tokens_used' => $response['tokens'] ?? 0,
-                'processing_time_ms' => $processingTime,
-            ]);
+            if ($userId && $requestId) {
+                $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                    'tokens_used' => $response['tokens'] ?? 0,
+                    'processing_time_ms' => $processingTime,
+                ]);
 
-            $this->aiRequestModel->log('info', 'ritual_regeneration_complete', 'Ritual regenerated with feedback', [
-                'feedback' => $userFeedback,
-            ], $requestId);
+                $this->aiRequestModel->log('info', 'ritual_regeneration_complete', 'Ritual regenerated with feedback', [
+                    'feedback' => $userFeedback,
+                ], $requestId);
+            }
 
             $ritualData = $response['data']['ritual'] ?? $this->parseRitualFromText($response['text'], $criteria);
 
@@ -106,8 +118,10 @@ class AIService
             ];
 
         } catch (\Exception $e) {
-            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
-            $this->aiRequestModel->log('error', 'ritual_regeneration_failed', $e->getMessage(), [], $requestId);
+            if ($userId && $requestId) {
+                $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+                $this->aiRequestModel->log('error', 'ritual_regeneration_failed', $e->getMessage(), [], $requestId);
+            }
 
             return [
                 'success' => false,
@@ -167,11 +181,14 @@ REMEMBER: Output must be valid JSON in the exact same format as specified above.
     /**
      * Chatbot for ritual assistance during execution
      */
-    public function chatAssistant(int $userId, array $context): array
+    public function chatAssistant(?int $userId, array $context): array
     {
         $prompt = $this->buildChatPrompt($context);
 
-        $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_chat', $prompt, $context);
+        $requestId = 0;
+        if ($userId) {
+            $requestId = $this->aiRequestModel->createRequest($userId, 'ritual_chat', $prompt, $context);
+        }
 
         try {
             $startTime = microtime(true);
@@ -180,10 +197,12 @@ REMEMBER: Output must be valid JSON in the exact same format as specified above.
 
             $processingTime = (int) ((microtime(true) - $startTime) * 1000);
 
-            $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
-                'tokens_used' => $response['tokens'] ?? 0,
-                'processing_time_ms' => $processingTime,
-            ]);
+            if ($userId && $requestId) {
+                $this->aiRequestModel->updateWithResponse($requestId, $response['text'], [
+                    'tokens_used' => $response['tokens'] ?? 0,
+                    'processing_time_ms' => $processingTime,
+                ]);
+            }
 
             return [
                 'success' => true,
@@ -192,7 +211,9 @@ REMEMBER: Output must be valid JSON in the exact same format as specified above.
             ];
 
         } catch (\Exception $e) {
-            $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+            if ($userId && $requestId) {
+                $this->aiRequestModel->markFailed($requestId, $e->getMessage());
+            }
 
             return [
                 'success' => false,

@@ -103,7 +103,8 @@
     }
 </style>
 
-<a href="/user/rituals" class="btn btn-sm" style="background: #E5E7EB; color: #374151; margin-bottom: 20px;">
+<?php $isGuest = $isGuest ?? false; ?>
+<a href="<?= $isGuest ? '/explore' : '/user/rituals' ?>" class="btn btn-sm" style="background: #E5E7EB; color: #374151; margin-bottom: 20px;">
     <i class="fas fa-arrow-left"></i> Back to Rituals
 </a>
 
@@ -190,19 +191,26 @@
         <div class="card" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 2px solid #6EE7B7; margin-bottom: 20px;">
             <div style="text-align: center; padding: 10px 0 5px;">
                 <i class="fas fa-bookmark" style="font-size: 2rem; color: #059669; margin-bottom: 10px;"></i>
+                <?php if ($isGuest): ?>
+                <h4 style="color: #065F46; margin-bottom: 8px;">🙏 Create Your Profile</h4>
+                <p style="color: #047857; font-size: 0.85rem; margin-bottom: 18px;">
+                    Sign up for free to save this ritual, track progress, download PDF, and get personalized recommendations!
+                </p>
+                <a href="/signup" class="btn-save-ritual" style="text-decoration: none; background: linear-gradient(135deg, #FF6B35 0%, #F59E0B 100%); box-shadow: 0 4px 15px rgba(255,107,53,0.3);">
+                    <i class="fas fa-user-plus btn-icon"></i>
+                    <span class="btn-label">Sign Up to Save</span>
+                </a>
+                <?php else: ?>
                 <h4 style="color: #065F46; margin-bottom: 8px;">Save to My Rituals</h4>
                 <p style="color: #047857; font-size: 0.85rem; margin-bottom: 18px;">
                     Add this ritual to your personal collection to start performing it, track progress, and download PDF.
                 </p>
-                <button
-                    id="btnSaveToMyRituals"
-                    class="btn-save-ritual"
-                    onclick="saveToMyRituals(<?= $ritual['id'] ?>)"
-                >
+                <button id="btnSaveToMyRituals" class="btn-save-ritual" onclick="saveToMyRituals(<?= $ritual['id'] ?>)">
                     <span class="spinner"></span>
                     <i class="fas fa-plus-circle btn-icon"></i>
                     <span class="btn-label">Save to My Rituals</span>
                 </button>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -222,12 +230,29 @@
                 </li>
                 <?php endforeach; ?>
             </ul>
+            <?php if ($isGuest): ?>
+            <a href="/signup" class="btn btn-success" style="width: 100%; margin-top: 15px; text-decoration: none;">
+                <i class="fas fa-user-plus"></i> Sign Up for Shopping List
+            </a>
+            <?php else: ?>
             <a href="/user/shopping-list/generate/<?= $ritual['id'] ?>" class="btn btn-success" style="width: 100%; margin-top: 15px;">
                 <i class="fas fa-cart-plus"></i> Add to Shopping List
             </a>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
         
+        <?php if ($isGuest): ?>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-pray"></i> Book a Pandit</h3>
+            </div>
+            <p style="color: #6B7280; margin-bottom: 15px;">Need help performing this ritual? Sign up to book an experienced pandit.</p>
+            <a href="/signup" class="btn btn-primary" style="width: 100%; text-decoration: none;">
+                <i class="fas fa-user-plus"></i> Sign Up to Book a Pandit
+            </a>
+        </div>
+        <?php else: ?>
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-pray"></i> Book a Pandit</h3>
@@ -236,7 +261,6 @@
             <form method="POST" action="/user/book-pandit">
                 <?= \App\Core\Auth::csrfField() ?>
                 <input type="hidden" name="ritual_id" value="<?= $ritual['id'] ?>">
-                
                 <div class="form-group">
                     <label>Select Pandit</label>
                     <select name="pandit_id" class="form-control" required>
@@ -249,28 +273,24 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
                 <div class="form-group">
                     <label>Preferred Date</label>
-                    <input type="date" name="scheduled_date" class="form-control" required 
-                           min="<?= date('Y-m-d') ?>">
+                    <input type="date" name="scheduled_date" class="form-control" required min="<?= date('Y-m-d') ?>">
                 </div>
-                
                 <div class="form-group">
                     <label>Preferred Time</label>
                     <input type="time" name="scheduled_time" class="form-control">
                 </div>
-                
                 <div class="form-group">
                     <label>Venue</label>
                     <input type="text" name="venue" class="form-control" placeholder="Your address">
                 </div>
-                
                 <button type="submit" class="btn btn-primary" style="width: 100%;">
                     <i class="fas fa-calendar-plus"></i> Request Booking
                 </button>
             </form>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 

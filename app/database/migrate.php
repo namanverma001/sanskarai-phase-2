@@ -86,6 +86,12 @@ try {
             rejection_reason TEXT NULL,
             total_rituals_performed INT DEFAULT 0,
             average_rating DECIMAL(3,2) DEFAULT 0.00,
+            latitude DECIMAL(10, 8) NULL,
+            longitude DECIMAL(11, 8) NULL,
+            map_url VARCHAR(500) NULL,
+            city VARCHAR(100) NULL,
+            pincode VARCHAR(20) NULL,
+            service_area_km INT DEFAULT 50,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             

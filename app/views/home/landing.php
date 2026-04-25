@@ -927,8 +927,8 @@
             <a href="/signup" class="btn btn-primary btn-lg magnetic-btn pulse-glow">
                 <i class="fas fa-user-plus"></i> Create Free Account
             </a>
-            <a href="#features" class="btn btn-outline btn-lg magnetic-btn">
-                <i class="fas fa-info-circle"></i> Learn More
+            <a href="/explore" class="btn btn-outline btn-lg magnetic-btn">
+                <i class="fas fa-search"></i> Try It First — No Login Needed
             </a>
         </div>
         <div class="cta-trust">
