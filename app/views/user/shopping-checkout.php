@@ -1,4 +1,4 @@
-<!-- Shopping Checkout - E-commerce Flow -->
+<!-- Find Nearby Puja Shops -->
 <style>
     .checkout-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 12px; margin-bottom: 20px; color: white; }
     .checkout-header h2 { margin: 0; font-size: 1.5rem; }
@@ -48,9 +48,7 @@
     .summary-row:last-child { border-bottom: none; }
     .summary-row.total { font-weight: 700; font-size: 1.2rem; color: #2d3748; border-top: 2px solid #667eea; margin-top: 10px; padding-top: 15px; }
     
-    .checkout-btn { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); border: none; padding: 15px 30px; font-size: 1rem; font-weight: 600; border-radius: 10px; width: 100%; }
-    .checkout-btn:hover { background: linear-gradient(135deg, #38a169 0%, #2f855a 100%); }
-    .checkout-btn:disabled { background: #cbd5e0; cursor: not-allowed; }
+
     
     .step-indicator { display: flex; gap: 10px; margin-bottom: 20px; }
     .step { flex: 1; padding: 12px; background: #edf2f7; border-radius: 8px; text-align: center; font-size: 0.85rem; color: #718096; }
@@ -60,8 +58,8 @@
 </style>
 
 <div class="checkout-header">
-    <h2><i class="fas fa-shopping-cart mr-2"></i>Checkout</h2>
-    <p>Complete your puja items order</p>
+    <h2><i class="fas fa-store mr-2"></i>Find Nearby Puja Shops</h2>
+    <p>Locate puja material shops near you</p>
 </div>
 
 <!-- Step Indicator -->
@@ -69,7 +67,6 @@
     <div class="step done" id="step1"><i class="fas fa-check"></i> Cart</div>
     <div class="step active" id="step2"><i class="fas fa-map-marker-alt"></i> Location</div>
     <div class="step" id="step3"><i class="fas fa-store"></i> Select Shop</div>
-    <div class="step" id="step4"><i class="fas fa-credit-card"></i> Confirm</div>
 </div>
 
 <div class="checkout-grid">
@@ -103,7 +100,7 @@
     <div class="checkout-sidebar">
         <!-- Order Summary -->
         <div class="checkout-card">
-            <h4><i class="fas fa-receipt"></i> Order Summary</h4>
+            <h4><i class="fas fa-list-ul"></i> Items List</h4>
             
             <div class="cart-items">
                 <?php foreach ($items as $item): ?>
@@ -113,7 +110,6 @@
                         <div class="name"><?= htmlspecialchars($item['item_name']) ?></div>
                         <div class="qty"><?= $item['quantity'] ?> <?= $item['unit'] ?></div>
                     </div>
-                    <div class="price">₹<?= number_format($item['estimated_cost'] * $item['quantity']) ?></div>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -121,25 +117,12 @@
             <hr style="margin: 15px 0;">
             
             <div class="summary-row">
-                <span>Items</span>
+                <span>Total Items</span>
                 <span><?= $summary['pending'] ?? count($items) ?></span>
-            </div>
-            <div class="summary-row total">
-                <span>Estimated Total</span>
-                <span>₹<?= number_format($summary['estimated_total'] ?? 0) ?></span>
             </div>
         </div>
         
-        <!-- Place Order -->
-        <div class="checkout-card">
-            <textarea id="orderNotes" class="form-control mb-3" placeholder="Add notes (optional)" rows="2"></textarea>
-            <button class="btn btn-success checkout-btn" id="placeOrderBtn" disabled onclick="placeOrder()">
-                <i class="fas fa-check-circle"></i> Place Order
-            </button>
-            <p style="font-size: 0.8rem; color: #718096; margin-top: 10px; text-align: center;">
-                <i class="fas fa-info-circle"></i> Items will be marked as purchased
-            </p>
-        </div>
+
         
         <a href="/user/shopping-list" class="btn btn-outline-secondary btn-block">
             <i class="fas fa-arrow-left"></i> Back to Cart
@@ -151,9 +134,6 @@
 <input type="hidden" id="global_csrf" value="<?= \App\Core\Auth::csrfToken() ?>">
 <input type="hidden" id="user_lat" value="">
 <input type="hidden" id="user_lng" value="">
-<input type="hidden" id="selected_shop_name" value="">
-<input type="hidden" id="selected_shop_location" value="">
-<input type="hidden" id="selected_shop_type" value="">
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -281,17 +261,10 @@ function selectShop(index, name, location, type) {
     document.getElementById('shop-' + index).classList.add('selected');
     
     selectedShop = { name, location, type };
-    document.getElementById('selected_shop_name').value = name;
-    document.getElementById('selected_shop_location').value = location;
-    document.getElementById('selected_shop_type').value = type;
     
     // Update steps
     document.getElementById('step3').className = 'step done';
     document.getElementById('step3').innerHTML = '<i class="fas fa-check"></i> Shop Selected';
-    document.getElementById('step4').className = 'step active';
-    
-    // Enable place order
-    document.getElementById('placeOrderBtn').disabled = false;
     
     // Show map
     showMap(name, location);
@@ -325,48 +298,7 @@ function openShopDirections(shopName, shopLocation) {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${query}`, '_blank');
 }
 
-function placeOrder() {
-    if (!selectedShop) {
-        Swal.fire('Error', 'Please select a shop first.', 'warning');
-        return;
-    }
-    
-    const btn = document.getElementById('placeOrderBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Placing Order...';
-    
-    const csrfToken = document.getElementById('global_csrf').value;
-    const notes = document.getElementById('orderNotes').value;
-    
-    fetch('/user/shopping-list/place-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `_token=${csrfToken}&shop_name=${encodeURIComponent(selectedShop.name)}&shop_location=${encodeURIComponent(selectedShop.location)}&shop_type=${encodeURIComponent(selectedShop.type)}&latitude=${document.getElementById('user_lat').value}&longitude=${document.getElementById('user_lng').value}&user_address=${encodeURIComponent(userLocation?.address || '')}&notes=${encodeURIComponent(notes)}`
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Order Placed!',
-                text: 'Your order has been confirmed.',
-                showConfirmButton: true,
-                confirmButtonText: 'View Order'
-            }).then(() => {
-                window.location.href = '/user/orders/' + data.order_id;
-            });
-        } else {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Place Order';
-            Swal.fire('Error', data.error || 'Failed to place order.', 'error');
-        }
-    })
-    .catch(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check-circle"></i> Place Order';
-        Swal.fire('Error', 'Network error. Please try again.', 'error');
-    });
-}
+
 
 function escapeHtml(text) {
     const div = document.createElement('div');
