@@ -125,6 +125,9 @@ Router::group(['prefix' => 'admin', 'middleware' => ['admin']], function () {
     Router::get('/feedbacks', 'AdminController@feedbacks', [], 'admin.feedbacks');
     Router::get('/feedbacks/export', 'AdminController@exportFeedbacks');
     Router::post('/feedbacks/{id}/delete', 'AdminController@deleteFeedback');
+
+    // Guest Tracking
+    Router::get('/guest-tracking', 'AdminController@guestTracking', [], 'admin.guest-tracking');
 });
 
 // ============================================================

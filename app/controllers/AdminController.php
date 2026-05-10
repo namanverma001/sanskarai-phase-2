@@ -16,6 +16,7 @@ use App\Models\AIRequest;
 use App\Models\Assignment;
 use App\Models\Vendor;
 use App\Models\Review;
+use App\Models\GuestTracker;
 use App\Services\EmbeddingService;
 use App\Config\App;
 use App\Config\Database;
@@ -29,6 +30,7 @@ class AdminController extends Controller
     private Assignment $assignmentModel;
     private Vendor $vendorModel;
     private Review $reviewModel;
+    private GuestTracker $guestTrackerModel;
     
     public function __construct()
     {
@@ -40,6 +42,31 @@ class AdminController extends Controller
         $this->assignmentModel = new Assignment();
         $this->vendorModel = new Vendor();
         $this->reviewModel = new Review();
+        $this->guestTrackerModel = new GuestTracker();
+    }
+
+    /**
+     * Guest Tracking Dashboard
+     */
+    public function guestTracking(): void
+    {
+        $startDate = $this->input('start_date');
+        $endDate = $this->input('end_date');
+        
+        $stats = $this->guestTrackerModel->getStats($startDate, $endDate);
+        $recentViews = $this->guestTrackerModel->getRecentLogs('view', 1000, $startDate, $endDate);
+        $recentSearches = $this->guestTrackerModel->getRecentLogs('search', 1000, $startDate, $endDate);
+        $recentAiPandit = $this->guestTrackerModel->getRecentLogs('ai_pandit', 1000, $startDate, $endDate);
+        
+        $this->viewWithLayout('admin/guest-tracking', 'layouts/admin', [
+            'title' => 'Guest Tracking - Sanskar AI',
+            'stats' => $stats,
+            'recentViews' => $recentViews,
+            'recentSearches' => $recentSearches,
+            'recentAiPandit' => $recentAiPandit,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+        ]);
     }
 
     /**

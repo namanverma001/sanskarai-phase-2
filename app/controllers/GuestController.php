@@ -5,12 +5,14 @@ use App\Core\Controller;
 use App\Core\Auth;
 use App\Models\Ritual;
 use App\Models\User;
+use App\Models\GuestTracker;
 use App\Services\AIService;
 
 class GuestController extends Controller
 {
     private Ritual $ritualModel;
     private AIService $aiService;
+    private GuestTracker $guestTracker;
     private const MAX_AI_GENERATIONS = 3;
     private const MAX_AI_CHAT_MESSAGES = 5;
 
@@ -19,6 +21,7 @@ class GuestController extends Controller
         parent::__construct();
         $this->ritualModel = new Ritual();
         $this->aiService = new AIService();
+        $this->guestTracker = new GuestTracker();
     }
 
     private function initGuestSession(): void
@@ -40,6 +43,7 @@ class GuestController extends Controller
         $topRitualNames = $this->ritualModel->getTopRitualNames(15);
 
         $this->initGuestSession();
+        $this->guestTracker->recordView('/explore');
         $aiGenRemaining = max(0, self::MAX_AI_GENERATIONS - ($_SESSION['guest_ai_gen_count'] ?? 0));
 
         $this->viewWithLayout('user/explore-rituals', 'layouts/guest', [
@@ -67,6 +71,9 @@ class GuestController extends Controller
                 'ritual_name' => $this->input('ritual_name'),
                 'category' => $this->input('category'),
             ];
+            $this->initGuestSession();
+            $this->guestTracker->recordSearch($criteria);
+            
             $globalRituals = $this->ritualModel->advancedSearch($criteria);
             foreach ($globalRituals as &$r) $r['source_type'] = 'global';
             unset($r);
@@ -95,6 +102,10 @@ class GuestController extends Controller
         $ritual = $this->ritualModel->getWithDetails((int) $id);
         if (!$ritual) { $this->redirect('/explore', ['error' => 'Ritual not found.']); return; }
         $this->ritualModel->incrementView((int) $id);
+        
+        $this->initGuestSession();
+        $this->guestTracker->recordView('/explore/rituals/' . $id . ' (' . $ritual['name'] . ')');
+        
         $this->viewWithLayout('user/ritual-detail', 'layouts/guest', [
             'title' => $ritual['name'] . ' - Sanskar AI',
             'ritual' => $ritual,
@@ -194,6 +205,9 @@ class GuestController extends Controller
             $messageHistory = [];
             if (!empty($clientHistory)) { $decoded = json_decode($clientHistory, true); if (is_array($decoded)) $messageHistory = $decoded; }
             $messageHistory[] = ['role' => 'user', 'content' => $message];
+            
+            $this->guestTracker->recordAIPandit($message);
+            
             $result = $this->aiService->chatAssistant(null, [
                 'ritual_name' => 'General Spiritual Guidance',
                 'ritual_description' => 'Guest exploring Hindu rituals and traditions',

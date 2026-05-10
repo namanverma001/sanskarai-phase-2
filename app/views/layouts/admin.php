@@ -1313,6 +1313,10 @@ $roleDisplay = match ($userRole) {
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/ai-logs') !== false ? 'active' : '' ?>">
                         <i class="fas fa-robot"></i> <span>AI Logs</span>
                     </a>
+                    <a href="/admin/guest-tracking"
+                        class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/guest-tracking') !== false ? 'active' : '' ?>">
+                        <i class="fas fa-eye"></i> <span>Guest Tracking</span>
+                    </a>
                     <a href="/admin/create-admin"
                         class="menu-item <?= strpos($_SERVER['REQUEST_URI'], '/admin/create-admin') !== false ? 'active' : '' ?>">
                         <i class="fas fa-user-shield"></i> <span>Create Admin</span>
