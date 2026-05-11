@@ -782,9 +782,11 @@
                 </button>
                 <?php if (strpos($title ?? '', 'Login') !== false): ?>
                 <a href="/" class="nav-login">Home</a>
+                <a href="/explore" class="nav-login" style="color: var(--saffron);"><i class="fas fa-eye"></i> Guest Mode</a>
                 <a href="/signup" class="nav-cta">Sign Up</a>
                 <?php else: ?>
                 <a href="/" class="nav-login">Home</a>
+                <a href="/explore" class="nav-login" style="color: var(--saffron);"><i class="fas fa-eye"></i> Guest Mode</a>
                 <a href="/login" class="nav-cta">Login</a>
                 <?php endif; ?>
                 <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
@@ -813,6 +815,7 @@
         <a href="/#features">Features</a>
         <a href="/#how-it-works">How It Works</a>
         <a href="/#faq">FAQ</a>
+        <a href="/explore" class="mobile-cta" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 153, 51, 0.5); color: white;"><i class="fas fa-eye" style="color: var(--saffron);"></i> Guest Mode</a>
         <?php if (strpos($title ?? '', 'Login') !== false): ?>
         <a href="/signup" class="mobile-cta">Sign Up</a>
         <?php else: ?>

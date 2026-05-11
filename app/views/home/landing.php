@@ -534,6 +534,9 @@
             <a href="/signup" class="btn btn-primary btn-lg magnetic-btn pulse-glow">
                 <i class="fas fa-rocket"></i> Get Started Free
             </a>
+            <a href="/explore" class="btn btn-outline btn-lg magnetic-btn" style="border-color: var(--saffron); color: var(--saffron);">
+                <i class="fas fa-eye"></i> Guest Mode
+            </a>
             <a href="#how-it-works" class="btn btn-outline btn-lg magnetic-btn">
                 <i class="fas fa-play-circle"></i> See How It Works
             </a>
