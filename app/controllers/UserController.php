@@ -634,12 +634,7 @@ class UserController extends Controller
                 'additional_info' => $this->input('additional_info', ''),
             ];
 
-            if ($this->hasRestrictedRitualContent($criteria)) {
-                ob_end_clean();
-                error_reporting($oldErrorReporting);
-                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
-                return;
-            }
+
 
             $userId = Auth::id();
 
@@ -706,12 +701,7 @@ class UserController extends Controller
                 'additional_info' => $this->input('additional_info', ''),
             ];
 
-            if ($this->hasRestrictedRitualContent($criteria)) {
-                ob_end_clean();
-                error_reporting($oldErrorReporting);
-                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
-                return;
-            }
+
 
             $previousResponseRaw = $this->input('previous_response', '');
             $previousResponse = json_decode($previousResponseRaw, true) ?? [];
@@ -804,14 +794,7 @@ class UserController extends Controller
                 return;
             }
 
-            if ($this->hasRestrictedRitualContent([
-                json_encode($ritualData, JSON_UNESCAPED_UNICODE),
-                $prompt,
-            ])) {
-                ob_end_clean();
-                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
-                return;
-            }
+
 
             // Add to user's My Rituals collection
             $userRitualId = $this->userRitualModel->createFromAI($userId, $ritualData, $prompt);
@@ -961,16 +944,7 @@ class UserController extends Controller
             $userId = Auth::id();
 
             $globalRitual = $this->ritualModel->find($globalRitualId);
-            if ($globalRitual && $this->hasRestrictedRitualContent([
-                $globalRitual['name'] ?? '',
-                $globalRitual['description'] ?? '',
-                $globalRitual['religion'] ?? '',
-                $globalRitual['category'] ?? '',
-            ])) {
-                ob_end_clean();
-                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
-                return;
-            }
+
 
             // Check if already added
             $existing = $this->userRitualModel->findByUserAndGlobal($userId, $globalRitualId);
@@ -1040,14 +1014,7 @@ class UserController extends Controller
                 return;
             }
 
-            if ($this->hasRestrictedRitualContent([
-                json_encode($ritualData, JSON_UNESCAPED_UNICODE),
-                $prompt,
-            ])) {
-                ob_end_clean();
-                $this->json(['success' => false, 'error' => $this->restrictedRitualMessage()], 422);
-                return;
-            }
+
 
             $userRitualId = $this->userRitualModel->createFromAI($userId, $ritualData, $prompt);
 
@@ -1475,14 +1442,7 @@ class UserController extends Controller
         }
         $data = $this->only(['name', 'description', 'purpose', 'scheduled_date', 'venue', 'base_ritual_id', 'assigned_pandit_id']);
 
-        if ($this->hasRestrictedRitualContent([
-            $data['name'] ?? '',
-            $data['description'] ?? '',
-            $data['purpose'] ?? '',
-        ])) {
-            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $data]);
-            return;
-        }
+
         
         // Convert empty strings to NULL for optional integer fields
         if (empty($data['base_ritual_id'])) {
@@ -2730,10 +2690,7 @@ class UserController extends Controller
             return;
         }
 
-        if ($this->hasRestrictedRitualContent([$festivalName])) {
-            $this->back(['error' => $this->restrictedRitualMessage()]);
-            return;
-        }
+
 
         $userId = Auth::id();
         $user = (new User())->find($userId);

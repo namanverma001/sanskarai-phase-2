@@ -138,7 +138,7 @@ class InvitationController extends Controller
                 'is_active' => 1,
             ]);
         } catch (\Exception $e) {
-            // Fallback: if new columns don't exist, insert without them
+            // Fallback: if new columns (google_maps_link, template_id, etc.) don't exist, insert without them
             $invitationId = $this->invitationModel->create([
                 'user_id' => $user['id'],
                 'share_token' => $shareToken,
@@ -146,7 +146,6 @@ class InvitationController extends Controller
                 'occasion_title' => $occasionTitle,
                 'event_date' => $eventDate,
                 'venue' => $venue,
-                'google_maps_link' => $googleMapsLink,
                 'host_name' => $hostName,
                 'message' => $message,
                 'additional_details' => $additionalDetails,

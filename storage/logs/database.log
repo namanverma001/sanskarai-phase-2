@@ -25,3 +25,5 @@
 [2026-04-23 23:24:13] Database connection failed: SQLSTATE[HY000] [2006] MySQL server has gone away
 [2026-04-23 23:37:30] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known. 
 [2026-04-24 21:04:29] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known. 
+[2026-05-14 21:16:11] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known
+[2026-05-14 21:27:38] Database connection failed: SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo for sanskarai-namanverma01103-89e1.g.aivencloud.com failed: No such host is known

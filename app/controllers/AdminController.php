@@ -387,19 +387,7 @@ class AdminController extends Controller
             return;
         }
 
-        if ($this->hasRestrictedRitualContent([
-            $data['name'] ?? '',
-            $data['name_sanskrit'] ?? '',
-            $data['description'] ?? '',
-            $data['significance'] ?? '',
-            $data['religion'] ?? '',
-            $data['category'] ?? '',
-            $data['sub_category'] ?? '',
-            $data['deity'] ?? '',
-        ])) {
-            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $data]);
-            return;
-        }
+
         
         $data['is_active'] = isset($data['is_active']) ? 1 : 0;
         $data['is_featured'] = isset($data['is_featured']) ? 1 : 0;
@@ -463,19 +451,7 @@ class AdminController extends Controller
         $data['is_active'] = isset($data['is_active']) ? 1 : 0;
         $data['is_featured'] = isset($data['is_featured']) ? 1 : 0;
 
-        if ($this->hasRestrictedRitualContent([
-            $data['name'] ?? '',
-            $data['name_sanskrit'] ?? '',
-            $data['description'] ?? '',
-            $data['significance'] ?? '',
-            $data['religion'] ?? '',
-            $data['category'] ?? '',
-            $data['sub_category'] ?? '',
-            $data['deity'] ?? '',
-        ])) {
-            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $data]);
-            return;
-        }
+
         
         $this->ritualModel->update($ritualId, $data);
         
@@ -850,10 +826,7 @@ class AdminController extends Controller
             return;
         }
 
-        if ($this->hasRestrictedRitualContent($criteria)) {
-            $this->back(['error' => $this->restrictedRitualMessage(), 'old' => $criteria]);
-            return;
-        }
+
         
         try {
             // Initialize AI Service
