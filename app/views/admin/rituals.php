@@ -3,11 +3,9 @@
         <h3 class="card-title"><i class="fas fa-pray"></i> Ritual Management</h3>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <form method="GET" action="/admin/rituals" style="display: flex; gap: 5px; align-items: center;">
-                <div class="input-group" style="width: auto; min-width: 200px; flex-wrap: nowrap;">
-                    <input type="text" name="search" class="form-control" placeholder="Search..." value="<?= htmlspecialchars($search ?? '') ?>">
-                    <div class="input-group-append">
-                        <button type="submit" class="btn btn-primary d-flex align-items-center justify-content-center"><i class="fas fa-search"></i></button>
-                    </div>
+                <div class="input-group" style="display: flex; width: auto; min-width: 200px; flex-wrap: nowrap;">
+                    <input type="text" name="search" class="form-control" placeholder="Search..." value="<?= htmlspecialchars($search ?? '') ?>" style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                    <button type="submit" class="btn btn-primary d-flex align-items-center justify-content-center" style="border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -2px; z-index: 1;"><i class="fas fa-search"></i></button>
                 </div>
                 <?php if (!empty($search)): ?>
                 <a href="/admin/rituals" class="btn btn-secondary" title="Clear"><i class="fas fa-times"></i></a>

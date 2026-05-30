@@ -1137,10 +1137,7 @@ $roleDisplay = match ($userRole) {
         </aside>
 
         <main class="main-content">
-            <div class="top-bar">
-                <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
-                <!-- User menu removed as per request -->
-            </div>
+
 
             <?php if (isset($_SESSION['flash']['success'])): ?>
                 <div class="alert alert-success">

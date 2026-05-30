@@ -8,11 +8,9 @@
                 <option value="pandit" <?= ($filters['role'] ?? '') === 'pandit' ? 'selected' : '' ?>>Pandits</option>
                 <option value="admin" <?= ($filters['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Admins</option>
             </select>
-            <div class="input-group" style="width: auto; min-width: 250px; flex-wrap: nowrap;">
-                <input type="text" name="search" class="form-control" placeholder="Search by name..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>">
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i></button>
-                </div>
+            <div class="input-group" style="display: flex; width: auto; min-width: 250px; flex-wrap: nowrap;">
+                <input type="text" name="search" class="form-control" placeholder="Search by name..." value="<?= htmlspecialchars($filters['search'] ?? '') ?>" style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                <button type="submit" class="btn btn-primary" style="border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -2px; z-index: 1;"><i class="fas fa-search"></i></button>
             </div>
             <?php if (!empty($filters['role']) || !empty($filters['search'])): ?>
             <a href="/admin/users" class="btn btn-secondary" title="Clear Filters"><i class="fas fa-times"></i></a>

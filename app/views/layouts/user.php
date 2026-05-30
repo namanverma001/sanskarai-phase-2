@@ -1229,11 +1229,7 @@ $roleDisplay = match ($userRole) {
         <main class="main-content">
             <?php $uri = $_SERVER['REQUEST_URI'] ?? ''; ?>
             <?php $hideTopBar = strpos($uri, '/user/ai-pandit') !== false; ?>
-            <?php if (!$hideTopBar): ?>
-                <div class="top-bar">
-                    <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
-                </div>
-            <?php endif; ?>
+
 
             <?php if (isset($_SESSION['flash']['success'])): ?>
                 <div class="alert alert-success"><i class="fas fa-check-circle"></i>

@@ -1348,10 +1348,7 @@ $roleDisplay = match ($userRole) {
         </aside>
 
         <main class="main-content">
-            <div class="top-bar">
-                <h1 class="page-title"><?= htmlspecialchars($title ?? 'Dashboard') ?></h1>
 
-            </div>
 
             <?php if (isset($_SESSION['flash']['success'])): ?>
                 <div class="alert alert-success">
